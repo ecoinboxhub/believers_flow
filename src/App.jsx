@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
-const GROQ_READY = GROQ_API_KEY && GROQ_API_KEY !== 'YOUR_GROQ_API_KEY_HERE'
+const API_URL = import.meta.env.VITE_API_URL || ''
+const AI_READY = (GROQ_API_KEY && GROQ_API_KEY !== 'YOUR_GROQ_API_KEY_HERE') || Boolean(API_URL)
 
 const VERSES = [
   { text: "I can do all things through Christ who strengthens me.", ref: "Philippians 4:13" },
@@ -362,31 +363,43 @@ export default function App() {
   const sendChat = useCallback(async () => {
     const msg = chatMsg.trim()
     if (!msg || chatLoading) return
-    if (!GROQ_READY) { showToast('Set VITE_GROQ_API_KEY in .env first', 'warning'); return }
+    if (!AI_READY && !API_URL) { showToast('Set VITE_GROQ_API_KEY in .env or deploy backend', 'warning'); return }
 
     const userEntry = { role: 'user', content: msg }
     setChatHistory(prev => [...prev, userEntry])
     setChatMsg(''); setChatLoading(true)
 
     const taskContext = tasks.length ? `The user's current tasks are: ${tasks.map(t => t.text).join(', ')}` : ''
-    const systemPrompt = `You are a compassionate Christian mentor and life coach. Respond with warmth, scripture wisdom, and practical advice. Keep responses concise (2-4 sentences). Use 1 relevant emoji. ${taskContext ? `\nContext: ${taskContext}` : ''}`
 
     try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'mixtral-8x7b-32768',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...chatHistory.slice(-6),
-            userEntry,
-          ],
+      let reply = ''
+      if (API_URL) {
+        const res = await fetch(`${API_URL}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [...chatHistory.slice(-6), userEntry],
+            taskContext,
+          })
         })
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
-      setChatHistory(prev => [...prev, { role: 'assistant', content: data.choices[0].message.content }])
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        reply = data.message
+      } else {
+        const systemPrompt = `You are a compassionate Christian mentor and life coach. Respond with warmth, scripture wisdom, and practical advice. Keep responses concise (2-4 sentences). Use 1 relevant emoji. ${taskContext ? `\nContext: ${taskContext}` : ''}`
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'mixtral-8x7b-32768',
+            messages: [{ role: 'system', content: systemPrompt }, ...chatHistory.slice(-6), userEntry],
+          })
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        reply = data.choices[0].message.content
+      }
+      setChatHistory(prev => [...prev, { role: 'assistant', content: reply }])
     } catch {
       setChatHistory(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting. Please check your connection and try again. 🙏" }])
     } finally { setChatLoading(false) }
@@ -767,10 +780,10 @@ export default function App() {
       </footer>
 
       <div className="fab-group">
-        {GROQ_READY && (
+        {AI_READY && (
           <button className="fab-guide" onClick={() => setShowGuide(true)} title="AI Guide" aria-label="AI Guide">❓</button>
         )}
-        {GROQ_READY && (
+        {AI_READY && (
           <button className={`chat-fab ${chatOpen ? ' open' : ''}`} onClick={() => setChatOpen(o => !o)}>
             {chatOpen ? '✕' : '💬'}
           </button>
@@ -826,7 +839,7 @@ export default function App() {
         </div>
       )}
 
-      {GROQ_READY && chatOpen && (
+      {AI_READY && chatOpen && (
         <div className="chat-overlay">
           <div className="chat-panel">
             <div className="chat-header">
