@@ -30,6 +30,9 @@ android/app/build/
 *.apk
 *.jks
 
+# Environment
+.env
+
 # Backup
 backup_old/
 
