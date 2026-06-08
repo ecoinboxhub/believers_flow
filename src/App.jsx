@@ -63,6 +63,75 @@ const GREETINGS = [
   { hour: 21, msg: "Good night! May the Lord watch over you.", icon: "🌙" },
 ]
 
+const BIBLE_BOOKS = [
+  { id: "Genesis", chapters: 50, testament: "OT" },
+  { id: "Exodus", chapters: 40, testament: "OT" },
+  { id: "Leviticus", chapters: 27, testament: "OT" },
+  { id: "Numbers", chapters: 36, testament: "OT" },
+  { id: "Deuteronomy", chapters: 34, testament: "OT" },
+  { id: "Joshua", chapters: 24, testament: "OT" },
+  { id: "Judges", chapters: 21, testament: "OT" },
+  { id: "Ruth", chapters: 4, testament: "OT" },
+  { id: "1 Samuel", chapters: 31, testament: "OT" },
+  { id: "2 Samuel", chapters: 24, testament: "OT" },
+  { id: "1 Kings", chapters: 22, testament: "OT" },
+  { id: "2 Kings", chapters: 25, testament: "OT" },
+  { id: "1 Chronicles", chapters: 29, testament: "OT" },
+  { id: "2 Chronicles", chapters: 36, testament: "OT" },
+  { id: "Ezra", chapters: 10, testament: "OT" },
+  { id: "Nehemiah", chapters: 13, testament: "OT" },
+  { id: "Esther", chapters: 10, testament: "OT" },
+  { id: "Job", chapters: 42, testament: "OT" },
+  { id: "Psalm", chapters: 150, testament: "OT" },
+  { id: "Proverbs", chapters: 31, testament: "OT" },
+  { id: "Ecclesiastes", chapters: 12, testament: "OT" },
+  { id: "Song of Solomon", chapters: 8, testament: "OT" },
+  { id: "Isaiah", chapters: 66, testament: "OT" },
+  { id: "Jeremiah", chapters: 52, testament: "OT" },
+  { id: "Lamentations", chapters: 5, testament: "OT" },
+  { id: "Ezekiel", chapters: 48, testament: "OT" },
+  { id: "Daniel", chapters: 12, testament: "OT" },
+  { id: "Hosea", chapters: 14, testament: "OT" },
+  { id: "Joel", chapters: 3, testament: "OT" },
+  { id: "Amos", chapters: 9, testament: "OT" },
+  { id: "Obadiah", chapters: 1, testament: "OT" },
+  { id: "Jonah", chapters: 4, testament: "OT" },
+  { id: "Micah", chapters: 7, testament: "OT" },
+  { id: "Nahum", chapters: 3, testament: "OT" },
+  { id: "Habakkuk", chapters: 3, testament: "OT" },
+  { id: "Zephaniah", chapters: 3, testament: "OT" },
+  { id: "Haggai", chapters: 2, testament: "OT" },
+  { id: "Zechariah", chapters: 14, testament: "OT" },
+  { id: "Malachi", chapters: 4, testament: "OT" },
+  { id: "Matthew", chapters: 28, testament: "NT" },
+  { id: "Mark", chapters: 16, testament: "NT" },
+  { id: "Luke", chapters: 24, testament: "NT" },
+  { id: "John", chapters: 21, testament: "NT" },
+  { id: "Acts", chapters: 28, testament: "NT" },
+  { id: "Romans", chapters: 16, testament: "NT" },
+  { id: "1 Corinthians", chapters: 16, testament: "NT" },
+  { id: "2 Corinthians", chapters: 13, testament: "NT" },
+  { id: "Galatians", chapters: 6, testament: "NT" },
+  { id: "Ephesians", chapters: 6, testament: "NT" },
+  { id: "Philippians", chapters: 4, testament: "NT" },
+  { id: "Colossians", chapters: 4, testament: "NT" },
+  { id: "1 Thessalonians", chapters: 5, testament: "NT" },
+  { id: "2 Thessalonians", chapters: 3, testament: "NT" },
+  { id: "1 Timothy", chapters: 6, testament: "NT" },
+  { id: "2 Timothy", chapters: 4, testament: "NT" },
+  { id: "Titus", chapters: 3, testament: "NT" },
+  { id: "Philemon", chapters: 1, testament: "NT" },
+  { id: "Hebrews", chapters: 13, testament: "NT" },
+  { id: "James", chapters: 5, testament: "NT" },
+  { id: "1 Peter", chapters: 5, testament: "NT" },
+  { id: "2 Peter", chapters: 3, testament: "NT" },
+  { id: "1 John", chapters: 5, testament: "NT" },
+  { id: "2 John", chapters: 1, testament: "NT" },
+  { id: "3 John", chapters: 1, testament: "NT" },
+  { id: "Jude", chapters: 1, testament: "NT" },
+  { id: "Revelation", chapters: 22, testament: "NT" },
+]
+
 function loadState(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback } catch { return fallback }
 }
@@ -134,11 +203,20 @@ export default function App() {
   const [diaryContent, setDiaryContent] = useState('')
   const [diaryMood, setDiaryMood] = useState('😊')
   const [editingDiary, setEditingDiary] = useState(null)
+  const [bibleBook, setBibleBook] = useState('Genesis')
+  const [bibleChapter, setBibleChapter] = useState(1)
+  const [bibleText, setBibleText] = useState(null)
+  const [bibleLoading, setBibleLoading] = useState(false)
+  const [bibleError, setBibleError] = useState(null)
+  const [bibleTestament, setBibleTestament] = useState('OT')
+  const [recentReads, setRecentReads] = useState(() => loadState('btf_recentReads', []))
   const chatEnd = useRef(null)
   const chatInput = useRef(null)
 
   const streak = getStreak(prayerLogs)
   const verse = VERSES[verseIndex]
+  const currentBook = BIBLE_BOOKS.find(b => b.id === bibleBook)
+  const chapterCount = currentBook ? currentBook.chapters : 1
 
   useEffect(() => { saveState('btf_tasks', tasks) }, [tasks])
   useEffect(() => { saveState('btf_prayerLogs', prayerLogs) }, [prayerLogs])
@@ -146,13 +224,41 @@ export default function App() {
   useEffect(() => { saveState('btf_chat', chatHistory) }, [chatHistory])
   useEffect(() => { saveState('btf_diary', diaryEntries) }, [diaryEntries])
   useEffect(() => { saveState('btf_bibleVersion', bibleVersion) }, [bibleVersion])
+  useEffect(() => { saveState('btf_recentReads', recentReads) }, [recentReads])
   useEffect(() => { if (chatOpen && chatInput.current) chatInput.current.focus() }, [chatOpen])
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatHistory])
+
+  useEffect(() => {
+    if (currentView !== 'bible') return
+    fetchChapter(bibleBook, bibleChapter)
+  }, [bibleBook, bibleChapter, currentView])
+
+  const fetchChapter = useCallback(async (book, chapter) => {
+    const cacheKey = `btf_bible_${book}_${chapter}`
+    const cached = loadState(cacheKey, null)
+    if (cached) { setBibleText(cached); setBibleError(null); setBibleLoading(false); return }
+
+    setBibleLoading(true); setBibleError(null)
+    try {
+      const res = await fetch(`https://bible-api.com/${encodeURIComponent(book)}+${chapter}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setBibleText(data)
+      saveState(cacheKey, data)
+      setRecentReads(prev => {
+        const filtered = prev.filter(r => !(r.book === book && r.chapter === chapter))
+        return [{ book, chapter, ref: `${book} ${chapter}`, time: Date.now() }, ...filtered].slice(0, 15)
+      })
+    } catch (e) {
+      setBibleError(e.message === 'Failed to fetch' ? 'Connect to the internet to read this chapter.' : `Could not load chapter. ${e.message}`)
+      setBibleText(null)
+    } finally { setBibleLoading(false) }
+  }, [recentReads])
 
   const showToast = useCallback((msg, type = 'success', action = null) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast({ message: msg, type, action })
-    toastTimer.current = setTimeout(() => setToast(null), 4000)
+    toastTimer.current = setTimeout(() => setToast(null), 4500)
   }, [])
 
   const dismissToast = useCallback(() => {
@@ -190,8 +296,8 @@ export default function App() {
       if (item) {
         const undoId = Date.now()
         setUndoStack(s => [...s, { id: undoId, action: 'delete-task', data: item }])
-        setTimeout(() => setUndoStack(s => s.filter(u => u.id !== undoId)), 5000)
-        showToast('Task removed', 'info', { label: 'Undo', cb: () => {
+        setTimeout(() => setUndoStack(s => s.filter(u => u.id !== undoId)), 6000)
+        showToast('Task deleted', 'info', { label: '↩ Undo', cb: () => {
           setUndoStack(s => { const u = s.find(x => x.id === undoId); if (u) { setTasks(p => [...p, u.data]); return s.filter(x => x.id !== undoId) } return s })
           dismissToast()
         }})
@@ -243,8 +349,8 @@ export default function App() {
       if (item) {
         const undoId = Date.now()
         setUndoStack(s => [...s, { id: undoId, action: 'delete-diary', data: item }])
-        setTimeout(() => setUndoStack(s => s.filter(u => u.id !== undoId)), 5000)
-        showToast('Entry removed', 'info', { label: 'Undo', cb: () => {
+        setTimeout(() => setUndoStack(s => s.filter(u => u.id !== undoId)), 6000)
+        showToast('Entry removed', 'info', { label: '↩ Undo', cb: () => {
           setUndoStack(s => { const u = s.find(x => x.id === undoId); if (u) { setDiaryEntries(p => [...p, u.data]); return s.filter(x => x.id !== undoId) } return s })
           dismissToast()
         }})
@@ -286,6 +392,11 @@ export default function App() {
     } finally { setChatLoading(false) }
   }, [chatMsg, chatLoading, chatHistory, tasks])
 
+  const goToBibleChapter = useCallback((book, chapter) => {
+    setBibleBook(book); setBibleChapter(chapter)
+    setCurrentView('bible')
+  }, [])
+
   const totalTasks = tasks.length
   const completedTasks = tasks.filter(t => t.completed).length
   const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
@@ -306,9 +417,7 @@ export default function App() {
       {toast && (
         <div className={`toast toast-${toast.type}`}>
           <span>{toast.message}</span>
-          {toast.action && (
-            <button className="toast-action" onClick={toast.action.cb}>{toast.action.label}</button>
-          )}
+          {toast.action && <button className="toast-action" onClick={toast.action.cb}>{toast.action.label}</button>}
         </div>
       )}
 
@@ -335,9 +444,9 @@ export default function App() {
       </div>
 
       <nav id="main-nav">
-        {['tasks', 'spiritual', 'diary'].map(view => (
+        {['tasks', 'spiritual', 'diary', 'bible'].map(view => (
           <button key={view} className={`nav-item${currentView === view ? ' active' : ''}`} onClick={() => setCurrentView(view)}>
-            {view === 'tasks' ? '📋 Tasks' : view === 'spiritual' ? '✨ Spiritual' : '📓 Diary'}
+            {view === 'tasks' ? '📋 Tasks' : view === 'spiritual' ? '✨ Spiritual' : view === 'diary' ? '📓 Diary' : '📖 Bible'}
           </button>
         ))}
       </nav>
@@ -394,7 +503,7 @@ export default function App() {
                       <span className={`task-cat ${t.category}`}>{t.category}</span>
                     </div>
                   </div>
-                  <button className="delete-btn" onClick={() => deleteTask(t.id)}>✕</button>
+                  <button className="task-delete-btn" onClick={() => deleteTask(t.id)} title="Delete task">🗑</button>
                 </li>
               ))}
               {filteredTasks.length === 0 && (
@@ -561,6 +670,96 @@ export default function App() {
             </div>
           </section>
         )}
+
+        {currentView === 'bible' && (
+          <section className="view">
+            <div className="card">
+              <div className="card-icon">📖</div>
+              <h3>Holy Bible Reader</h3>
+              <p>Read all 66 books of the Bible. Chapters are cached for offline reading.</p>
+
+              <div className="bible-nav">
+                <div className="bn-testaments">
+                  <button className={`bn-test-btn${bibleTestament === 'OT' ? ' active' : ''}`} onClick={() => setBibleTestament('OT')}>Old Testament</button>
+                  <button className={`bn-test-btn${bibleTestament === 'NT' ? ' active' : ''}`} onClick={() => setBibleTestament('NT')}>New Testament</button>
+                </div>
+                <div className="bn-book-row">
+                  <div className="bn-book-select">
+                    <select value={bibleBook} onChange={e => setBibleBook(e.target.value)}>
+                      {BIBLE_BOOKS.filter(b => b.testament === bibleTestament).map(b => (
+                        <option key={b.id} value={b.id}>{b.id} ({b.chapters} ch)</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="bn-chapter-select">
+                    <select value={bibleChapter} onChange={e => setBibleChapter(Number(e.target.value))}>
+                      {Array.from({ length: chapterCount }, (_, i) => (
+                        <option key={i + 1} value={i + 1}>Chapter {i + 1}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="bn-chapter-nav">
+                  <button className="bn-nav-btn" onClick={() => setBibleChapter(p => Math.max(1, p - 1))} disabled={bibleChapter <= 1}>◀ Prev</button>
+                  <span className="bn-nav-ref">{bibleBook} {bibleChapter}</span>
+                  <button className="bn-nav-btn" onClick={() => setBibleChapter(p => Math.min(chapterCount, p + 1))} disabled={bibleChapter >= chapterCount}>Next ▶</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bible-content-card">
+              {bibleLoading && (
+                <div className="bible-loading">
+                  <span className="bible-loading-icon">📖</span>
+                  <p>Loading {bibleBook} {bibleChapter}...</p>
+                  <div className="bible-loading-bar"><div className="bible-loading-fill" /></div>
+                </div>
+              )}
+              {bibleError && (
+                <div className="bible-error">
+                  <span className="bible-error-icon">⚠️</span>
+                  <p>{bibleError}</p>
+                  <button className="bn-nav-btn" onClick={() => fetchChapter(bibleBook, bibleChapter)}>Retry</button>
+                </div>
+              )}
+              {bibleText && !bibleLoading && (
+                <div className="bible-text-container">
+                  <div className="bible-text-header">
+                    <h2 className="bible-text-ref">{bibleText.reference || `${bibleBook} ${bibleChapter}`}</h2>
+                    <span className="bv-badge">KJV</span>
+                  </div>
+                  <div className="bible-verses">
+                    {(bibleText.verses || []).map((v, i) => (
+                      <p key={i} className="bible-verse">
+                        <sup className="bible-verse-num">{v.verse}</sup>
+                        <span className="bible-verse-text">{v.text}</span>
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!bibleText && !bibleLoading && !bibleError && (
+                <div className="bible-empty">
+                  <span className="bible-empty-icon">📖</span>
+                  <p>Select a book and chapter above to start reading.</p>
+                </div>
+              )}
+            </div>
+
+            {recentReads.length > 0 && (
+              <div className="card">
+                <h3>🕐 Recent Reads</h3>
+                <div className="recent-reads">
+                  {recentReads.slice(0, 5).map((r, i) => (
+                    <button key={i} className="recent-read-btn" onClick={() => goToBibleChapter(r.book, r.chapter)}>
+                      📄 {r.book} {r.chapter}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       <footer>
@@ -569,9 +768,7 @@ export default function App() {
 
       <div className="fab-group">
         {GROQ_READY && (
-          <button className="fab-guide" onClick={() => setShowGuide(true)} title="AI Guide" aria-label="AI Guide">
-            ❓
-          </button>
+          <button className="fab-guide" onClick={() => setShowGuide(true)} title="AI Guide" aria-label="AI Guide">❓</button>
         )}
         {GROQ_READY && (
           <button className={`chat-fab ${chatOpen ? ' open' : ''}`} onClick={() => setChatOpen(o => !o)}>
@@ -592,7 +789,6 @@ export default function App() {
                 <h4>What is the AI Assistant?</h4>
                 <p>The Faith Assistant is a conversational AI powered by <strong>GROQ's mixtral-8x7b-32768</strong> model. It provides scripture-based guidance, prayer support, and life advice.</p>
               </div>
-
               <div className="guide-section">
                 <h4>How to Set Up</h4>
                 <ol>
@@ -602,7 +798,6 @@ export default function App() {
                   <li>Restart the dev server or rebuild the APK</li>
                 </ol>
               </div>
-
               <div className="guide-section">
                 <h4>What It Can Do</h4>
                 <ul>
@@ -613,12 +808,10 @@ export default function App() {
                   <li>Help with your tasks and spiritual goals</li>
                 </ul>
               </div>
-
               <div className="guide-section">
                 <h4>Privacy</h4>
                 <p>Your chats are stored locally in your browser's localStorage. They are <strong>never sent to any server</strong> except to GROQ's API for AI responses. The API key stays in your <code>.env</code> file and is never shared.</p>
               </div>
-
               <div className="guide-section">
                 <h4>Tips</h4>
                 <ul>
