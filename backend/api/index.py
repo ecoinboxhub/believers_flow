@@ -68,7 +68,7 @@ async def chat(req: ChatRequest):
         system_content += f"\nThe user's current tasks are: {req.taskContext}"
 
     payload = {
-        "model": "mixtral-8x7b-32768",
+        "model": "llama-3.3-70b-versatile",
         "messages": [
             {"role": "system", "content": system_content},
             *[{"role": m.role, "content": m.content} for m in req.messages],
