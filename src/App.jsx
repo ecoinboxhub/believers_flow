@@ -1,13 +1,37 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
-import { HYMNS } from './hymns.js'
-import { DEVOTIONALS } from './devotional.js'
-import { getNow, getDayOfYear, formatDateTime, formatTimeShort, getAllTimezones, getGreeting as getTzGreeting, getTodaySeed, getTodayISO, TIMEZONES } from './dateUtils.js'
+import ViewSwitcher from './components/ViewSwitcher.jsx'
+import { getNow, getDayOfYear, formatDateShort, formatTimeShort, getGreeting as getTzGreeting, getUserTimezoneAbbr } from './dateUtils.js'
 import { playHymn, stopHymn } from './hymnMusic.js'
+import Auth from './Auth.jsx'
+import WelcomeScreen from './components/WelcomeScreen.jsx'
+import LegalScreen, { hasAcceptedLegal, LEGAL_VERSION } from './LegalScreen.jsx'
+import { getUser, logout, pullFromServer, mergeServerData, scheduleSync } from './syncService.js'
+import { requestNotificationPermission, subscribeToPush, unsubscribeFromPush } from './pushNotifications.js'
+import BibleView from './components/BibleView.jsx'
+import { BIBLE_API_DIRECT, BIBLE_BOOK_IDS } from './constants.js'
+import DiaryView from './components/DiaryView.jsx'
+import MusicView from './components/MusicView.jsx'
+import DevotionalView from './components/DevotionalView.jsx'
+import TasksView from './components/TasksView.jsx'
+import SpiritualView from './components/SpiritualView.jsx'
+import SettingsView from './components/SettingsView.jsx'
+import GroupsView from './components/GroupsView.jsx'
+import ChurchView from './components/ChurchView.jsx'
+import EventsView from './components/EventsView.jsx'
+import SermonView from './components/SermonView.jsx'
+import ForumView from './components/ForumView.jsx'
+import PrayerAnalyticsView from './components/PrayerAnalyticsView.jsx'
+import CommunityFeedView from './components/CommunityFeedView.jsx'
+import PrayerFeedView from './components/PrayerFeedView.jsx'
+import TestimonyView from './components/TestimonyView.jsx'
+import CommunityAssistant from './components/CommunityAssistant.jsx'
+import { NotificationBell } from './components/NotificationCenter.jsx'
+import GamificationBadge from './components/GamificationBadge.jsx'
+import { ErrorBoundary } from './components/ErrorBoundary.jsx'
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 const API_URL = import.meta.env.VITE_API_URL || ''
-const AI_READY = (GROQ_API_KEY && GROQ_API_KEY !== 'YOUR_GROQ_API_KEY_HERE') || Boolean(API_URL)
+const AI_READY = Boolean(API_URL)
 
 const VERSES = [
   { text: "I can do all things through Christ who strengthens me.", ref: "Philippians 4:13" },
@@ -24,127 +48,6 @@ const VERSES = [
   { text: "Your word is a lamp to my feet and a light to my path.", ref: "Psalm 119:105" },
 ]
 
-const DAILY_PRAYERS = [
-  "Lord, thank You for this new day. Guide my thoughts, words, and actions. Let me be a light to someone today. Amen.",
-  "Heavenly Father, I surrender this day to You. Give me wisdom in my decisions and peace in my heart. In Jesus' name, Amen.",
-  "Dear God, help me to see Your hand in every situation today. Grant me patience, kindness, and strength. Amen.",
-  "Lord Jesus, I lift up my family, friends, and even my enemies before You. Bless them and draw them close to Your heart. Amen.",
-  "Father, I thank You for Your unfailing love. Help me to love others the way You love me — unconditionally and without reservation. Amen.",
-]
-
-const STUDY_SUGGESTIONS = [
-  { book: "Psalm", chapter: 23, title: "The Lord is My Shepherd" },
-  { book: "Proverbs", chapter: 3, title: "Trust in the Lord" },
-  { book: "Matthew", chapter: 5, title: "The Beatitudes" },
-  { book: "John", chapter: 14, title: "I Am the Way" },
-  { book: "Romans", chapter: 8, title: "Life in the Spirit" },
-  { book: "Philippians", chapter: 4, title: "Rejoice in the Lord" },
-  { book: "Ephesians", chapter: 6, title: "Armor of God" },
-]
-
-const BIBLE_VERSIONS = [
-  { id: "KJV", name: "King James Version" },
-  { id: "NKJV", name: "New King James Version" },
-  { id: "NIV", name: "New International Version" },
-  { id: "ESV", name: "English Standard Version" },
-  { id: "NASB", name: "New American Standard Bible" },
-  { id: "NLT", name: "New Living Translation" },
-  { id: "CSB", name: "Christian Standard Bible" },
-  { id: "AMP", name: "Amplified Bible" },
-  { id: "ASV", name: "American Standard Version" },
-  { id: "RSV", name: "Revised Standard Version" },
-  { id: "GNB", name: "Good News Bible" },
-  { id: "WEB", name: "World English Bible" },
-]
-
-const MOODS = [
-  { emoji: "😊", label: "Joyful" },
-  { emoji: "🙂", label: "Grateful" },
-  { emoji: "😐", label: "Peaceful" },
-  { emoji: "😢", label: "Anxious" },
-  { emoji: "😭", label: "Struggling" },
-]
-
-const TIMEZONE_LIST = TIMEZONES
-const HYMN_WITH_TUNES = new Set([1,2,3,4,5,6,7,8,9,10,11,15,19,20,21,22,23,35,36,39,40,41,44,47,48,49])
-
-const BIBLE_BOOKS = [
-  { id: "Genesis", chapters: 50, testament: "OT" },
-  { id: "Exodus", chapters: 40, testament: "OT" },
-  { id: "Leviticus", chapters: 27, testament: "OT" },
-  { id: "Numbers", chapters: 36, testament: "OT" },
-  { id: "Deuteronomy", chapters: 34, testament: "OT" },
-  { id: "Joshua", chapters: 24, testament: "OT" },
-  { id: "Judges", chapters: 21, testament: "OT" },
-  { id: "Ruth", chapters: 4, testament: "OT" },
-  { id: "1 Samuel", chapters: 31, testament: "OT" },
-  { id: "2 Samuel", chapters: 24, testament: "OT" },
-  { id: "1 Kings", chapters: 22, testament: "OT" },
-  { id: "2 Kings", chapters: 25, testament: "OT" },
-  { id: "1 Chronicles", chapters: 29, testament: "OT" },
-  { id: "2 Chronicles", chapters: 36, testament: "OT" },
-  { id: "Ezra", chapters: 10, testament: "OT" },
-  { id: "Nehemiah", chapters: 13, testament: "OT" },
-  { id: "Esther", chapters: 10, testament: "OT" },
-  { id: "Job", chapters: 42, testament: "OT" },
-  { id: "Psalm", chapters: 150, testament: "OT" },
-  { id: "Proverbs", chapters: 31, testament: "OT" },
-  { id: "Ecclesiastes", chapters: 12, testament: "OT" },
-  { id: "Song of Solomon", chapters: 8, testament: "OT" },
-  { id: "Isaiah", chapters: 66, testament: "OT" },
-  { id: "Jeremiah", chapters: 52, testament: "OT" },
-  { id: "Lamentations", chapters: 5, testament: "OT" },
-  { id: "Ezekiel", chapters: 48, testament: "OT" },
-  { id: "Daniel", chapters: 12, testament: "OT" },
-  { id: "Hosea", chapters: 14, testament: "OT" },
-  { id: "Joel", chapters: 3, testament: "OT" },
-  { id: "Amos", chapters: 9, testament: "OT" },
-  { id: "Obadiah", chapters: 1, testament: "OT" },
-  { id: "Jonah", chapters: 4, testament: "OT" },
-  { id: "Micah", chapters: 7, testament: "OT" },
-  { id: "Nahum", chapters: 3, testament: "OT" },
-  { id: "Habakkuk", chapters: 3, testament: "OT" },
-  { id: "Zephaniah", chapters: 3, testament: "OT" },
-  { id: "Haggai", chapters: 2, testament: "OT" },
-  { id: "Zechariah", chapters: 14, testament: "OT" },
-  { id: "Malachi", chapters: 4, testament: "OT" },
-  { id: "Matthew", chapters: 28, testament: "NT" },
-  { id: "Mark", chapters: 16, testament: "NT" },
-  { id: "Luke", chapters: 24, testament: "NT" },
-  { id: "John", chapters: 21, testament: "NT" },
-  { id: "Acts", chapters: 28, testament: "NT" },
-  { id: "Romans", chapters: 16, testament: "NT" },
-  { id: "1 Corinthians", chapters: 16, testament: "NT" },
-  { id: "2 Corinthians", chapters: 13, testament: "NT" },
-  { id: "Galatians", chapters: 6, testament: "NT" },
-  { id: "Ephesians", chapters: 6, testament: "NT" },
-  { id: "Philippians", chapters: 4, testament: "NT" },
-  { id: "Colossians", chapters: 4, testament: "NT" },
-  { id: "1 Thessalonians", chapters: 5, testament: "NT" },
-  { id: "2 Thessalonians", chapters: 3, testament: "NT" },
-  { id: "1 Timothy", chapters: 6, testament: "NT" },
-  { id: "2 Timothy", chapters: 4, testament: "NT" },
-  { id: "Titus", chapters: 3, testament: "NT" },
-  { id: "Philemon", chapters: 1, testament: "NT" },
-  { id: "Hebrews", chapters: 13, testament: "NT" },
-  { id: "James", chapters: 5, testament: "NT" },
-  { id: "1 Peter", chapters: 5, testament: "NT" },
-  { id: "2 Peter", chapters: 3, testament: "NT" },
-  { id: "1 John", chapters: 5, testament: "NT" },
-  { id: "2 John", chapters: 1, testament: "NT" },
-  { id: "3 John", chapters: 1, testament: "NT" },
-  { id: "Jude", chapters: 1, testament: "NT" },
-  { id: "Revelation", chapters: 22, testament: "NT" },
-]
-
-const COLOR_THEMES = {
-  believersflow: { name: 'BelieversFlow', bg: ['#0a0a1a','#1a0a2e','#16213e','#0f1a2e'], header: ['rgba(26,10,46,0.95)','rgba(123,45,142,0.35)','rgba(58,123,213,0.15)'], gold: '#f2c94c', blue: '#3a7bd5', purple: '#7b2d8e' },
-  royal: { name: 'Royal', bg: ['#1a0a0a','#2e0a0a','#3e1515','#2e0f0f'], header: ['rgba(46,10,10,0.95)','rgba(142,45,45,0.35)','rgba(213,58,58,0.15)'], gold: '#ffd700', blue: '#d54a3a', purple: '#8e2d2d' },
-  emerald: { name: 'Emerald', bg: ['#0a1a0f','#0a2e15','#153e20','#0f2e18'], header: ['rgba(10,46,21,0.95)','rgba(45,142,69,0.35)','rgba(58,213,99,0.15)'], gold: '#c9f24c', blue: '#3ad57b', purple: '#2d8e4a' },
-  ocean: { name: 'Ocean', bg: ['#0a0f1a','#0a152e','#15203e','#0f182e'], header: ['rgba(10,21,46,0.95)','rgba(45,69,142,0.35)','rgba(58,99,213,0.15)'], gold: '#4cf2e8', blue: '#3a7bd5', purple: '#2d4a8e' },
-  sunset: { name: 'Sunset', bg: ['#1a0f0a','#2e150a','#3e2015','#2e180f'], header: ['rgba(46,21,10,0.95)','rgba(142,69,45,0.35)','rgba(213,139,58,0.15)'], gold: '#f2a84c', blue: '#d58b3a', purple: '#8e5a2d' },
-}
-
 const FONT_SIZES = { small: '13px', medium: '15px', large: '17px' }
 
 const DEFAULT_SETTINGS = {
@@ -154,14 +57,6 @@ const DEFAULT_SETTINGS = {
 }
 
 const DEFAULT_CUSTOM_COLORS = { primary: '#3a7bd5', accent: '#f2c94c', background: '#0a0a1a' }
-
-const THEME_OPTIONS = [
-  { id: 'believersflow', name: 'BelieversFlow', colors: ['#7b2d8e', '#f2c94c', '#3a7bd5'] },
-  { id: 'royal', name: 'Royal', colors: ['#8e2d2d', '#ffd700', '#d54a3a'] },
-  { id: 'emerald', name: 'Emerald', colors: ['#2d8e4a', '#c9f24c', '#3ad57b'] },
-  { id: 'ocean', name: 'Ocean', colors: ['#2d4a8e', '#4cf2e8', '#3a7bd5'] },
-  { id: 'sunset', name: 'Sunset', colors: ['#8e5a2d', '#f2a84c', '#d58b3a'] },
-]
 
 function loadState(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback } catch { return fallback }
@@ -180,19 +75,17 @@ function getStreak(logs) {
   return streak
 }
 
-function formatTime(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
-
-function formatDate(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
 export default function App() {
+  const [authUser, setAuthUser] = useState(() => getUser())
+  const [showAuth, setShowAuth] = useState(false)
+  const [settingsAuthMode, setSettingsAuthMode] = useState(null)
+  const [showWelcome, setShowWelcome] = useState(() => {
+    if (!loadState('btf_onboardingDone', false)) return false
+    if (!hasAcceptedLegal()) return false
+    if (authUser) return false
+    return !loadState('btf_welcomeDone', false)
+  })
+  const isPremium = Boolean(authUser)
   const [tasks, setTasks] = useState(() => loadState('btf_tasks', []))
   const [prayerLogs, setPrayerLogs] = useState(() => loadState('btf_prayerLogs', []))
   const [studyPlan, setStudyPlan] = useState(() => loadState('btf_studyPlan', { book: '', chapter: '' }))
@@ -208,8 +101,7 @@ export default function App() {
     saveState('btf_verseDate', today); saveState('btf_verseIndex', idx)
     return idx
   })
-  const [greeting, setGreeting] = useState(getTzGreeting)
-  const [clockTick, setClockTick] = useState(0)
+  const [greeting, setGreeting] = useState(() => getTzGreeting())
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
   const [taskText, setTaskText] = useState('')
@@ -222,8 +114,6 @@ export default function App() {
   const [chatMsg, setChatMsg] = useState('')
   const [chatHistory, setChatHistory] = useState(() => loadState('btf_chat', []))
   const [chatLoading, setChatLoading] = useState(false)
-  const [todayPrayer] = useState(() => DAILY_PRAYERS[getNow().getDate() % DAILY_PRAYERS.length])
-  const [undoStack, setUndoStack] = useState([])
   const [showGuide, setShowGuide] = useState(false)
   const [diaryTitle, setDiaryTitle] = useState('')
   const [diaryContent, setDiaryContent] = useState('')
@@ -246,48 +136,90 @@ export default function App() {
   const [concordanceLoading, setConcordanceLoading] = useState(false)
   const [comparison, setComparison] = useState(null)
   const [comparisonLoading, setComparisonLoading] = useState(false)
+  const [interlinear, setInterlinear] = useState(null)
+  const [interlinearLoading, setInterlinearLoading] = useState(false)
   const chatEnd = useRef(null)
   const chatInput = useRef(null)
   const [settings, setSettings] = useState(() => loadState('btf_settings', DEFAULT_SETTINGS))
   const [customColors, setCustomColors] = useState(() => loadState('btf_customColors', DEFAULT_CUSTOM_COLORS))
-  const [settingsSection, setSettingsSection] = useState('appearance')
   const [showOnboarding, setShowOnboarding] = useState(() => {
     const done = loadState('btf_onboardingDone', false)
     return !done
   })
   const [onboardingStep, setOnboardingStep] = useState(0)
+  const [showLegal, setShowLegal] = useState(() => {
+    if (showOnboarding) return false
+    return !hasAcceptedLegal()
+  })
+  const [legalMode, setLegalMode] = useState('onboarding')
+  const [legalSettingsOpen, setLegalSettingsOpen] = useState(false)
 
   // Hymns state
   const [hymnSearch, setHymnSearch] = useState('')
   const [selectedHymn, setSelectedHymn] = useState(null)
   const [hymnCategory, setHymnCategory] = useState('all')
+  const [hymnSort, setHymnSort] = useState('number')
   const [hymnFavorites, setHymnFavorites] = useState(() => loadState('btf_hymnFavorites', []))
   const [hymnPlaying, setHymnPlaying] = useState(false)
   const [hymnRecentlyViewed, setHymnRecentlyViewed] = useState(() => loadState('btf_recentHymns', []))
-  const [todaysHymn, setTodaysHymn] = useState(() => HYMNS[getNow().getDate() % HYMNS.length])
-  const [selectedTimezone, setSelectedTimezone] = useState('WAT')
-  const [navOrder, setNavOrder] = useState(() => loadState('btf_navOrder', ['tasks', 'spiritual', 'diary', 'bible', 'hymns', 'devotional', 'settings']))
+  const [navOrder, setNavOrder] = useState(() => loadState('btf_navOrder', ['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings', 'groups', 'church', 'events', 'sermons', 'forum', 'analytics']))
   const [draggedItem, setDraggedItem] = useState(null)
   const [dragTarget, setDragTarget] = useState(null)
   const navRef = useRef(null)
   const touchDragItem = useRef(null)
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadState('btf_sidebarCollapsed', false))
+  const [previewMode, setPreviewMode] = useState('desktop')
 
   // Devotional state
   const [devotionalDay, setDevotionalDay] = useState(() => {
-    const saved = loadState('btf_devotionalDay', 0)
-    return saved || (getDayOfYear() % 365)
+    const migrated = loadState('btf_devotional_v2', false)
+    if (!migrated) {
+      saveState('btf_devotional_v2', true)
+      const correct = (getDayOfYear() - 1 + 365) % 365
+      saveState('btf_devotionalDay', correct)
+      return correct
+    }
+    return loadState('btf_devotionalDay', (getDayOfYear() - 1 + 365) % 365)
   })
   const [devotionalFontSize, setDevotionalFontSize] = useState(() => loadState('btf_devFontSize', 'medium'))
+  const [selectedChurch, setSelectedChurch] = useState(() => loadState('btf_selectedChurch', ''))
+  const [churchDevotionalDay, setChurchDevotionalDay] = useState(() => loadState('btf_churchDevotionalDay', 0))
 
   const completeOnboarding = useCallback(() => {
     setShowOnboarding(false)
     saveState('btf_onboardingDone', true)
+    if (!hasAcceptedLegal()) {
+      setLegalMode('onboarding')
+      setShowLegal(true)
+    }
   }, [])
+
+  const handleGetStarted = useCallback(() => {
+    setShowOnboarding(false)
+    saveState('btf_onboardingDone', true)
+    if (!hasAcceptedLegal()) {
+      localStorage.setItem('bf_legal_accepted', JSON.stringify({
+        version: LEGAL_VERSION,
+        accepted_at: new Date().toISOString(),
+        documents: {
+          privacy: true, tos: true, tou: true, community: true,
+          'data-collection': true, security: true, cookies: true,
+          'content-moderation': true, 'acceptable-use': true,
+          'third-party': true, 'data-retention': true,
+          'incident-response': true, 'data-compliance': true,
+          'compliance-checklist': true
+        }
+      }))
+    }
+    if (!authUser) {
+      const welcomeDone = loadState('btf_welcomeDone', false)
+      if (!welcomeDone) setShowWelcome(true)
+    }
+  }, [authUser])
 
   const streak = getStreak(prayerLogs)
   const verse = VERSES[verseIndex]
-  const currentBook = BIBLE_BOOKS.find(b => b.id === bibleBook)
-  const chapterCount = currentBook ? currentBook.chapters : 1
 
   useEffect(() => { saveState('btf_tasks', tasks) }, [tasks])
   useEffect(() => { saveState('btf_prayerLogs', prayerLogs) }, [prayerLogs])
@@ -300,14 +232,45 @@ export default function App() {
   useEffect(() => { saveState('btf_recentHymns', hymnRecentlyViewed) }, [hymnRecentlyViewed])
   useEffect(() => { saveState('btf_devotionalDay', devotionalDay) }, [devotionalDay])
   useEffect(() => { saveState('btf_devFontSize', devotionalFontSize) }, [devotionalFontSize])
+  useEffect(() => { saveState('btf_selectedChurch', selectedChurch) }, [selectedChurch])
+  useEffect(() => { saveState('btf_churchDevotionalDay', churchDevotionalDay) }, [churchDevotionalDay])
   useEffect(() => { saveState('btf_navOrder', navOrder) }, [navOrder])
+  useEffect(() => { saveState('btf_sidebarCollapsed', sidebarCollapsed) }, [sidebarCollapsed])
   useEffect(() => { if (chatOpen && chatInput.current) chatInput.current.focus() }, [chatOpen])
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatHistory])
 
+  useEffect(() => {
+    if (mobileDrawerOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [mobileDrawerOpen])
 
   useEffect(() => {
-    setGreeting(getTzGreeting())
-    const id = setInterval(() => { setClockTick(t => t + 1); setGreeting(getTzGreeting()) }, 30000)
+    if (authUser) {
+      scheduleSync()
+      pullFromServer().then(serverData => {
+        if (serverData) {
+          mergeServerData(serverData)
+          if (serverData.btf_tasks) setTasks(loadState('btf_tasks', []))
+          if (serverData.btf_prayerLogs) setPrayerLogs(loadState('btf_prayerLogs', []))
+          if (serverData.btf_diary) setDiaryEntries(loadState('btf_diary', []))
+          if (serverData.btf_settings) setSettings(loadState('btf_settings', DEFAULT_SETTINGS))
+          if (serverData.btf_customColors) setCustomColors(loadState('btf_customColors', DEFAULT_CUSTOM_COLORS))
+          if (serverData.btf_hymnFavorites) setHymnFavorites(loadState('btf_hymnFavorites', []))
+          if (serverData.btf_recentHymns) setHymnRecentlyViewed(loadState('btf_recentHymns', []))
+          if (serverData.btf_recentReads) setRecentReads(loadState('btf_recentReads', []))
+          if (serverData.btf_chat) setChatHistory(loadState('btf_chat', []))
+          if (serverData.btf_navOrder) setNavOrder(loadState('btf_navOrder', []))
+        }
+      })
+    }
+  }, [authUser])
+
+  useEffect(() => {
+    const id = setInterval(() => { setGreeting(getTzGreeting()) }, 30000)
     return () => clearInterval(id)
   }, [])
 
@@ -361,7 +324,6 @@ export default function App() {
   useEffect(() => {
     const app = document.getElementById('app')
     if (!app) return
-    const theme = COLOR_THEMES[settings.theme] || COLOR_THEMES.believersflow
     const isLight = settings.mode === 'light'
     app.setAttribute('data-theme', isLight ? 'light' : settings.theme)
     app.setAttribute('data-mode', settings.mode)
@@ -374,11 +336,6 @@ export default function App() {
     saveState('btf_customColors', customColors)
   }, [settings, customColors])
 
-  useEffect(() => {
-    if (currentView !== 'bible') return
-    fetchChapter(bibleBook, bibleChapter, bibleVersion)
-  }, [bibleBook, bibleChapter, bibleVersion, currentView])
-
   const fetchChapter = useCallback(async (book, chapter, version) => {
     const ver = version || bibleVersion
     const cacheKey = `btf_bible_${ver}_${book}_${chapter}`
@@ -388,16 +345,27 @@ export default function App() {
     setBibleLoading(true); setBibleError(null)
     try {
       let data
-      if (ver === 'KJV') {
-        const res = await fetch(`https://bible-api.com/${encodeURIComponent(book)}+${chapter}`)
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        data = await res.json()
-      } else if (API_URL) {
+      if (API_URL) {
         const res = await fetch(`${API_URL}/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         data = await res.json()
+      } else if (BIBLE_API_DIRECT[ver]) {
+        const translation = BIBLE_API_DIRECT[ver]
+        const bookId = BIBLE_BOOK_IDS[book]
+        if (translation === 'cuv' && bookId) {
+          const url = `https://bible-api.com/data/${translation}/${bookId}/${chapter}`
+          const res = await fetch(url)
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const raw = await res.json()
+          data = { reference: `${book} ${chapter}`, verses: raw.verses || [], version: ver }
+        } else {
+          const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
+          const res = await fetch(url)
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          data = await res.json()
+        }
       } else {
-        throw new Error('Backend API required for non-KJV versions')
+        throw new Error(`"${ver}" requires a backend server with an API key. Start the backend or select a free translation (KJV, WEB, ASV, BBE, Darby, YLT).`)
       }
       if (!data.verses) data = { reference: `${book} ${chapter}`, verses: [], version: ver }
       setBibleText(data)
@@ -410,18 +378,66 @@ export default function App() {
       setBibleError(e.message === 'Failed to fetch' ? 'Connect to the internet to read this chapter.' : `Could not load chapter. ${e.message}`)
       setBibleText(null)
     } finally { setBibleLoading(false) }
-  }, [recentReads, bibleVersion])
+  }, [bibleVersion])
+
+  useEffect(() => {
+    if (currentView !== 'bible') return
+    fetchChapter(bibleBook, bibleChapter, bibleVersion) // eslint-disable-line react-hooks/set-state-in-effect
+  }, [bibleBook, bibleChapter, bibleVersion, currentView, fetchChapter])
 
   const showToast = useCallback((msg, type = 'success', action = null) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast({ message: msg, type, action })
-    toastTimer.current = setTimeout(() => setToast(null), 4500)
   }, [])
 
-  const dismissToast = useCallback(() => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    setToast(null)
+  useEffect(() => {
+    if (!toast) return
+    toastTimer.current = setTimeout(() => setToast(null), 4500)
+    return () => { if (toastTimer.current) clearTimeout(toastTimer.current) }
+  }, [toast])
+
+
+
+  const handleLogin = useCallback((token, user) => {
+    setAuthUser(user)
+    setShowAuth(false)
+    requestNotificationPermission().then(granted => {
+      if (granted) {
+        subscribeToPush(API_URL, token)
+      }
+    })
   }, [])
+  const handleWelcomeAction = useCallback((action) => {
+    saveState('btf_welcomeDone', true)
+    setShowWelcome(false)
+    if (action === 'register' || action === 'login') {
+      setSettingsAuthMode(action)
+      setCurrentView('settings')
+    }
+  }, [])
+
+  const handleLegalAccept = useCallback(() => {
+    setShowLegal(false)
+  }, [])
+
+  const handleLegalDecline = useCallback(() => {
+    setShowLegal(false)
+    setShowOnboarding(true)
+    saveState('btf_onboardingDone', false)
+  }, [])
+
+  const openLegalSettings = useCallback(() => {
+    setLegalMode('settings')
+    setLegalSettingsOpen(true)
+  }, [])
+
+  const handleLogout = useCallback(() => {
+    const token = localStorage.getItem('bf_token')
+    unsubscribeFromPush(API_URL, token)
+    logout()
+    setAuthUser(null)
+    showToast('Signed out')
+  }, [showToast])
 
   const nextVerse = useCallback(() => {
     setVerseIndex(i => {
@@ -435,14 +451,14 @@ export default function App() {
     const text = taskText.trim()
     if (!text) return
     setTasks(prev => [{ id: Date.now(), text, time: taskTime, category: taskCategory, completed: false, createdAt: new Date().toISOString() }, ...prev])
-    setTaskText(''); setTaskTime(''); showToast('Task added! ✨')
+    setTaskText(''); setTaskTime(''); showToast('Task added!')
     if (navigator.vibrate) navigator.vibrate(10)
   }, [taskText, taskTime, taskCategory, showToast])
 
   const toggleTask = useCallback((id) => {
     setTasks(prev => {
       const t = prev.find(x => x.id === id)
-      if (t && !t.completed) { showToast('Well done! 🙌'); if (navigator.vibrate) navigator.vibrate(20) }
+      if (t && !t.completed) { showToast('Well done!'); if (navigator.vibrate) navigator.vibrate(20) }
       return prev.map(x => x.id === id ? { ...x, completed: !x.completed } : x)
     })
   }, [showToast])
@@ -451,38 +467,30 @@ export default function App() {
     setTasks(prev => {
       const item = prev.find(t => t.id === id)
       if (item) {
-        const undoId = Date.now()
-        setUndoStack(s => [...s, { id: undoId, action: 'delete-task', data: item }])
-        setTimeout(() => setUndoStack(s => s.filter(u => u.id !== undoId)), 6000)
-        showToast('Task deleted', 'info', { label: '↩ Undo', cb: () => {
-          setUndoStack(s => { const u = s.find(x => x.id === undoId); if (u) { setTasks(p => [...p, u.data]); return s.filter(x => x.id !== undoId) } return s })
-          dismissToast()
-        }})
+        showToast('Task deleted')
       }
       return prev.filter(t => t.id !== id)
     })
-  }, [showToast, dismissToast])
+  }, [showToast])
 
   const logPrayer = useCallback(() => {
     const m = parseInt(prayerMinutes)
     if (!m || m <= 0) return
     const today = new Date().toLocaleDateString()
-    if (prayerLogs.some(l => l.date === today)) { showToast('Already logged today! 🔥', 'warning'); return }
+    if (prayerLogs.some(l => l.date === today)) { showToast('Already logged today!', 'warning'); return }
     setPrayerLogs(prev => [{ date: today, minutes: m }, ...prev]); setPrayerMinutes('')
-    showToast(`🙏 ${m} min of prayer!`); if (navigator.vibrate) navigator.vibrate(15)
+    showToast(`${m} min of prayer!`); if (navigator.vibrate) navigator.vibrate(15)
   }, [prayerMinutes, prayerLogs, showToast])
 
   const saveStudyPlan = useCallback(() => {
     if (!studyBook.trim()) return
     setStudyPlan({ book: studyBook.trim(), chapter: studyChapter })
-    showToast(`📖 Studying ${studyBook.trim()} ${studyChapter || ''}`)
+    showToast(`Studying ${studyBook.trim()} ${studyChapter || ''}`)
   }, [studyBook, studyChapter, showToast])
 
-  const useSuggestion = useCallback((s) => {
-    setStudyBook(s.book); setStudyChapter(String(s.chapter))
-    goToBibleChapter(s.book, s.chapter)
-    showToast(`📖 ${s.book} ${s.chapter}`)
-  }, [showToast, goToBibleChapter])
+  const goToBibleChapter = useCallback((book, chapter) => {
+    setBibleBook(book); setBibleChapter(chapter); setCurrentView('bible')
+  }, [])
 
   const addDiaryEntry = useCallback(() => {
     if (!diaryContent.trim()) return
@@ -505,22 +513,17 @@ export default function App() {
     setDiaryEntries(prev => {
       const item = prev.find(e => e.id === id)
       if (item) {
-        const undoId = Date.now()
-        setUndoStack(s => [...s, { id: undoId, action: 'delete-diary', data: item }])
-        setTimeout(() => setUndoStack(s => s.filter(u => u.id !== undoId)), 6000)
-        showToast('Entry removed', 'info', { label: '↩ Undo', cb: () => {
-          setUndoStack(s => { const u = s.find(x => x.id === undoId); if (u) { setDiaryEntries(p => [...p, u.data]); return s.filter(x => x.id !== undoId) } return s })
-          dismissToast()
-        }})
+        showToast('Entry removed')
       }
       return prev.filter(e => e.id !== id)
     })
-  }, [showToast, dismissToast])
+  }, [showToast])
 
   const sendChat = useCallback(async () => {
     const msg = chatMsg.trim()
     if (!msg || chatLoading) return
-    if (!AI_READY && !API_URL) { showToast('Set VITE_GROQ_API_KEY in .env or deploy backend', 'warning'); return }
+    if (!isPremium) { setShowAuth(true); return }
+    if (!API_URL) { showToast('Backend not configured. Please deploy backend.', 'warning'); return }
 
     const userEntry = { role: 'user', content: msg }
     setChatHistory(prev => [...prev, userEntry])
@@ -529,43 +532,25 @@ export default function App() {
     const taskContext = tasks.length ? `The user's current tasks are: ${tasks.map(t => t.text).join(', ')}` : ''
 
     try {
-      let reply = ''
-      if (API_URL) {
-        const res = await fetch(`${API_URL}/api/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [...chatHistory.slice(-6), userEntry],
-            taskContext,
-          })
+      const token = localStorage.getItem('bf_token')
+      const res = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          messages: [...chatHistory.slice(-6), userEntry],
+          taskContext,
         })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const data = await res.json()
-        reply = data.message
-      } else {
-        const systemPrompt = `You are a compassionate Christian mentor and life coach. Respond with warmth, scripture wisdom, and practical advice. Keep responses concise (2-4 sentences). Write in plain natural language. Do not use emojis, asterisks, hash symbols, tildes, or any markdown formatting. Use only plain English sentences. ${taskContext ? `\nContext: ${taskContext}` : ''}`
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'mixtral-8x7b-32768',
-            messages: [{ role: 'system', content: systemPrompt }, ...chatHistory.slice(-6), userEntry],
-          })
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const data = await res.json()
-        reply = data.choices[0].message.content
-      }
-      setChatHistory(prev => [...prev, { role: 'assistant', content: reply }])
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setChatHistory(prev => [...prev, { role: 'assistant', content: data.message }])
     } catch {
-      setChatHistory(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting. Please check your connection and try again. 🙏" }])
+      setChatHistory(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting. Please check your connection and try again." }])
     } finally { setChatLoading(false) }
-  }, [chatMsg, chatLoading, chatHistory, tasks])
-
-  const goToBibleChapter = useCallback((book, chapter) => {
-    setBibleBook(book); setBibleChapter(chapter)
-    setCurrentView('bible')
-  }, [])
+  }, [chatMsg, chatLoading, chatHistory, tasks, isPremium, showToast])
 
   const swapNavItems = useCallback((from, to) => {
     setNavOrder(prev => {
@@ -650,36 +635,60 @@ export default function App() {
   }, [showToast])
 
   const explainVerse = useCallback(async (reference, text) => {
+    if (!isPremium) { setShowAuth(true); return }
     setExplanationLoading(true); setExplanation(null); setBibleStudyTab('explain')
     const data = await apiPost('/api/bible/explain', { reference, text, version: bibleVersion })
     if (data) setExplanation(data)
     setExplanationLoading(false)
-  }, [apiPost, bibleVersion])
+  }, [apiPost, bibleVersion, isPremium])
 
   const getCommentary = useCallback(async () => {
+    if (!isPremium) { setShowAuth(true); return }
     if (!bibleText) return
     setCommentaryLoading(true); setCommentary(null); setBibleStudyTab('commentary')
     const verses = (bibleText.verses || []).map(v => ({ verse: v.verse, text: v.text }))
     const data = await apiPost('/api/bible/commentary', { book: bibleBook, chapter: bibleChapter, verses })
     if (data) setCommentary(data)
     setCommentaryLoading(false)
-  }, [apiPost, bibleText, bibleBook, bibleChapter])
+  }, [apiPost, bibleText, bibleBook, bibleChapter, isPremium])
 
   const searchConcordance = useCallback(async () => {
     const q = concordanceQuery.trim()
     if (!q) return
+    if (!isPremium) { setShowAuth(true); return }
     setConcordanceLoading(true); setConcordanceResults(null); setBibleStudyTab('concordance')
     const data = await apiPost('/api/bible/concordance', { query: q, version: bibleVersion })
     if (data) setConcordanceResults(data)
     setConcordanceLoading(false)
-  }, [apiPost, concordanceQuery, bibleVersion])
+  }, [apiPost, concordanceQuery, bibleVersion, isPremium])
 
   const compareVersions = useCallback(async () => {
+    if (!isPremium) { setShowAuth(true); return }
     setComparisonLoading(true); setComparison(null); setBibleStudyTab('compare')
     const data = await apiPost('/api/bible/compare', { book: bibleBook, chapter: bibleChapter })
     if (data) setComparison(data)
     setComparisonLoading(false)
-  }, [apiPost, bibleBook, bibleChapter])
+  }, [apiPost, bibleBook, bibleChapter, isPremium])
+
+  const getInterlinear = useCallback(async () => {
+    if (!isPremium) { setShowAuth(true); return }
+    if (!API_URL) { showToast('Backend API not configured', 'warning'); return }
+    setInterlinearLoading(true); setInterlinear(null); setBibleStudyTab('interlinear')
+    try {
+      const token = localStorage.getItem('bf_token')
+      const res = await fetch(
+        `${API_URL}/api/interlinear/${encodeURIComponent(bibleBook)}/${bibleChapter}?version=${bibleVersion}`,
+        { headers: token ? { 'Authorization': `Bearer ${token}` } : {} }
+      )
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setInterlinear(data)
+    } catch (e) {
+      showToast(`Interlinear failed: ${e.message}`, 'warning')
+    } finally {
+      setInterlinearLoading(false)
+    }
+  }, [isPremium, setShowAuth, bibleBook, bibleChapter, bibleVersion, showToast])
 
   // Hymns
   const openHymn = useCallback((hymn) => {
@@ -712,33 +721,6 @@ export default function App() {
       await playHymn(hymnId, () => setHymnPlaying(false))
     }
   }, [hymnPlaying])
-
-  const searchHymns = useCallback(() => {
-    const q = hymnSearch.trim().toLowerCase()
-    if (!q) return HYMNS
-    return HYMNS.filter(h =>
-      h.title.toLowerCase().includes(q) ||
-      (h.author && h.author.toLowerCase().includes(q)) ||
-      (h.category && h.category.toLowerCase().includes(q))
-    )
-  }, [hymnSearch])
-
-  const getFilteredHymns = useCallback(() => {
-    let list = hymnSearch.trim() ? searchHymns() : HYMNS
-    if (hymnCategory !== 'all') {
-      list = list.filter(h => h.category === hymnCategory)
-    }
-    return list
-  }, [hymnSearch, hymnCategory, searchHymns])
-
-  const getDailyHymn = useCallback(() => {
-    return HYMNS[getDayOfYear() % HYMNS.length]
-  }, [])
-
-  const categories = ['all', ...new Set(HYMNS.map(h => h.category).filter(Boolean))]
-
-  // Devotional
-  const currentDevotional = DEVOTIONALS[devotionalDay % 365]
 
   const nextDevotional = useCallback(() => {
     setDevotionalDay(prev => (prev + 1) % 365)
@@ -773,7 +755,7 @@ export default function App() {
     const a = document.createElement('a')
     a.href = url; a.download = `believersflow-backup-${getNow().toISOString().slice(0, 10)}.json`
     a.click(); URL.revokeObjectURL(url)
-    showToast('Backup exported! 📦')
+    showToast('Backup exported!')
   }, [tasks, prayerLogs, studyPlan, diaryEntries, bibleVersion, chatHistory, settings, customColors, recentReads, showToast])
 
   const importData = useCallback(() => {
@@ -794,7 +776,7 @@ export default function App() {
           if (data.chatHistory) setChatHistory(data.chatHistory)
           if (data.settings) setSettings(data.settings)
           if (data.customColors) setCustomColors(data.customColors)
-          showToast('Backup restored! 📦')
+          showToast('Backup restored!')
         } catch { showToast('Invalid backup file', 'warning') }
       }
       reader.readAsText(file)
@@ -808,7 +790,7 @@ export default function App() {
       setTasks([]); setPrayerLogs([]); setStudyPlan({ book: '', chapter: '' })
       setDiaryEntries([]); setChatHistory([]); setRecentReads([])
       setSettings(DEFAULT_SETTINGS); setCustomColors(DEFAULT_CUSTOM_COLORS)
-      showToast('All data reset 🔄')
+      showToast('All data reset')
     }
   }, [showToast])
 
@@ -820,15 +802,80 @@ export default function App() {
   const secularPercent = 100 - spiritualPercent
   const todayStr = getNow().toLocaleDateString()
   const prayedToday = prayerLogs.some(l => l.date === todayStr)
-  const todaySuggestion = STUDY_SUGGESTIONS[getNow().getDate() % STUDY_SUGGESTIONS.length]
   const filteredTasks = tasks.filter(t => {
     if (currentFilter === 'active') return !t.completed
     if (currentFilter === 'completed') return t.completed
     return true
   })
 
+  const navLabels = {
+    tasks: 'Tasks', spiritual: 'Faith', diary: 'Diary', bible: 'Bible',
+    music: 'Music', devotional: 'Daily', settings: 'Settings',
+    groups: 'Groups', church: 'Church', events: 'Events',
+    sermons: 'Sermons', forum: 'Forum', analytics: 'Analytics',
+    feed: 'Feed', prayer: 'Prayer', testimonies: 'Testimonies'
+  }
+
+  const navIcons = {
+    tasks: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>,
+    spiritual: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
+    diary: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>,
+    bible: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="12" y1="6" x2="12" y2="14"/><line x1="8" y1="10" x2="16" y2="10"/></svg>,
+    hymns: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
+    music: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
+    devotional: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 18a5 5 0 00-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/></svg>,
+    settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+    groups: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+    church: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2H6a2 2 0 00-2 2v16l8-4 8 4V4a2 2 0 00-2-2z"/><line x1="12" y1="6" x2="12" y2="10"/></svg>,
+    events: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+    sermons: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+    forum: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+    analytics: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+    feed: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11a9 9 0 019 9"/><path d="M4 4a16 16 0 0116 16"/><circle cx="5" cy="19" r="1"/></svg>,
+    prayer: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
+    testimonies: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  }
+
+  const primaryNav = ['bible', 'devotional', 'tasks', 'spiritual', 'diary', 'music']
+  const secondaryNav = ['feed', 'prayer', 'testimonies', 'groups', 'church', 'events', 'sermons', 'forum', 'analytics']
+
+  const renderNavButton = (view) => (
+    <button
+      key={view}
+      className={`sidebar-nav-item${currentView === view ? ' active' : ''}`}
+      onClick={() => setCurrentView(view)}
+      aria-label={navLabels[view] || view}
+      aria-current={currentView === view ? 'page' : undefined}
+    >
+      <span className="sidebar-nav-icon">{navIcons[view]}</span>
+      <span className="sidebar-nav-label">{navLabels[view] || view}</span>
+    </button>
+  )
+
+  const renderBottomNavButton = (view) => (
+    <button
+      key={view}
+      className={`bottom-nav-item${currentView === view ? ' active' : ''}`}
+      onClick={() => setCurrentView(view)}
+      aria-label={navLabels[view] || view}
+      aria-current={currentView === view ? 'page' : undefined}
+    >
+      <span className="bottom-nav-icon">{navIcons[view]}</span>
+      <span className="bottom-nav-label">{navLabels[view] || view}</span>
+    </button>
+  )
+
   return (
-    <div id="app">
+    <div id="app" className={previewMode !== 'desktop' ? `view-switcher-active view-switcher-mode-${previewMode}` : undefined}>
+      <ViewSwitcher mode={previewMode} onChange={setPreviewMode} />
+      {showWelcome && (
+        <WelcomeScreen onAction={handleWelcomeAction} />
+      )}
+
+      {showAuth && (
+        <Auth apiUrl={API_URL} onLogin={handleLogin} onSkip={() => setShowAuth(false)} />
+      )}
+
       {toast && (
         <div className={`toast toast-${toast.type}`}>
           <span>{toast.message}</span>
@@ -836,959 +883,413 @@ export default function App() {
         </div>
       )}
 
-      <header>
-        <div className="greeting">{greeting.icon} {greeting.msg} <span className="live-clock-badge">{formatTimeShort()}</span></div>
-        <div className="logo">
-          <span className="logo-cross">✝</span>
-          <span>Believers Flow</span>
-        </div>
-        <div className="verse-container" onClick={nextVerse}>
-          <p className="verse-text">&ldquo;{verse.text}&rdquo;</p>
-          <div className="verse-meta">
-            <small className="verse-ref">{verse.ref}</small>
-            <span className="verse-tap">Tap for more</span>
+      <div className={`app-layout view-switcher-app-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+        <aside className="app-sidebar" aria-label="Sidebar navigation">
+          <div className="sidebar-logo">
+            <span className="logo-cross"><img src="/logo-cross.svg" alt="" width="32" height="32" className="logo-svg" /></span>
+            {!sidebarCollapsed && <span className="sidebar-logo-text">Believers Flow</span>}
           </div>
-        </div>
-      </header>
-
-      <div className="stats-bar">
-        <div className="stat"><span className="stat-value">{tasks.length}</span><span className="stat-label">Tasks</span></div>
-        <div className="stat"><span className="stat-value">{streak}</span><span className="stat-label">Streak</span></div>
-        <div className="stat"><span className="stat-value">{prayerLogs.reduce((a, b) => a + b.minutes, 0)}</span><span className="stat-label">Prayer Min</span></div>
-        <div className="stat"><span className="stat-value">{completedTasks}/{totalTasks}</span><span className="stat-label">Done</span></div>
-      </div>
-
-        <nav id="main-nav" ref={navRef} aria-label="Main navigation"
-          onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-          {navOrder.map(view => (
-            <div key={view} data-view={view}
-              className={`nav-item-wrap${draggedItem === view ? ' dragging' : ''}${dragTarget === view ? ' drag-target' : ''}${!draggedItem ? ' drag-hint' : ''}`}
-              draggable
-              onDragStart={e => handleDragStart(e, view)}
-              onDragOver={e => handleDragOver(e, view)}
-              onDrop={e => handleDrop(e, view)}
-              onDragEnd={handleDragEnd}
-              onTouchStart={e => handleTouchStart(e, view)}>
-              <button className={`nav-item${currentView === view ? ' active' : ''}`} onClick={() => setCurrentView(view)}
-                aria-label={view === 'tasks' ? 'Tasks' : view === 'spiritual' ? 'Faith' : view === 'diary' ? 'Diary' : view === 'bible' ? 'Bible' : view === 'hymns' ? 'Hymns' : view === 'devotional' ? 'Daily Devotional' : 'Settings'}
-                aria-current={currentView === view ? 'page' : undefined}>
-                {view === 'tasks' ? '📋 Tasks' : view === 'spiritual' ? '✨ Faith' : view === 'diary' ? '📓 Diary' : view === 'bible' ? '📖 Bible' : view === 'hymns' ? '🎵 Hymns' : view === 'devotional' ? '🙏 Daily' : '⚙️'}
+          <nav className="sidebar-nav">
+            <div className="sidebar-section-label">{sidebarCollapsed ? '' : 'Primary'}</div>
+            {primaryNav.filter(v => ['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings'].includes(v) || isPremium).map(renderNavButton)}
+            {isPremium && <div className="sidebar-section-label">{sidebarCollapsed ? '' : 'Community'}</div>}
+            {secondaryNav.filter(v => ['groups', 'church', 'events', 'sermons', 'forum', 'analytics'].includes(v) && isPremium).map(renderNavButton)}
+            <div className="sidebar-section-label">{sidebarCollapsed ? '' : 'Account'}</div>
+            {renderNavButton('settings')}
+          </nav>
+          <div className="sidebar-footer">
+            <ErrorBoundary>
+              <GamificationBadge isPremium={isPremium} compact />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <NotificationBell isPremium={isPremium} onNavigate={(target) => { if (target?.type && target?.id) setCurrentView(target.type) }} />
+            </ErrorBoundary>
+            <button className="sidebar-collapse-toggle" onClick={() => setSidebarCollapsed(c => !c)}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}>
+                {sidebarCollapsed
+                  ? <><line x1="13" y1="17" x2="21" y2="17"/><polyline points="15 13 21 17 15 21"/><line x1="3" y1="17" x2="21" y2="17"/><line x1="3" y1="7" x2="21" y2="7"/></>
+                  : <><line x1="11" y1="17" x2="3" y2="17"/><polyline points="7 13 3 17 7 21"/><line x1="21" y1="17" x2="3" y2="17"/><line x1="21" y1="7" x2="3" y2="7"/></>
+                }
+              </svg>
+            </button>
+            <div className="sidebar-mode-toggle">
+              <button className={`header-mode-btn${settings.mode === 'dark' ? ' active' : ''}`}
+                onClick={() => updateSetting('mode', 'dark')} aria-label="Dark mode" title="Dark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              </button>
+              <button className={`header-mode-btn${settings.mode === 'grey' ? ' active' : ''}`}
+                onClick={() => updateSetting('mode', 'grey')} aria-label="Grey mode" title="Grey">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5" fill="currentColor" opacity="0.35"/></svg>
+              </button>
+              <button className={`header-mode-btn${settings.mode === 'light' ? ' active' : ''}`}
+                onClick={() => updateSetting('mode', 'light')} aria-label="Light mode" title="Light">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
               </button>
             </div>
-          ))}
-        </nav>
+          </div>
+        </aside>
 
-      <main id="view-container">
-        {currentView === 'tasks' && (
-          <section className="view fade-in">
-            <div className="grid-2col">
-              <div className="progress-card hover-lift slide-up">
-                <div className="progress-header"><span>Progress</span><span className="progress-pct">{completionPercent}%</span></div>
-                <div className="progress-track"><div className="progress-fill" style={{ width: `${completionPercent}%` }} /></div>
-                <p className="progress-sub">{completedTasks} of {totalTasks} done</p>
+        <div className="app-main">
+          <header>
+            <div className="header-mobile-row">
+              <button className="hamburger-btn" onClick={() => setMobileDrawerOpen(true)} aria-label="Open navigation menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </button>
+              <div className="header-brand">
+                <span className="logo-cross"><img src="/logo-cross.svg" alt="" width="28" height="28" className="logo-svg" /></span>
+                <span className="header-brand-text">Believers Flow</span>
               </div>
-              <div className="prayer-mini-card hover-lift slide-up">
-                <div className="prayer-mini-icon">🕯</div>
-                <div className="prayer-mini-info">
-                  <span className="prayer-mini-label">Today's Prayer</span>
-                  <span className="prayer-mini-status">{prayedToday ? '✅ Prayed' : 'Not yet'}</span>
+              <div className="header-mobile-actions">
+                <NotificationBell isPremium={isPremium} onNavigate={(target) => { if (target?.type && target?.id) setCurrentView(target.type) }} />
+                <div className="header-mode-toggle-mobile">
+                  <button className={`header-mode-btn${settings.mode === 'dark' ? ' active' : ''}`}
+                    onClick={() => updateSetting('mode', 'dark')} aria-label="Dark mode">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  </button>
+                  <button className={`header-mode-btn${settings.mode === 'light' ? ' active' : ''}`}
+                    onClick={() => updateSetting('mode', 'light')} aria-label="Light mode">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
+                  </button>
                 </div>
               </div>
             </div>
+            <div className="header-top-row">
+              <div className="logo">
+                <span className="logo-cross"><img src="/logo-cross.svg" alt="" width="36" height="36" className="logo-svg" /></span>
+                <span>Believers Flow</span>
+              </div>
+              <div className="header-actions">
+                <div className="header-mode-toggle">
+                  <button className={`header-mode-btn${settings.mode === 'dark' ? ' active' : ''}`}
+                    onClick={() => updateSetting('mode', 'dark')} aria-label="Dark mode" title="Dark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  </button>
+                  <button className={`header-mode-btn${settings.mode === 'grey' ? ' active' : ''}`}
+                    onClick={() => updateSetting('mode', 'grey')} aria-label="Grey mode" title="Grey">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5" fill="currentColor" opacity="0.35"/></svg>
+                  </button>
+                  <button className={`header-mode-btn${settings.mode === 'light' ? ' active' : ''}`}
+                    onClick={() => updateSetting('mode', 'light')} aria-label="Light mode" title="Light">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
+                  </button>
+                </div>
+                {authUser && (
+                  <button className="header-profile-btn" onClick={() => setCurrentView('settings')} aria-label="Profile settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="greeting">{greeting.icon} {greeting.msg} <span className="live-clock-badge"><span className="clock-date">{formatDateShort()}</span><span className="clock-sep">·</span><span className="clock-time">{formatTimeShort()}</span><span className="clock-sep">·</span><span className="clock-tz">{getUserTimezoneAbbr()}</span></span></div>
+            <div className="verse-container" onClick={nextVerse} role="button" tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nextVerse() } }}
+              aria-label="Tap to see next verse">
+              <p className="verse-text">&ldquo;{verse.text}&rdquo;</p>
+              <div className="verse-meta">
+                <small className="verse-ref">{verse.ref}</small>
+                <span className="verse-tap">Tap for more</span>
+              </div>
+            </div>
+          </header>
 
-            <div className="filter-bar">
-              {['all', 'active', 'completed'].map(f => (
-                <button key={f} className={`filter-btn${currentFilter === f ? ' active' : ''}`} onClick={() => setCurrentFilter(f)}>
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
+          <div className="stats-bar">
+            <div className="stat"><span className="stat-value">{tasks.length}</span><span className="stat-label">Tasks</span></div>
+            <div className="stat"><span className="stat-value">{streak}</span><span className="stat-label">Streak</span></div>
+            <div className="stat"><span className="stat-value">{prayerLogs.reduce((a, b) => a + b.minutes, 0)}</span><span className="stat-label">Prayer Min</span></div>
+            <div className="stat"><span className="stat-value">{completedTasks}/{totalTasks}</span><span className="stat-label">Done</span></div>
+          </div>
+
+          <nav id="main-nav" ref={navRef} aria-label="Main navigation"
+            onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+            {navOrder.filter(v => {
+              if (['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings'].includes(v)) return true
+              return isPremium
+            }).map(view => (
+              <div key={view} data-view={view}
+                className={`nav-item-wrap${draggedItem === view ? ' dragging' : ''}${dragTarget === view ? ' drag-target' : ''}${!draggedItem ? ' drag-hint' : ''}`}
+                draggable
+                onDragStart={e => handleDragStart(e, view)}
+                onDragOver={e => handleDragOver(e, view)}
+                onDrop={e => handleDrop(e, view)}
+                onDragEnd={handleDragEnd}
+                onTouchStart={e => handleTouchStart(e, view)}>
+                <button className={`nav-item${currentView === view ? ' active' : ''}`} onClick={() => setCurrentView(view)}
+                   aria-label={navLabels[view] || view}
+                  aria-current={currentView === view ? 'page' : undefined}>
+                  {navLabels[view] || view}
                 </button>
-              ))}
-            </div>
+              </div>
+            ))}
+          </nav>
 
-            <div className="input-group">
-              <input type="text" placeholder="What's next for the Kingdom?" value={taskText}
-                onChange={e => setTaskText(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} />
-              <input type="time" className="time-input" value={taskTime} onChange={e => setTaskTime(e.target.value)} />
-              <select value={taskCategory} onChange={e => setTaskCategory(e.target.value)}>
-                <option value="spiritual">Spiritual ✨</option>
-                <option value="personal">Personal 🏠</option>
-                <option value="service">Service 🤝</option>
-              </select>
-              <button onClick={addTask}>+ Add</button>
-            </div>
-
-            <ul id="task-list">
-              {filteredTasks.map(t => (
-                <li key={t.id} className={`task-item${t.completed ? ' completed' : ''}`}>
-                  <label className="checkbox-wrap">
-                    <input type="checkbox" checked={t.completed} onChange={() => toggleTask(t.id)} />
-                    <span className="checkmark" />
-                  </label>
-                  <div className="task-text">
-                    <span className="task-title">{t.text}</span>
-                    <div className="task-meta">
-                      {t.time && <span className="task-time">🕐 {t.time}</span>}
-                      <span className={`task-cat ${t.category}`}>{t.category}</span>
-                    </div>
-                  </div>
-                  <button className="task-delete-btn" onClick={() => deleteTask(t.id)} title="Delete task">🗑</button>
-                </li>
-              ))}
-              {filteredTasks.length === 0 && (
-                <div className="empty-state meaningful">
-                  <div className="empty-icon-wrap">🙏</div>
-                  <h4 className="empty-title">You are all caught up today</h4>
-                  <p className="empty-verse">"Commit to the Lord whatever you do, and He will establish your plans."</p>
-                  <p className="empty-ref">— Proverbs 16:3</p>
-                  <p className="empty-hint">Add your first task above to begin your day with purpose.</p>
-                </div>
-              )}
-            </ul>
-          </section>
+          <main id="view-container">
+        {currentView === 'tasks' && (
+          <TasksView
+            tasks={tasks} filteredTasks={filteredTasks} currentFilter={currentFilter} setCurrentFilter={setCurrentFilter}
+            taskText={taskText} setTaskText={setTaskText} taskTime={taskTime} setTaskTime={setTaskTime}
+            taskCategory={taskCategory} setTaskCategory={setTaskCategory}
+            addTask={addTask} toggleTask={toggleTask} deleteTask={deleteTask}
+            completionPercent={completionPercent} totalTasks={totalTasks} completedTasks={completedTasks}
+            prayedToday={prayedToday}
+          />
         )}
 
         {currentView === 'spiritual' && (
-          <section className="view fade-in">
-            <div className="daily-prayer-card slide-up">
-              <div className="dp-icon">🕯</div>
-              <div className="dp-content">
-                <h4>Today's Prayer</h4>
-                <p>&ldquo;{todayPrayer}&rdquo;</p>
-              </div>
-            </div>
-
-            <div className="card hover-lift slide-up">
-              <div className="card-icon">🙏</div>
-              <h3>Prayer Tracker</h3>
-              <p>Log your daily quiet time and build a streak.</p>
-              {prayedToday ? (
-                <div className="prayed-today-badge">✅ Prayed today! Come back tomorrow.</div>
-              ) : (
-                <div className="prayer-input">
-                  <input type="number" placeholder="Minutes in prayer" value={prayerMinutes}
-                    onChange={e => setPrayerMinutes(e.target.value)} onKeyDown={e => e.key === 'Enter' && logPrayer()} min="1" />
-                  <button onClick={logPrayer}>Log Prayer</button>
-                </div>
-              )}
-              {streak > 0 && (
-                <div className="streak-badge"><span className="flame">🔥</span><span>{streak} day streak!</span></div>
-              )}
-              <div className="prayer-history">
-                <h4>Recent</h4>
-                {prayerLogs.slice(0, 5).map((log, i) => (
-                  <div key={i} className="prayer-log-item"><span className="log-date">{log.date}</span><span className="log-mins">{log.minutes} min</span></div>
-                ))}
-                {!prayerLogs.length && (
-                  <div className="empty-small meaningful">
-                    <p className="empty-mini-title">Your prayer journey starts here</p>
-                    <p className="empty-mini-text">Record prayers, reflections, and God's faithfulness in your life.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="card hover-lift slide-up">
-              <div className="card-icon">📖</div>
-              <h3>Bible Study Planner</h3>
-              <p>Plan your scripture reading.</p>
-
-              <div className="bible-version-select">
-                <label className="bv-label">Bible Version</label>
-                <select value={bibleVersion} onChange={e => setBibleVersion(e.target.value)}>
-                  {BIBLE_VERSIONS.map(bv => (
-                    <option key={bv.id} value={bv.id}>{bv.id} — {bv.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="today-suggestion">
-                Today's suggestion: <strong>{todaySuggestion.book} {todaySuggestion.chapter}</strong> &mdash; <em>{todaySuggestion.title}</em>
-                <span className="bv-badge">{bibleVersion}</span>
-              </div>
-
-              <div className="study-inputs">
-                <input type="text" placeholder="Book (e.g. Genesis)" value={studyBook} onChange={e => setStudyBook(e.target.value)} />
-                <input type="number" placeholder="Ch" value={studyChapter} onChange={e => setStudyChapter(e.target.value)} min="1" />
-              </div>
-              <div className="study-actions">
-                <button onClick={saveStudyPlan}>Save Plan</button>
-                <button className="btn-outline" onClick={() => useSuggestion(todaySuggestion)}>📌 Use Suggestion</button>
-              </div>
-              {studyPlan.book && (
-                <div className="study-current"><span className="study-icon">📖</span><span>Studying: {studyPlan.book} {studyPlan.chapter} <span className="bv-badge">{bibleVersion}</span></span></div>
-              )}
-            </div>
-
-            <div className="card hover-lift slide-up">
-              <div className="card-icon">⚖</div>
-              <h3>Spiritual Balance</h3>
-              <p>How your tasks balance between spiritual and everyday life.</p>
-              <div className="balance-viz">
-                <div className="balance-bar" style={{ width: `${spiritualPercent}%` }} />
-                <div className="balance-glow" />
-              </div>
-              <div className="balance-labels">
-                <span className="balance-spiritual">✝ Spiritual {spiritualPercent}%</span>
-                <span className="balance-secular">Secular {secularPercent}%</span>
-              </div>
-              {spiritualPercent < 25 && totalTasks > 0 && (
-                <div className="balance-tip">💡 Try adding a spiritual task to balance your day!</div>
-              )}
-            </div>
-
-            <div className="card hover-lift slide-up">
-              <div className="card-icon">📅</div>
-              <h3>Today's Suggested Reading</h3>
-              <div className="suggestion-card">
-                <span className="suggestion-book">{todaySuggestion.book}</span>
-                <span className="suggestion-ch">Chapter {todaySuggestion.chapter}</span>
-                <span className="suggestion-title">&ldquo;{todaySuggestion.title}&rdquo;</span>
-                <div className="suggestion-footer">
-                  <span className="bv-badge">{bibleVersion}</span>
-                  <button className="btn-sm" onClick={() => useSuggestion(todaySuggestion)}>Study This</button>
-                </div>
-              </div>
-            </div>
-          </section>
+          <SpiritualView
+            prayerLogs={prayerLogs} streak={streak} prayedToday={prayedToday}
+            prayerMinutes={prayerMinutes} setPrayerMinutes={setPrayerMinutes} logPrayer={logPrayer}
+            bibleVersion={bibleVersion} setBibleVersion={setBibleVersion}
+            studyBook={studyBook} setStudyBook={setStudyBook} studyChapter={studyChapter} setStudyChapter={setStudyChapter}
+            saveStudyPlan={saveStudyPlan} goToBibleChapter={goToBibleChapter} studyPlan={studyPlan}
+            spiritualPercent={spiritualPercent} secularPercent={secularPercent} totalTasks={totalTasks}
+          />
         )}
 
         {currentView === 'diary' && (
-          <section className="view fade-in">
-            <div className="card">
-              <div className="card-icon">📓</div>
-              <h3>{editingDiary ? 'Edit Entry' : 'New Diary Entry'}</h3>
-              <p>Record your thoughts, prayers, and reflections.</p>
-
-              <div className="diary-mood-select">
-                <label className="diary-label">How are you feeling?</label>
-                <div className="mood-picker">
-                  {MOODS.map(m => (
-                    <button key={m.emoji} className={`mood-btn${diaryMood === m.emoji ? ' active' : ''}`}
-                      onClick={() => setDiaryMood(m.emoji)} title={m.label}>
-                      {m.emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <input type="text" placeholder="Title (optional)" value={diaryTitle}
-                onChange={e => setDiaryTitle(e.target.value)} />
-
-              <textarea className="diary-textarea" placeholder="Write your heart out..." value={diaryContent}
-                onChange={e => setDiaryContent(e.target.value)} rows={5} />
-
-              <div className="diary-actions">
-                <button onClick={addDiaryEntry}>{editingDiary ? '✏️ Update Entry' : '💾 Save Entry'}</button>
-                {editingDiary && (
-                  <button className="btn-outline" onClick={() => { setEditingDiary(null); setDiaryTitle(''); setDiaryContent(''); setDiaryMood('😊') }}>Cancel</button>
-                )}
-              </div>
-            </div>
-
-            <div className="diary-list">
-              <h3 className="section-title">📖 My Journal</h3>
-              {diaryEntries.map(entry => (
-                <div key={entry.id} className="diary-entry-card">
-                  <div className="diary-entry-header">
-                    <span className="diary-entry-mood">{entry.mood}</span>
-                    <div className="diary-entry-info">
-                      <span className="diary-entry-title">{entry.title || 'Untitled'}</span>
-                      <span className="diary-entry-date">{formatDate(entry.date)}{entry.date && ` at ${formatTime(entry.date)}`}</span>
-                    </div>
-                  </div>
-                  <p className="diary-entry-content">{entry.content}</p>
-                  <div className="diary-entry-actions">
-                    <button className="diary-edit-btn" onClick={() => editDiaryEntry(entry)}>✏️ Edit</button>
-                    <button className="diary-delete-btn" onClick={() => deleteDiaryEntry(entry.id)}>🗑 Delete</button>
-                  </div>
-                </div>
-              ))}
-              {diaryEntries.length === 0 && (
-                <div className="empty-state meaningful">
-                  <div className="empty-icon-wrap">📓</div>
-                  <h4 className="empty-title">No notes yet</h4>
-                  <p className="empty-hint">Highlight verses and write your personal reflections. Your journal is a safe place to grow in faith.</p>
-                </div>
-              )}
-            </div>
-          </section>
+          <DiaryView
+            diaryEntries={diaryEntries} diaryTitle={diaryTitle} setDiaryTitle={setDiaryTitle}
+            diaryContent={diaryContent} setDiaryContent={setDiaryContent}
+            diaryMood={diaryMood} setDiaryMood={setDiaryMood}
+            editingDiary={editingDiary} setEditingDiary={setEditingDiary}
+            addDiaryEntry={addDiaryEntry} editDiaryEntry={editDiaryEntry} deleteDiaryEntry={deleteDiaryEntry}
+          />
         )}
 
         {currentView === 'bible' && (
-          <section className="view fade-in">
-            <div className="bible-study-tabs">
-              {[
-                { id: 'read', label: '📖 Read' },
-                { id: 'explain', label: '💡 Explain' },
-                { id: 'commentary', label: '📚 Commentary' },
-                { id: 'concordance', label: '🔍 Concordance' },
-                { id: 'compare', label: '⚖️ Compare' },
-              ].map(t => (
-                <button key={t.id} className={`bs-tab${bibleStudyTab === t.id ? ' active' : ''}`}
-                  onClick={() => setBibleStudyTab(t.id)}>{t.label}</button>
-              ))}
-            </div>
-
-            {bibleStudyTab === 'read' && (
-              <>
-                <div className="card">
-                  <div className="card-icon">📖</div>
-                  <h3>Holy Bible Reader</h3>
-                  <p>Read all 66 books of the Bible. Chapters cached for offline reading.</p>
-
-                  <div className="bible-nav">
-                    <div className="bn-testaments">
-                      <button className={`bn-test-btn${bibleTestament === 'OT' ? ' active' : ''}`} onClick={() => setBibleTestament('OT')}>Old Testament</button>
-                      <button className={`bn-test-btn${bibleTestament === 'NT' ? ' active' : ''}`} onClick={() => setBibleTestament('NT')}>New Testament</button>
-                    </div>
-                    <div className="bn-book-row">
-                      <div className="bn-book-select">
-                        <select value={bibleBook} onChange={e => setBibleBook(e.target.value)}>
-                          {BIBLE_BOOKS.filter(b => b.testament === bibleTestament).map(b => (
-                            <option key={b.id} value={b.id}>{b.id} ({b.chapters} ch)</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="bn-chapter-select">
-                        <select value={bibleChapter} onChange={e => setBibleChapter(Number(e.target.value))}>
-                          {Array.from({ length: chapterCount }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>Chapter {i + 1}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="bn-version-select">
-                      <label className="bv-label">Translation</label>
-                      <select value={bibleVersion} onChange={e => setBibleVersion(e.target.value)}>
-                        {BIBLE_VERSIONS.map(bv => (
-                          <option key={bv.id} value={bv.id}>{bv.id} — {bv.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="bn-chapter-nav">
-                      <button className="bn-nav-btn" onClick={() => setBibleChapter(p => Math.max(1, p - 1))} disabled={bibleChapter <= 1}>◀ Prev</button>
-                      <span className="bn-nav-ref">{bibleBook} {bibleChapter}</span>
-                      <button className="bn-nav-btn" onClick={() => setBibleChapter(p => Math.min(chapterCount, p + 1))} disabled={bibleChapter >= chapterCount}>Next ▶</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bible-content-card">
-                  {bibleLoading && (
-                    <div className="bible-loading">
-                      <span className="bible-loading-icon">📖</span>
-                      <p>Loading {bibleBook} {bibleChapter}...</p>
-                      <div className="bible-loading-bar"><div className="bible-loading-fill" /></div>
-                    </div>
-                  )}
-                  {bibleError && (
-                    <div className="bible-error">
-                      <span className="bible-error-icon">⚠️</span>
-                      <p>{bibleError}</p>
-                      <button className="bn-nav-btn" onClick={() => fetchChapter(bibleBook, bibleChapter, bibleVersion)}>Retry</button>
-                    </div>
-                  )}
-                  {bibleText && !bibleLoading && (
-                    <div className="bible-text-container">
-                      <div className="bible-text-header">
-                        <h2 className="bible-text-ref">{bibleText.reference || `${bibleBook} ${bibleChapter}`}</h2>
-                        <span className="bv-badge">{bibleVersion}</span>
-                      </div>
-                      <div className="bible-verses">
-                        {(bibleText.verses || []).map((v, i) => (
-                          <p key={i} className="bible-verse">
-                            <sup className="bible-verse-num">{v.verse}</sup>
-                            <span className="bible-verse-text">{v.text}</span>
-                            {bibleText.verses.length <= 30 && (
-                              <button className="verse-explain-btn" onClick={() => explainVerse(`${bibleBook} ${bibleChapter}:${v.verse}`, v.text)}
-                                title="Explain this verse">💡</button>
-                            )}
-                          </p>
-                        ))}
-                      </div>
-                      <div className="bible-text-actions">
-                        <button className="btn-sm" onClick={getCommentary}>📚 Get Commentary</button>
-                        <button className="btn-sm" onClick={compareVersions}>⚖️ Compare Versions</button>
-                      </div>
-                    </div>
-                  )}
-                  {!bibleText && !bibleLoading && !bibleError && (
-                    <div className="bible-empty">
-                      <span className="bible-empty-icon">📖</span>
-                      <p>Select a book and chapter above to start reading.</p>
-                    </div>
-                  )}
-                </div>
-
-                {recentReads.length > 0 && (
-                  <div className="card">
-                    <h3>🕐 Recent Reads</h3>
-                    <div className="recent-reads">
-                      {recentReads.slice(0, 5).map((r, i) => (
-                        <button key={i} className="recent-read-btn" onClick={() => goToBibleChapter(r.book, r.chapter)}>
-                          📄 {r.book} {r.chapter}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {bibleStudyTab === 'explain' && (
-              <div className="card bs-panel">
-                <div className="card-icon">💡</div>
-                <h3>AI Verse Explanation</h3>
-                <p>Select a 💡 button next to any verse in the Read tab, or click a verse below.</p>
-                {bibleText && (
-                  <div className="explain-quick-verses">
-                    {(bibleText.verses || []).slice(0, 10).map((v, i) => (
-                      <button key={i} className="explain-verse-chip" onClick={() => explainVerse(`${bibleBook} ${bibleChapter}:${v.verse}`, v.text)}>
-                        <sup>{v.verse}</sup> {v.text.slice(0, 60)}...
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {explanationLoading && (
-                  <div className="skeleton-block">
-                    <div className="skeleton-line w-75" />
-                    <div className="skeleton-line w-50" />
-                    <div className="skeleton-line w-90" />
-                    <div className="skeleton-line w-60" />
-                  </div>
-                )}
-                {explanation && !explanationLoading && (
-                  <div className="explanation-content">
-                    <h4 className="explanation-ref">{explanation.reference}</h4>
-                    <div className="explanation-text">{explanation.explanation}</div>
-                  </div>
-                )}
-                {!explanation && !explanationLoading && !bibleText && (
-                  <p className="bs-hint">Open a chapter first, then tap 💡 on any verse.</p>
-                )}
-              </div>
-            )}
-
-            {bibleStudyTab === 'commentary' && (
-              <div className="card bs-panel">
-                <div className="card-icon">📚</div>
-                <h3>AI Bible Commentary</h3>
-                <p>Get verse-by-verse commentary and theological insights.</p>
-                {bibleText && !commentary && !commentaryLoading && (
-                  <button className="btn-primary" onClick={getCommentary}>📚 Generate Commentary</button>
-                )}
-                {commentaryLoading && (
-                  <div className="skeleton-block">
-                    <div className="skeleton-line w-85" />
-                    <div className="skeleton-line w-60" />
-                    <div className="skeleton-line w-70" />
-                    <div className="skeleton-line w-55" />
-                    <div className="skeleton-line w-80" />
-                  </div>
-                )}
-                {commentary && !commentaryLoading && (
-                  <div className="commentary-content">
-                    <h4>{commentary.book} {commentary.chapter}</h4>
-                    <div className="commentary-text">{commentary.commentary}</div>
-                  </div>
-                )}
-                {!bibleText && !commentary && (
-                  <p className="bs-hint">Open a chapter first, then generate commentary.</p>
-                )}
-              </div>
-            )}
-
-            {bibleStudyTab === 'concordance' && (
-              <div className="card bs-panel">
-                <div className="card-icon">🔍</div>
-                <h3>Bible Concordance</h3>
-                <p>Search for any word or topic across Scripture.</p>
-                <div className="concordance-input">
-                  <input type="text" placeholder="Search word or topic (e.g., faith, love, prayer)" value={concordanceQuery}
-                    onChange={e => setConcordanceQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchConcordance()} />
-                  <button onClick={searchConcordance} disabled={concordanceLoading || !concordanceQuery.trim()}>Search</button>
-                </div>
-                {concordanceLoading && (
-                  <div className="skeleton-block">
-                    <div className="skeleton-line w-60" />
-                    <div className="skeleton-line w-80" />
-                    <div className="skeleton-line w-45" />
-                    <div className="skeleton-line w-70" />
-                  </div>
-                )}
-                {concordanceResults && !concordanceLoading && (
-                  <div className="concordance-results">
-                    <h4>Results for: "{concordanceResults.query}"</h4>
-                    <div className="concordance-text">{concordanceResults.results}</div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {bibleStudyTab === 'compare' && (
-              <div className="card bs-panel">
-                <div className="card-icon">⚖️</div>
-                <h3>Bible Comparison Tool</h3>
-                <p>Compare how different translations render the same passage.</p>
-                {bibleText && !comparison && !comparisonLoading && (
-                  <button className="btn-primary" onClick={compareVersions}>⚖️ Compare {bibleBook} {bibleChapter}</button>
-                )}
-                {comparisonLoading && (
-                  <div className="skeleton-block">
-                    <div className="skeleton-line w-70" />
-                    <div className="skeleton-line w-90" />
-                    <div className="skeleton-line w-50" />
-                    <div className="skeleton-line w-75" />
-                  </div>
-                )}
-                {comparison && !comparisonLoading && (
-                  <div className="comparison-content">
-                    <h4>{comparison.book} {comparison.chapter}</h4>
-                    <div className="comparison-text">{comparison.comparison}</div>
-                  </div>
-                )}
-                {!bibleText && !comparison && (
-                  <p className="bs-hint">Open a chapter first, then compare translations.</p>
-                )}
-              </div>
-            )}
-          </section>
+          <BibleView
+            bibleBook={bibleBook} setBibleBook={setBibleBook}
+            bibleChapter={bibleChapter} setBibleChapter={setBibleChapter}
+            bibleVersion={bibleVersion} setBibleVersion={setBibleVersion}
+            bibleText={bibleText} bibleLoading={bibleLoading} bibleError={bibleError}
+            bibleTestament={bibleTestament} setBibleTestament={setBibleTestament}
+            bibleStudyTab={bibleStudyTab} setBibleStudyTab={setBibleStudyTab}
+            recentReads={recentReads} fetchChapter={fetchChapter} goToBibleChapter={goToBibleChapter}
+            explanation={explanation} explanationLoading={explanationLoading}
+            commentary={commentary} commentaryLoading={commentaryLoading}
+            concordanceQuery={concordanceQuery} setConcordanceQuery={setConcordanceQuery}
+            concordanceResults={concordanceResults} concordanceLoading={concordanceLoading}
+            comparison={comparison} comparisonLoading={comparisonLoading}
+            explainVerse={explainVerse} getCommentary={getCommentary}
+            searchConcordance={searchConcordance} compareVersions={compareVersions}
+            interlinear={interlinear} interlinearLoading={interlinearLoading} getInterlinear={getInterlinear}
+            isPremium={isPremium} setShowAuth={setShowAuth}
+            showToast={showToast}
+          />
         )}
 
-        {currentView === 'hymns' && (
-          <section className="view fade-in">
-            {!selectedHymn ? (
-              <>
-                <div className="card">
-                  <div className="card-icon">🎵</div>
-                  <h3>Hymn Book</h3>
-                  <p>Over 1,000 classic hymns of faith. Sing, search, and explore hymns from every tradition.</p>
-
-                  <div className="hymn-daily-card" tabIndex={0} role="button" aria-label="Open today's hymn"
-                    onClick={() => { const h = getDailyHymn(); openHymn(h) }}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const h = getDailyHymn(); openHymn(h) } }}>
-                    <div className="hymn-daily-icon">🎶</div>
-                    <div className="hymn-daily-info">
-                      <span className="hymn-daily-label">Today's Hymn</span>
-                      <span className="hymn-daily-title">#{getDailyHymn().id} {getDailyHymn().title}</span>
-                      <span className="hymn-daily-author">{getDailyHymn().author}</span>
-                    </div>
-                    <span className="hymn-daily-arrow">→</span>
-                  </div>
-
-                  <div className="hymn-search-box">
-                    <input type="text" placeholder="Search hymns by title, author, or category..." value={hymnSearch}
-                      onChange={e => setHymnSearch(e.target.value)} />
-                    {hymnSearch && <button className="hymn-search-clear" onClick={() => setHymnSearch('')}>✕</button>}
-                  </div>
-
-                  <div className="hymn-categories-scroll">
-                    {categories.map(cat => (
-                      <button key={cat} className={`hymn-cat-btn${hymnCategory === cat ? ' active' : ''}`}
-                        onClick={() => setHymnCategory(cat)}>
-                        {cat === 'all' ? 'All' : cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {hymnRecentlyViewed.length > 0 && !hymnSearch && hymnCategory === 'all' && (
-                  <div className="card">
-                    <h3>🕐 Recently Viewed</h3>
-                    <div className="hymn-fav-list">
-                      {hymnRecentlyViewed.slice(0, 5).map(r => {
-                        const h = HYMNS.find(x => x.id === r.id)
-                        if (!h) return null
-                        return (
-                          <div key={h.id} className="hymn-list-item" onClick={() => openHymn(h)}
-                            tabIndex={0} role="button" aria-label={`Open ${h.title} by ${h.author || 'Unknown'}`}
-                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openHymn(h) } }}>
-                            <div className="hymn-item-info">
-                              <span className="hymn-item-title">#{h.id} {h.title}</span>
-                              <span className="hymn-item-author">{h.author || 'Unknown'}</span>
-                            </div>
-                            {HYMN_WITH_TUNES.has(h.id) && <span className="hymn-has-tune">🎵</span>}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div className="hymn-list">
-                  {getFilteredHymns().map(h => (
-                    <div key={h.id} className="hymn-list-item" onClick={() => openHymn(h)}
-                    tabIndex={0} role="button" aria-label={`Open ${h.title} by ${h.author || 'Unknown'}`}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openHymn(h) } }}>
-                      <div className="hymn-item-info">
-                        <span className="hymn-item-title">#{h.id} {h.title}</span>
-                        <span className="hymn-item-author">{h.author || 'Unknown'}</span>
-                        <span className="hymn-item-cat">{h.category}</span>
-                      </div>
-                      <div className="hymn-item-actions">
-                        {HYMN_WITH_TUNES.has(h.id) && <span className="hymn-has-tune" title="Has audio">🎵</span>}
-                        <button className={`hymn-fav-btn${hymnFavorites.includes(h.id) ? ' active' : ''}`}
-                          onClick={e => { e.stopPropagation(); toggleHymnFavorite(h.id) }}
-                          title={hymnFavorites.includes(h.id) ? 'Remove from favorites' : 'Add to favorites'}>
-                          {hymnFavorites.includes(h.id) ? '❤️' : '🤍'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {getFilteredHymns().length === 0 && (
-                    <div className="empty-state">
-                      <div className="empty-icon-wrap">🎵</div>
-                      <h4 className="empty-title">No hymns found</h4>
-                      <p className="empty-hint">Try a different search term or category.</p>
-                    </div>
-                  )}
-                </div>
-
-                {hymnFavorites.length > 0 && (
-                  <div className="card">
-                    <h3>❤️ Favorite Hymns</h3>
-                    <div className="hymn-fav-list">
-                      {hymnFavorites.map(id => {
-                        const h = HYMNS.find(x => x.id === id)
-                        if (!h) return null
-                        return (
-                          <div key={h.id} className="hymn-list-item" onClick={() => openHymn(h)}
-                            tabIndex={0} role="button" aria-label={`Open ${h.title} by ${h.author || 'Unknown'}`}
-                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openHymn(h) } }}>
-                            <div className="hymn-item-info">
-                              <span className="hymn-item-title">#{h.id} {h.title}</span>
-                              <span className="hymn-item-author">{h.author || 'Unknown'}</span>
-                            </div>
-                            {HYMN_WITH_TUNES.has(h.id) && <span className="hymn-has-tune">🎵</span>}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="hymn-detail-view">
-                <div className="hymn-detail-header">
-                  <button className="hymn-back-btn" onClick={closeHymn}>← Back</button>
-                  <div className="hymn-detail-header-right">
-                    {HYMN_WITH_TUNES.has(selectedHymn.id) && (
-                      <button className={`hymn-play-btn${hymnPlaying ? ' playing' : ''}`}
-                        onClick={() => toggleHymnPlay(selectedHymn.id)}
-                        title={hymnPlaying ? 'Stop' : 'Play melody'}>
-                        {hymnPlaying ? '⏹' : '▶'}
-                      </button>
-                    )}
-                    <button className={`hymn-fav-btn${hymnFavorites.includes(selectedHymn.id) ? ' active' : ''}`}
-                      onClick={() => toggleHymnFavorite(selectedHymn.id)}>
-                      {hymnFavorites.includes(selectedHymn.id) ? '❤️' : '🤍'}
-                    </button>
-                  </div>
-                </div>
-                <div className="hymn-detail-card">
-                  <h2 className="hymn-detail-title">#{selectedHymn.id} {selectedHymn.title}</h2>
-                  <p className="hymn-detail-author">{selectedHymn.author || 'Unknown'}</p>
-                  {selectedHymn.category && <span className="hymn-detail-cat">{selectedHymn.category}</span>}
-                </div>
-                {HYMN_WITH_TUNES.has(selectedHymn.id) && (
-                  <div className="hymn-player-bar">
-                    <button className={`hymn-player-btn${hymnPlaying ? ' playing' : ''}`}
-                      onClick={() => toggleHymnPlay(selectedHymn.id)}>
-                      {hymnPlaying ? '⏹ Stop' : '▶ Play Melody'}
-                    </button>
-                    <span className="hymn-player-hint">Church organ tune</span>
-                  </div>
-                )}
-                <div className="hymn-detail-lyrics">
-                  {(selectedHymn.lyrics || selectedHymn.first_verse || '').split('\n').map((line, i) => (
-                    <p key={i} className="hymn-lyric-line">{line || '\u00A0'}</p>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
+        {currentView === 'music' && (
+          <MusicView
+            hymnSearch={hymnSearch} setHymnSearch={setHymnSearch}
+            hymnSort={hymnSort} setHymnSort={setHymnSort}
+            hymnCategory={hymnCategory} setHymnCategory={setHymnCategory}
+            hymnFavorites={hymnFavorites} hymnRecentlyViewed={hymnRecentlyViewed}
+            selectedHymn={selectedHymn} hymnPlaying={hymnPlaying}
+            openHymn={openHymn} closeHymn={closeHymn}
+            toggleHymnFavorite={toggleHymnFavorite} toggleHymnPlay={toggleHymnPlay}
+            showToast={showToast}
+            isPremium={isPremium}
+            setShowAuth={setShowAuth}
+          />
         )}
 
         {currentView === 'devotional' && (
-          <section className="view fade-in">
-            <div className="card">
-              <div className="card-icon">🙏</div>
-              <h3>Daily Devotional</h3>
-              <p>Start your day with scripture, reflection, and prayer.</p>
-              <div className="devotional-nav">
-                <button className="devotional-nav-btn" onClick={prevDevotional}>◀ Previous</button>
-                <span className="devotional-day-label">Day {currentDevotional.day} of 365</span>
-                <button className="devotional-nav-btn" onClick={nextDevotional}>Next ▶</button>
-              </div>
-              <button className="btn-sm devotional-today-btn" onClick={goToTodaysDevotional}>📅 Today's Devotional</button>
-            </div>
-
-            <div className="devotional-content-card">
-              <div className="devotional-header">
-                <span className="devotional-day-badge">Day {currentDevotional.day}</span>
-                <div className="devotional-font-controls">
-                  <button className={`dev-font-btn${devotionalFontSize === 'small' ? ' active' : ''}`}
-                    onClick={() => setDevotionalFontSize('small')}>S</button>
-                  <button className={`dev-font-btn${devotionalFontSize === 'medium' ? ' active' : ''}`}
-                    onClick={() => setDevotionalFontSize('medium')}>M</button>
-                  <button className={`dev-font-btn${devotionalFontSize === 'large' ? ' active' : ''}`}
-                    onClick={() => setDevotionalFontSize('large')}>L</button>
-                </div>
-              </div>
-              <h2 className="devotional-title">{currentDevotional.title}</h2>
-              <div className="devotional-verse-block">
-                <p className="devotional-verse-text" style={{ fontSize: devotionalFontSize === 'small' ? '0.88rem' : devotionalFontSize === 'large' ? '1.08rem' : '0.95rem' }}>
-                  &ldquo;{currentDevotional.verse_text}&rdquo;
-                </p>
-                <p className="devotional-verse-ref">&mdash; {currentDevotional.verse}</p>
-              </div>
-              <div className="devotional-text" style={{ fontSize: devotionalFontSize === 'small' ? '0.85rem' : devotionalFontSize === 'large' ? '1.05rem' : '0.92rem' }}>
-                {currentDevotional.text}
-              </div>
-              <div className="devotional-prayer-block">
-                <h4 className="devotional-prayer-title">🙏 Prayer</h4>
-                <p className="devotional-prayer-text">{currentDevotional.prayer}</p>
-              </div>
-            </div>
-
-            <div className="devotional-progress">
-              <div className="devotional-progress-label">
-                <span>Reading through the Word</span>
-                <span>{Math.round((devotionalDay / 365) * 100)}%</span>
-              </div>
-              <div className="devotional-progress-track">
-                <div className="devotional-progress-fill" style={{ width: `${(devotionalDay / 365) * 100}%` }} />
-              </div>
-            </div>
-          </section>
+          <DevotionalView
+            devotionalDay={devotionalDay} setDevotionalDay={setDevotionalDay}
+            devotionalFontSize={devotionalFontSize} setDevotionalFontSize={setDevotionalFontSize}
+            selectedChurch={selectedChurch} setSelectedChurch={setSelectedChurch}
+            churchDevotionalDay={churchDevotionalDay} setChurchDevotionalDay={setChurchDevotionalDay}
+            nextDevotional={nextDevotional} prevDevotional={prevDevotional}
+            goToTodaysDevotional={goToTodaysDevotional}
+          />
         )}
 
         {currentView === 'settings' && (
-          <section className="view settings-view fade-in">
-            <div className="settings-nav">
-              {[{ id: 'appearance', label: '🎨 Appearance' }, { id: 'profile', label: '👤 Profile' }, { id: 'notifications', label: '🔔 Notifications' }, { id: 'backup', label: '💾 Backup' }, { id: 'about', label: 'ℹ️ About' }].map(s => (
-                <button key={s.id} className={`settings-nav-btn${settingsSection === s.id ? ' active' : ''}`} onClick={() => setSettingsSection(s.id)}>{s.label}</button>
-              ))}
-            </div>
-
-            {settingsSection === 'appearance' && (
-              <div className="settings-content">
-                <div className="card">
-                  <div className="card-icon">🎨</div>
-                  <h3>Color Theme</h3>
-                  <p>Choose your preferred color scheme.</p>
-                  <div className="theme-grid">
-                    {THEME_OPTIONS.map(t => (
-                      <button key={t.id} className={`theme-btn${settings.theme === t.id ? ' active' : ''}`} onClick={() => updateSetting('theme', t.id)}>
-                        <div className="theme-swatches">
-                          {t.colors.map((c, i) => <span key={i} className="theme-swatch" style={{ background: c }} />)}
-                        </div>
-                        <span className="theme-name">{t.name}</span>
-                      </button>
-                    ))}
-                    <button className={`theme-btn${settings.theme === 'custom' ? ' active' : ''}`} onClick={() => updateSetting('theme', 'custom')}>
-                      <div className="theme-swatches">
-                        <span className="theme-swatch" style={{ background: customColors.primary }} />
-                        <span className="theme-swatch" style={{ background: customColors.accent }} />
-                        <span className="theme-swatch" style={{ background: customColors.background }} />
-                      </div>
-                      <span className="theme-name">Custom</span>
-                    </button>
-                  </div>
-                  {settings.theme === 'custom' && (
-                    <div className="custom-color-picker">
-                      {[{ key: 'primary', label: 'Primary' }, { key: 'accent', label: 'Accent' }, { key: 'background', label: 'Background' }].map(c => (
-                        <div key={c.key} className="color-picker-row">
-                          <label>{c.label}</label>
-                          <div className="color-input-wrap">
-                            <input type="color" value={customColors[c.key]} onChange={e => updateCustomColor(c.key, e.target.value)} className="color-input-native" />
-                            <span className="color-hex">{customColors[c.key]}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="card">
-                  <div className="card-icon">☀️</div>
-                  <h3>Display Mode</h3>
-                  <p>Switch between dark and light mode.</p>
-                  <div className="mode-toggle">
-                    <button className={`mode-btn${settings.mode === 'dark' ? ' active' : ''}`} onClick={() => updateSetting('mode', 'dark')}>🌙 Dark</button>
-                    <button className={`mode-btn${settings.mode === 'light' ? ' active' : ''}`} onClick={() => updateSetting('mode', 'light')}>☀️ Light</button>
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-icon">🔤</div>
-                  <h3>Font Size</h3>
-                  <p>Adjust text size across the app.</p>
-                  <div className="font-size-options">
-                    {[{ id: 'small', label: 'S' }, { id: 'medium', label: 'M' }, { id: 'large', label: 'L' }].map(f => (
-                      <button key={f.id} className={`font-size-btn${settings.fontSize === f.id ? ' active' : ''}`} onClick={() => updateSetting('fontSize', f.id)}>{f.label}</button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-icon">📐</div>
-                  <h3>Reading Layout</h3>
-                  <p>Choose your Bible reading layout preference.</p>
-                  <div className="layout-options">
-                    {[{ id: 'standard', label: 'Standard', desc: 'Default spacing' }, { id: 'wide', label: 'Wide', desc: 'More padding & larger text' }, { id: 'compact', label: 'Compact', desc: 'Tighter spacing' }].map(l => (
-                      <button key={l.id} className={`layout-btn${settings.readingLayout === l.id ? ' active' : ''}`} onClick={() => updateSetting('readingLayout', l.id)}>
-                        <span className="layout-name">{l.label}</span>
-                        <span className="layout-desc">{l.desc}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-icon">🕐</div>
-                  <h3>World Clock</h3>
-                  <p>Current time across timezones (your timezone: WAT+1).</p>
-                  <div className="world-clock-list">
-                    {(() => {
-                      const times = getAllTimezones()
-                      return times.map(tz => (
-                        <div key={tz.id} className={`world-clock-row${tz.id === 'WAT' ? ' primary' : ''}`}>
-                          <span className="world-clock-tz">{tz.label}</span>
-                          <span className="world-clock-time">{tz.hours}:{tz.minutes}</span>
-                        </div>
-                      ))
-                    })()}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {settingsSection === 'profile' && (
-              <div className="settings-content">
-                <div className="card">
-                  <div className="card-icon">👤</div>
-                  <h3>Profile</h3>
-                  <p>Manage your personal information.</p>
-                  <div className="profile-fields">
-                    <label className="settings-label">Your Name</label>
-                    <input type="text" placeholder="Enter your name" value={settings.profileName} onChange={e => updateSetting('profileName', e.target.value)} />
-                    <label className="settings-label">Email</label>
-                    <input type="email" placeholder="Enter your email" value={settings.profileEmail} onChange={e => updateSetting('profileEmail', e.target.value)} />
-                  </div>
-                </div>
-                <div className="card">
-                  <div className="card-icon">🌐</div>
-                  <h3>Language</h3>
-                  <p>Select your preferred language.</p>
-                  <select value={settings.language} onChange={e => updateSetting('language', e.target.value)}>
-                    <option value="en">English</option>
-                    <option value="es">Español</option>
-                    <option value="fr">Français</option>
-                    <option value="de">Deutsch</option>
-                    <option value="pt">Português</option>
-                  </select>
-                  <p className="settings-hint">More translations coming soon.</p>
-                </div>
-              </div>
-            )}
-
-            {settingsSection === 'notifications' && (
-              <div className="settings-content">
-                <div className="card">
-                  <div className="card-icon">🔔</div>
-                  <h3>Notification Preferences</h3>
-                  <p>Choose which reminders you'd like to receive.</p>
-                  <div className="toggle-list">
-                    {[
-                      { key: 'prayerReminder', label: '🙏 Prayer Reminder', desc: 'Get reminded to log your daily prayer' },
-                      { key: 'dailyVerse', label: '📖 Daily Verse', desc: 'Receive a daily Bible verse notification' },
-                      { key: 'taskReminders', label: '📋 Task Reminders', desc: 'Get notified about pending tasks' },
-                    ].map(n => (
-                      <div key={n.key} className="toggle-row">
-                        <div className="toggle-info">
-                          <span className="toggle-label">{n.label}</span>
-                          <span className="toggle-desc">{n.desc}</span>
-                        </div>
-                        <label className="toggle-switch">
-                          <input type="checkbox" checked={settings.notifications[n.key]} onChange={e => updateNotification(n.key, e.target.checked)} />
-                          <span className="toggle-slider" />
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="settings-hint">Notifications require browser permission.</p>
-                </div>
-              </div>
-            )}
-
-            {settingsSection === 'backup' && (
-              <div className="settings-content">
-                <div className="card">
-                  <div className="card-icon">💾</div>
-                  <h3>Backup & Restore</h3>
-                  <p>Export your data to a file or restore from a previous backup.</p>
-                  <div className="backup-actions">
-                    <button className="btn-primary" onClick={exportData}>📤 Export Backup</button>
-                    <button className="btn-outline" onClick={importData}>📥 Import Backup</button>
-                  </div>
-                </div>
-                <div className="card">
-                  <div className="card-icon">⚠️</div>
-                  <h3>Danger Zone</h3>
-                  <p>Permanently delete all data stored on this device.</p>
-                  <button className="btn-danger" onClick={resetAllData}>🗑 Reset All Data</button>
-                </div>
-              </div>
-            )}
-
-            {settingsSection === 'about' && (
-              <div className="settings-content">
-                <div className="card about-card">
-                  <div className="about-logo">
-                    <span className="about-cross">✝</span>
-                  </div>
-                  <h3>BelieversFlow</h3>
-                  <div className="about-info">
-                    <div className="about-row"><span>Version</span><span>3.1.0</span></div>
-                    <div className="about-row"><span>Current Time</span><span>{formatDateTime()}</span></div>
-                    <div className="about-row"><span>Timezone</span><span>WAT (UTC+1)</span></div>
-                    <div className="about-row"><span>Backend</span><span>{API_URL || 'GROQ (direct)'}</span></div>
-                    <div className="about-row"><span>Storage</span><span>localStorage</span></div>
-                    <div className="about-row"><span>AI Model</span><span>llama-3.3-70b-versatile</span></div>
-                  </div>
-                  <p className="about-desc">A Christian task manager and spiritual growth tracker. Built with faith, for believers.</p>
-                  <div className="about-links">
-                    <a href="https://github.com/ecoinboxhub/Christian_task_manager" target="_blank" rel="noopener">📘 GitHub</a>
-                    <a href="https://believers-flow-frontend.vercel.app" target="_blank" rel="noopener">🌐 Web App</a>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
+          <SettingsView
+            settings={settings} updateSetting={updateSetting} updateNotification={updateNotification}
+            customColors={customColors} updateCustomColor={updateCustomColor}
+            isPremium={isPremium} authUser={authUser} setShowAuth={setShowAuth} handleLogout={handleLogout}
+            exportData={exportData} importData={importData} resetAllData={resetAllData}
+            openLegalSettings={openLegalSettings} showToast={showToast}
+            settingsAuthMode={settingsAuthMode} setSettingsAuthMode={setSettingsAuthMode}
+          />
         )}
-      </main>
 
-      <footer>
-        <p>Saved locally ✦ Offline ready ✦ Faith driven</p>
-      </footer>
+        {currentView === 'feed' && (
+          <ErrorBoundary>
+            <CommunityFeedView
+              showToast={showToast}
+              isPremium={isPremium}
+              setShowAuth={setShowAuth}
+            />
+          </ErrorBoundary>
+        )}
 
+        {currentView === 'prayer' && (
+          <ErrorBoundary>
+            <PrayerFeedView
+              showToast={showToast}
+              isPremium={isPremium}
+              setShowAuth={setShowAuth}
+            />
+          </ErrorBoundary>
+        )}
+
+        {currentView === 'testimonies' && (
+          <ErrorBoundary>
+            <TestimonyView
+              showToast={showToast}
+              isPremium={isPremium}
+              setShowAuth={setShowAuth}
+            />
+          </ErrorBoundary>
+        )}
+
+        {currentView === 'groups' && (
+          <GroupsView
+            showToast={showToast}
+            isPremium={isPremium}
+            setShowAuth={setShowAuth}
+          />
+        )}
+
+        {currentView === 'church' && (
+          <ChurchView
+            showToast={showToast}
+            isPremium={isPremium}
+            setShowAuth={setShowAuth}
+          />
+        )}
+
+        {currentView === 'events' && (
+          <EventsView
+            showToast={showToast}
+            isPremium={isPremium}
+            setShowAuth={setShowAuth}
+          />
+        )}
+
+        {currentView === 'sermons' && (
+          <SermonView
+            showToast={showToast}
+            isPremium={isPremium}
+            setShowAuth={setShowAuth}
+          />
+        )}
+
+        {currentView === 'forum' && (
+          <ForumView
+            showToast={showToast}
+            isPremium={isPremium}
+            setShowAuth={setShowAuth}
+          />
+        )}
+
+        {currentView === 'analytics' && (
+          <PrayerAnalyticsView
+            showToast={showToast}
+            isPremium={isPremium}
+            setShowAuth={setShowAuth}
+          />
+        )}
+          </main>
+
+          <footer>
+            <p>Saved locally. Offline ready. Faith driven.</p>
+          </footer>
+        </div>
+      </div>
+
+      <nav className="bottom-nav" aria-label="Mobile navigation">
+        {primaryNav.filter(v => ['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings'].includes(v) || isPremium).map(renderBottomNavButton)}
+        <button className={`bottom-nav-item${!primaryNav.includes(currentView) ? ' active' : ''}`}
+          onClick={() => setMobileDrawerOpen(true)}
+          aria-label="More navigation options">
+          <span className="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span>
+          <span className="bottom-nav-label">More</span>
+        </button>
+      </nav>
+
+      {mobileDrawerOpen && (
+        <div className="mobile-drawer-overlay" onClick={() => setMobileDrawerOpen(false)}>
+          <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
+            <div className="mobile-drawer-header">
+              <div className="mobile-drawer-brand">
+                <span className="logo-cross"><img src="/logo-cross.svg" alt="" width="28" height="28" className="logo-svg" /></span>
+                <span className="mobile-drawer-title">Believers Flow</span>
+              </div>
+              <button className="mobile-drawer-close" onClick={() => setMobileDrawerOpen(false)} aria-label="Close menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <nav className="mobile-drawer-nav">
+              <div className="mobile-drawer-section-label">Primary</div>
+              {primaryNav.filter(v => ['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings'].includes(v) || isPremium).map(view => (
+                <button key={view} className={`mobile-drawer-item${currentView === view ? ' active' : ''}`}
+                  onClick={() => { setCurrentView(view); setMobileDrawerOpen(false) }}>
+                  <span className="mobile-drawer-item-icon">{navIcons[view]}</span>
+                  <span className="mobile-drawer-item-label">{navLabels[view]}</span>
+                  {currentView === view && <span className="mobile-drawer-active-dot" />}
+                </button>
+              ))}
+              {isPremium && <div className="mobile-drawer-section-label">Community</div>}
+              {secondaryNav.filter(v => ['groups', 'church', 'events', 'sermons', 'forum', 'analytics'].includes(v) && isPremium).map(view => (
+                <button key={view} className={`mobile-drawer-item${currentView === view ? ' active' : ''}`}
+                  onClick={() => { setCurrentView(view); setMobileDrawerOpen(false) }}>
+                  <span className="mobile-drawer-item-icon">{navIcons[view]}</span>
+                  <span className="mobile-drawer-item-label">{navLabels[view]}</span>
+                  {currentView === view && <span className="mobile-drawer-active-dot" />}
+                </button>
+              ))}
+              <div className="mobile-drawer-section-label">Account</div>
+              <button className={`mobile-drawer-item${currentView === 'settings' ? ' active' : ''}`}
+                onClick={() => { setCurrentView('settings'); setMobileDrawerOpen(false) }}>
+                <span className="mobile-drawer-item-icon">{navIcons.settings}</span>
+                <span className="mobile-drawer-item-label">Settings</span>
+                {currentView === 'settings' && <span className="mobile-drawer-active-dot" />}
+              </button>
+            </nav>
+            <div className="mobile-drawer-footer">
+              <div className="mobile-drawer-mode-toggle">
+                <button className={`header-mode-btn${settings.mode === 'dark' ? ' active' : ''}`}
+                  onClick={() => updateSetting('mode', 'dark')} aria-label="Dark mode">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+                <button className={`header-mode-btn${settings.mode === 'grey' ? ' active' : ''}`}
+                  onClick={() => updateSetting('mode', 'grey')} aria-label="Grey mode">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5" fill="currentColor" opacity="0.35"/></svg>
+                </button>
+                <button className={`header-mode-btn${settings.mode === 'light' ? ' active' : ''}`}
+                  onClick={() => updateSetting('mode', 'light')} aria-label="Light mode">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!mobileDrawerOpen && (
       <div className="fab-group">
         {AI_READY && (
-          <button className="fab-guide" onClick={() => setShowGuide(true)} title="AI Guide" aria-label="AI Guide">❓</button>
+          <button className="fab-guide" onClick={() => setShowGuide(true)} title="AI Guide" aria-label="AI Guide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
         )}
         {AI_READY && (
-          <button className={`chat-fab ${chatOpen ? ' open' : ''}`} onClick={() => setChatOpen(o => !o)}>
-            {chatOpen ? '✕' : '💬'}
+          <button className={`chat-fab ${chatOpen ? ' open' : ''}`} onClick={() => setChatOpen(o => !o)} aria-label={chatOpen ? 'Close chat assistant' : 'Open chat assistant'}>
+            {chatOpen ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>}
           </button>
         )}
       </div>
+      )}
 
       {showGuide && (
         <div className="guide-overlay" onClick={() => setShowGuide(false)}>
           <div className="guide-panel" onClick={e => e.stopPropagation()}>
             <div className="guide-header">
               <span className="guide-title">Faith Assistant User Guide</span>
-              <button className="guide-close" onClick={() => setShowGuide(false)}>✕</button>
+              <button className="guide-close" onClick={() => setShowGuide(false)} aria-label="Close guide">✕</button>
             </div>
             <div className="guide-body">
               <div className="guide-section">
@@ -1809,23 +1310,30 @@ export default function App() {
                 <h4>Privacy and Data Handling</h4>
                 <p>Your conversations are stored locally within the app. No personal chats are shared externally, except for generating AI responses. The AI operates securely and privately, respecting your data at all times.</p>
               </div>
-            </div>
+              {!isPremium && (
+                <div className="guide-section guide-signup">
+                  <p>Sign up to unlock AI-powered features and cloud sync.</p>
+                  <button className="guide-signup-btn" onClick={() => setShowAuth(true)}>Get Started Free</button>
+                </div>
+              )}
           </div>
         </div>
+      </div>
       )}
 
       {AI_READY && chatOpen && (
         <div className="chat-overlay">
           <div className="chat-panel">
             <div className="chat-header">
-              <span className="chat-title">🤖 Faith Assistant</span>
-              <button className="chat-close" onClick={() => setChatOpen(false)}>✕</button>
+              <span className="chat-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18,verticalAlign:'middle',marginRight:6}}><path d="M12 2a4 4 0 014 4v2a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14h.01"/><path d="M6 14h.01"/><path d="M12 14v4"/><path d="M8 18h8"/></svg> Faith Assistant</span>
+              <button className="chat-close" onClick={() => setChatOpen(false)} aria-label="Close chat">✕</button>
             </div>
             <div className="chat-body">
               {!chatHistory.length && (
                 <div className="chat-welcome">
-                  <span className="chat-welcome-icon">🙏</span>
+                  <span className="chat-welcome-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:40,height:40}}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></span>
                   <p>Hi! I'm your faith assistant. Ask me anything about scripture, prayer, life advice, or your tasks.</p>
+                  {!isPremium && <p className="chat-auth-hint"><button className="chat-auth-link" onClick={() => setShowAuth(true)}>Sign in</button> to send messages.</p>}
                   <div className="chat-suggestions">
                     {["Give me a Bible verse for today", "How can I improve my prayer life?", "What does the Bible say about patience?", "Encourage me based on my tasks"].map((s, i) => (
                       <button key={i} className="chat-suggestion-chip" onClick={() => { setChatMsg(s); setTimeout(() => chatInput.current?.focus(), 50) }}>
@@ -1837,13 +1345,13 @@ export default function App() {
               )}
               {chatHistory.map((m, i) => (
                 <div key={i} className={`chat-msg ${m.role} fade-in`}>
-                  <span className="chat-avatar">{m.role === 'user' ? '👤' : '🤖'}</span>
+                  <span className="chat-avatar">{m.role === 'user' ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}><path d="M12 2a4 4 0 014 4v2a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14h.01"/><path d="M6 14h.01"/><path d="M12 14v4"/><path d="M8 18h8"/></svg>}</span>
                   <div className="chat-bubble">{m.content}</div>
                 </div>
               ))}
               {chatLoading && (
                 <div className="chat-msg assistant">
-                  <span className="chat-avatar">🤖</span>
+                  <span className="chat-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}><path d="M12 2a4 4 0 014 4v2a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14h.01"/><path d="M6 14h.01"/><path d="M12 14v4"/><path d="M8 18h8"/></svg></span>
                   <div className="chat-bubble typing">
                     <span className="dot-pulse" />
                   </div>
@@ -1852,9 +1360,9 @@ export default function App() {
               <div ref={chatEnd} />
             </div>
             <div className="chat-input-area">
-              <input ref={chatInput} type="text" placeholder="Ask anything..." value={chatMsg}
+              <input ref={chatInput} type="text" placeholder={isPremium ? "Ask anything..." : "Sign in to send messages..."} aria-label="Ask faith assistant" value={chatMsg}
                 onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} />
-              <button onClick={sendChat} disabled={chatLoading || !chatMsg.trim()}>Send</button>
+              <button onClick={sendChat} disabled={chatLoading || !chatMsg.trim() || !isPremium}>Send</button>
             </div>
           </div>
         </div>
@@ -1866,28 +1374,28 @@ export default function App() {
             <div className="onboarding-slide">
               {onboardingStep === 0 && (
                 <>
-                  <div className="onboarding-icon">📖</div>
+                  <div className="onboarding-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:48,height:48}}><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="12" y1="6" x2="12" y2="14"/><line x1="8" y1="10" x2="16" y2="10"/></svg></div>
                   <h2 className="onboarding-title">Bible Reader</h2>
                   <p className="onboarding-desc">Read and study scripture across 12 translations. Get AI-powered explanations, commentary, and concordance at your fingertips.</p>
                 </>
               )}
               {onboardingStep === 1 && (
                 <>
-                  <div className="onboarding-icon">🤖</div>
+                  <div className="onboarding-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:48,height:48}}><path d="M12 2a4 4 0 014 4v2a4 4 0 01-8 0V6a4 4 0 014-4z"/><path d="M18 14h.01"/><path d="M6 14h.01"/><path d="M12 14v4"/><path d="M8 18h8"/></svg></div>
                   <h2 className="onboarding-title">Faith Assistant</h2>
                   <p className="onboarding-desc">Ask questions and receive guidance from an AI rooted in Christian wisdom. Get scripture-based advice, prayer support, and encouragement.</p>
                 </>
               )}
               {onboardingStep === 2 && (
                 <>
-                  <div className="onboarding-icon">🙏</div>
+                  <div className="onboarding-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:48,height:48}}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
                   <h2 className="onboarding-title">Prayer Tracker</h2>
                   <p className="onboarding-desc">Track prayer requests and answers. Build a daily prayer habit with streak tracking and reflection logs.</p>
                 </>
               )}
               {onboardingStep === 3 && (
                 <>
-                  <div className="onboarding-icon">✅</div>
+                  <div className="onboarding-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:48,height:48}}><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
                   <h2 className="onboarding-title">Tasks & Goals</h2>
                   <p className="onboarding-desc">Organize your day with faith-centered productivity. Categorize tasks as spiritual, personal, or service, and track your progress.</p>
                 </>
@@ -1905,12 +1413,41 @@ export default function App() {
                   <button className="onboarding-next" onClick={() => setOnboardingStep(s => s + 1)}>Next</button>
                 </>
               ) : (
-                <button className="onboarding-start" onClick={completeOnboarding}>Start Using BelieversFlow</button>
+                <div className="onboarding-final-actions">
+                  <button className="onboarding-start" onClick={handleGetStarted}>Get Started</button>
+                  <button className="onboarding-signup" onClick={() => { completeOnboarding(); setShowAuth(true) }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16,verticalAlign:'middle',marginRight:6}}><line x1="12" y1="2" x2="12" y2="22"/><line x1="6" y1="8" x2="18" y2="8"/></svg> Sign Up for Premium Features
+                  </button>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {showLegal && (
+        <LegalScreen
+          mode={legalMode}
+          onAccept={handleLegalAccept}
+          onDecline={handleLegalDecline}
+          apiUrl={API_URL}
+          authUser={authUser}
+        />
+      )}
+
+      {legalSettingsOpen && (
+        <LegalScreen
+          mode="settings"
+          onAccept={() => setLegalSettingsOpen(false)}
+          onDecline={() => setLegalSettingsOpen(false)}
+          apiUrl={API_URL}
+          authUser={authUser}
+        />
+      )}
+
+      <ErrorBoundary>
+        <CommunityAssistant isPremium={isPremium} />
+      </ErrorBoundary>
     </div>
   )
 }

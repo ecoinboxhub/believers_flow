@@ -1,9 +1,9 @@
 # Monetization Strategy — BelieversFlow
 
 **Document Type:** Business / Revenue Strategy
-**Version:** 3.1.0
-**Status:** Draft
-**Last Updated:** June 11, 2026 09:38
+**Version:** 4.1.0
+**Status:** In Progress
+**Last Updated:** July 4, 2026 08:49
 
 ---
 
@@ -18,12 +18,13 @@
 7. [Growth Strategy](#7-growth-strategy)
 8. [Risks & Mitigation](#8-risks--mitigation)
 9. [Ethical Considerations](#9-ethical-considerations)
+10. [Current Implementation Status](#10-current-implementation-status)
 
 ---
 
 ## 1. Executive Summary
 
-BelieversFlow is a **free, open-source Christian app** combining tasks, prayer tracking, Bible reading, journaling, hymns, daily devotionals, and AI guidance — with zero revenue and zero operating costs. This document outlines a phased monetization strategy that preserves the app's core values — **privacy, offline-first, and faith-driven** — while building a sustainable financial model.
+BelieversFlow is a **freemium Christian app** combining tasks, prayer tracking, Bible reading, journaling, hymns, daily devotionals, and AI guidance — with a premium tier for advanced features. This document outlines a phased monetization strategy that preserves the app's core values — **privacy, offline-first, and faith-driven** — while building a sustainable financial model.
 
 ### Strategic Principles
 
@@ -466,6 +467,46 @@ BelieversFlow is designed to be **denomination-agnostic**. The app serves all Ch
 | Monthly churn | <5% | Stripe subscription data |
 | Net Promoter Score (NPS) | >50 | Annual user survey |
 | App store rating | >4.5 | Google Play + App Store |
+
+---
+
+## 10. Current Implementation Status
+
+### 10.1 Freemium Model (v4.1.0)
+
+The freemium model has been implemented with the following structure:
+
+| Feature | Free Tier | Premium Tier (Logged-in) |
+|---|---|---|
+| Task management | ✅ | ✅ |
+| Prayer tracker | ✅ | ✅ |
+| Bible reader | ✅ | ✅ |
+| Diary/journal | ✅ | ✅ |
+| Hymn Book | ✅ | ✅ |
+| Daily Devotional | ✅ | ✅ |
+| AI Chat | ❌ (shows auth landing) | ✅ |
+| AI Bible Explanation | ❌ (shows auth landing) | ✅ |
+| Commentary | ❌ (shows auth landing) | ✅ |
+| Concordance | ❌ (shows auth landing) | ✅ |
+| Cloud Sync | ❌ (shows auth landing) | ✅ |
+
+### 10.2 Authentication Implementation
+
+- **Email/Password**: JWT-based authentication with bcrypt password hashing
+- **Google OAuth**: Google Identity Services (client-side) + ID token verification (server-side)
+- **Session**: JWT tokens with 30-day expiry stored in localStorage (`bf_token`, `bf_user`)
+- **Plan**: Users default to "free" plan; premium access = any logged-in user (`isPremium = Boolean(authUser)`)
+
+### 10.3 Infrastructure Costs
+
+| Component | Cost | Status |
+|---|---|---|
+| Vercel (frontend + backend) | $0 (free tier) | ✅ Active |
+| Aiven PostgreSQL | $0 (free tier) | ✅ Active |
+| Pinecone | $0 (free tier) | ✅ Active |
+| OpenAI embeddings | ~$0.001 per 1K tokens | ✅ Active |
+| GROQ/OpenAI/OpenRouter | Free tier | ✅ Active |
+| **Total monthly cost** | **~$0-5** | ✅ Sustainable |
 | | | |
 
 ---

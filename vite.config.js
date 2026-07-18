@@ -3,10 +3,17 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  test: {
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    exclude: ['e2e/**', 'node_modules/**'],
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'BelieversFlow - Christian Task Manager',
@@ -26,28 +33,9 @@ export default defineConfig({
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,ico,json}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/bible-api\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'bible-api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 7 * 24 * 60 * 60 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/christian-task-manager\.vercel\.app\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'app-api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
       },
     }),
   ],

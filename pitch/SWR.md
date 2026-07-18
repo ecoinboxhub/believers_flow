@@ -1,9 +1,9 @@
 # Software Requirements Specification — BelieversFlow
 
 **Document Type:** Software Requirements Specification (SRS)
-**Version:** 3.1.0
+**Version:** 4.1.0
 **Status:** Final
-**Last Updated:** June 11, 2026 09:38
+**Last Updated:** July 4, 2026 08:49
 **Prepared By:** Engineering Team
 
 ---
@@ -33,22 +33,27 @@ This Software Requirements Specification (SRS) defines the complete technical re
 
 BelieversFlow is a single-page React application with the following subsystems:
 
-| Subsystem | Description |
-|---|---|
-| **Task Manager** | CRUD operations, filtering, categorization, undo |
-| **Prayer Tracker** | Daily logging, streak calculation, history |
-| **Bible Reader** | 66-book navigation, chapter display, offline caching |
-| **Diary/Journal** | CRUD with mood picker, undo |
-| **AI Chat** | GROQ-powered conversational faith assistant |
-| **Settings Engine** | Theming, display modes, backup/restore, profile |
-| **Theme Engine** | Runtime CSS theme switching via data attributes |
-| **Persistence Layer** | localStorage-based offline storage |
-| **Hymn Book** | Searchable hymn library with lyrics, categories, favorites, numbering, and audio playback (26 hymns with Web Audio API) |
-| **Daily Devotional** | Curated daily devotionals with customizable reading experience |
-| **Hymn Music** | Web Audio API playback (triangle wave + lowpass filter), backend API + local fallback |
-| **PWA** | Workbox service worker (16 precached assets, 1.47 MB), web manifest for installability |
-| **Draggable Navigation** | HTML5 DnD + touch events for tab reordering with localStorage persistence |
-| **Error Boundary** | React class component with "Try Again" and "Reset App Data" recovery |
+| Subsystem | Description | Status |
+|---|---|---|
+| **Task Manager** | CRUD operations, filtering, categorization, undo | ✅ Complete |
+| **Prayer Tracker** | Daily logging, streak calculation, history | ✅ Complete |
+| **Bible Reader** | 66-book navigation, chapter display, offline caching | ✅ Complete |
+| **Diary/Journal** | CRUD with mood picker, undo | ✅ Complete |
+| **AI Chat** | Multi-LLM powered conversational faith assistant (GROQ/OpenAI/OpenRouter) | ✅ Complete |
+| **Settings Engine** | Theming, display modes, backup/restore, profile | ✅ Complete |
+| **Theme Engine** | Runtime CSS theme switching via data attributes | ✅ Complete |
+| **Persistence Layer** | localStorage-based offline storage | ✅ Complete |
+| **Hymn Book** | Searchable hymn library with lyrics, categories, favorites, numbering, and audio playback (54 hymns with Web Audio API) | ✅ Complete |
+| **Daily Devotional** | Curated daily devotionals with customizable reading experience | ✅ Complete |
+| **Hymn Music** | Web Audio API playback (triangle wave + lowpass filter), backend API + local fallback | ✅ Complete |
+| **PWA** | Workbox service worker (16 precached assets, 1.47 MB), web manifest for installability | ✅ Complete |
+| **Draggable Navigation** | HTML5 DnD + touch events for tab reordering with localStorage persistence | ✅ Complete |
+| **Error Boundary** | React class component with "Try Again" and "Reset App Data" recovery | ✅ Complete |
+| **User Authentication** | Email + Google OAuth with JWT tokens | ✅ Complete |
+| **Cloud Sync** | Last-write-wins conflict resolution via PostgreSQL | ✅ Complete |
+| **Pinecone RAG** | Bible verse search with 1024-dim embeddings (54 verses indexed) | ✅ Complete |
+| **Multi-LLM Provider** | GROQ, OpenAI, OpenRouter with per-request provider selection | ✅ Complete |
+| **Freemium Model** | Free features (Tasks, Prayer, Diary, Bible, Hymns, Devotionals) vs Premium features (AI Chat, Explanation, Commentary, Concordance, Cloud Sync) | ✅ Complete |
 
 ### 1.3 Definitions, Acronyms, and Abbreviations
 
@@ -57,12 +62,21 @@ BelieversFlow is a single-page React application with the following subsystems:
 | **SPA** | Single Page Application |
 | **SRS** | Software Requirements Specification |
 | **GROQ** | AI inference provider (API) |
+| **OpenAI** | AI inference provider (API) |
+| **OpenRouter** | AI inference aggregator (API) |
+| **Pinecone** | Vector database for RAG (Retrieval-Augmented Generation) |
+| **RAG** | Retrieval-Augmented Generation |
+| **JWT** | JSON Web Token |
+| **OAuth** | Open Authorization protocol |
+| **PostgreSQL** | Open-source relational database |
+| **asyncpg** | Async PostgreSQL driver for Python |
 | **localStorage** | Browser key-value storage API |
 | **Capacitor** | Cross-platform mobile runtime (wraps web apps) |
 | **FAB** | Floating Action Button |
 | **Toast** | Temporary notification overlay |
 | **CRUD** | Create, Read, Update, Delete |
 | **OT/NT** | Old Testament / New Testament |
+| **Aiven** | Cloud database hosting platform |
 
 ### 1.4 References
 
@@ -88,20 +102,21 @@ BelieversFlow is a single-page React application with the following subsystems:
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │              React 19 Application (SPA)               │   │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐ │   │
-│  │  │ App.jsx  │ │ App.css  │ │index.css │ │vite.svg│ │   │
-│  │  │(1800 ln) │ │(1450 ln) │ │  (46 ln) │ │(icons) │ │   │
+│  │  │ App.jsx  │ │ App.css  │ │Auth.jsx  │ │Premium │ │   │
+│  │  │(2083 ln) │ │(1900 ln) │ │(112 ln)  │ │Gate.jsx│ │   │
 │  │  └──────────┘ └──────────┘ └──────────┘ └────────┘ │   │
 │  │                                                      │   │
 │  │  ┌──────────────────────────────────────────────┐   │   │
 │  │  │           State Management (useState)          │   │   │
 │  │  │  tasks │ prayerLogs │ studyPlan │ diaryEntries │   │   │
 │  │  │  bible │ chatHistory │ settings │ customColors │   │   │
-│  │  │  recentReads │ undoStack │ ...view state      │   │   │
+│  │  │  recentReads │ undoStack │ authUser │ isPremium│   │   │
 │  │  └──────────────────────────────────────────────┘   │   │
 │  │                                                      │   │
 │  │  ┌──────────────────────────────────────────────┐   │   │
 │  │  │         Persistence (localStorage)             │   │   │
-│  │  │  12 keys: btf_tasks, btf_prayerLogs, ...      │   │   │
+│  │  │  16 keys: btf_tasks, btf_prayerLogs, ...      │   │   │
+│  │  │  Auth: bf_token, bf_user                      │   │   │
 │  │  └──────────────────────────────────────────────┘   │   │
 │  └──────────────────────────────────────────────────────┘   │
 │                                                              │
@@ -119,21 +134,43 @@ BelieversFlow is a single-page React application with the following subsystems:
 │  GROQ API        │   │  bible-api.com       │
 │  api.groq.com    │   │  bible-api.com       │
 │  /v1/chat/compl  │   │  /{book}+{chapter}   │
-│  (mixtral/llama) │   │  (KJV, no key req)   │
-└──────────────────┘   └──────────────────────┘
+│  (llama-3.3-70b) │   │  (KJV, no key req)   │
+├──────────────────┤   └──────────────────────┘
+│  OpenAI API      │
+│  api.openai.com  │
+│  (gpt-4o-mini)   │
+├──────────────────┤
+│  OpenRouter API  │
+│  openrouter.ai   │
+│  (llama-3.3-70b) │
+├──────────────────┤
+│  Google OAuth    │
+│  accounts.google │
+│  (ID token auth) │
+└──────────────────┘
          │
          ▼
-┌──────────────────────────────────────┐
-│  BACKEND LAYER (Vercel Serverless)    │
-│                                       │
-│  ┌────────────────────────────────┐   │
-│  │  Python FastAPI                │   │
-│  │  /api/health  → {status: ok}  │   │
-│  │  /api/chat    → {message: ...} │   │
-│  │  Model: llama-3.3-70b-versatile│   │
-│  │  Proxy: GROQ API key server-side│   │
-│  └────────────────────────────────┘   │
-└──────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  BACKEND LAYER (Vercel Serverless)                            │
+│                                                               │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │  Python FastAPI (v4.1.0)                                │  │
+│  │  /api/health     → {status: ok, version: 4.1.0}       │  │
+│  │  /api/auth/register → {token, user}                    │  │
+│  │  /api/auth/login    → {token, user}                    │  │
+│  │  /api/auth/google   → {token, user}                    │  │
+│  │  /api/sync/push     → {status: ok, synced: N}         │  │
+│  │  /api/sync/pull     → {items: [...]}                   │  │
+│  │  /api/rag/search    → {results: [...]}                 │  │
+│  │  /api/llm/chat      → {response: "..."}               │  │
+│  │  /api/chat          → {message: "..."} (legacy)        │  │
+│  │                                                          │  │
+│  │  Providers: GROQ, OpenAI, OpenRouter (per-request)      │  │
+│  │  Database: PostgreSQL on Aiven (asyncpg)                 │  │
+│  │  Vector Store: Pinecone (1024-dim embeddings)            │  │
+│  │  Auth: JWT tokens + Google OAuth ID verification         │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.2 Component Architecture (Single-File SPA)
@@ -142,12 +179,16 @@ The entire application lives in `App.jsx` as a single React component. State man
 
 | Hook | Purpose |
 |---|---|
-| `useState` | All application state (20+ state variables) |
-| `useCallback` | Memoized event handlers (addTask, toggleTask, etc.) |
-| `useEffect` | Side effects (localStorage sync, DOM attribute updates) |
+| `useState` | All application state (50+ state variables) |
+| `useCallback` | Memoized event handlers (addTask, toggleTask, sendChat, etc.) |
+| `useEffect` | Side effects (localStorage sync, DOM attribute updates, auto-sync) |
 | `useRef` | DOM references (chat input, chat scroll, toast timer) |
 
 **View switching** is handled by a `currentView` state variable toggled via the bottom navigation bar. No router library is used.
+
+**Additional Components:**
+- `Auth.jsx` — Landing page (free vs premium features), register, login (3-mode component)
+- `PremiumGate.jsx` — Premium feature gating component with modal
 
 ### 2.3 Build Pipeline
 

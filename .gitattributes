@@ -1,0 +1,60 @@
+# BelieversFlow .gitattributes
+# Ensure consistent line endings across platforms
+
+* text=auto eol=lf
+
+# Explicitly declare text files
+*.md text diff=markdown
+*.txt text
+*.json text
+*.js text eol=lf
+*.jsx text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.mp3 binary
+*.mp4 binary
+*.webm binary
+*.apk binary
+*.aab binary
+*.jks binary
+*.keystore binary
+*.p12 binary
+*.pem binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.pdf binary
+*.docx binary
+*.pptx binary
+*.xlsx binary
+
+# Generated files — mark as generated to prevent noisy diffs
+package-lock.json linguist-generated=true
+yarn.lock linguist-generated=true
+*.snap linguist-generated=true

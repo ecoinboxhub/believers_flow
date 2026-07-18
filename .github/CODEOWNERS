@@ -1,0 +1,38 @@
+# CODEOWNERS — BelieversFlow
+# Each line is a file pattern followed by one or more owners.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything
+* @ecoinboxhub
+
+# Frontend
+src/ @ecoinboxhub
+*.jsx @ecoinboxhub
+*.js @ecoinboxhub
+vite.config.js @ecoinboxhub
+playwright.config.js @ecoinboxhub
+eslint.config.js @ecoinboxhub
+
+# Backend
+backend/ @ecoinboxhub
+backend/api/ @ecoinboxhub
+
+# Mobile
+android/ @ecoinboxhub
+capacitor.config.json @ecoinboxhub
+
+# CI/CD
+.github/ @ecoinboxhub
+
+# Documentation
+docs/ @ecoinboxhub
+*.md @ecoinboxhub
+
+# Docker
+Dockerfile* @ecoinboxhub
+docker-compose.yml @ecoinboxhub
+nginx.conf @ecoinboxhub
+
+# Testing
+e2e/ @ecoinboxhub
+src/__tests__/ @ecoinboxhub

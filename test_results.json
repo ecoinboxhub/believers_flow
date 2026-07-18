@@ -1,0 +1,278 @@
+{
+  "timestamp": "2026-07-09 06:23:41",
+  "total": 54,
+  "passed": 54,
+  "failed": 0,
+  "results": [
+    {
+      "name": "GET /api/health",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/dbtest",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/bible/versions",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/llm/providers",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/bible (KJV Genesis 1)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/hymns/tune/1",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/bible (invalid book)",
+      "status": "PASS",
+      "detail": "status=400"
+    },
+    {
+      "name": "GET /api/bible (NIV)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/register",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/register (duplicate)",
+      "status": "PASS",
+      "detail": "status=409"
+    },
+    {
+      "name": "POST /api/auth/register (short pass)",
+      "status": "PASS",
+      "detail": "status=422"
+    },
+    {
+      "name": "POST /api/auth/login (success)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/login (wrong pass)",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "name": "POST /api/auth/login (no user)",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "name": "POST /api/auth/refresh",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/sync/pull (no auth)",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "name": "GET /api/sync/pull (bad token)",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "name": "POST /api/auth/legal-accept",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/auth/legal-status",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/forgot-password",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/forgot-password (no user)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/send-verification",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/sync/pull",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/sync/push",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "GET /api/sync/pull (verify)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/chat",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/chat (no auth)",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "name": "POST /api/bible/explain",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/bible/commentary",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/bible/concordance",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/bible/compare",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/hymns/explain",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/devotional/generate",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/llm/chat",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/rag/search",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/rag/ingest",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "Rate limit headers",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "Security headers present",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "HSTS header",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "CORS preflight (no origin)",
+      "status": "PASS",
+      "detail": "status=403"
+    },
+    {
+      "name": "SQL injection in email",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "name": "XSS in name field",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "Large payload rejection",
+      "status": "PASS",
+      "detail": "status=413"
+    },
+    {
+      "name": "JWT startup validation",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/change-password",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/login (new pass)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/login (old pass)",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "name": "POST /api/auth/logout",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/delete-account",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "name": "POST /api/auth/login (deleted)",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "name": "Invalid JSON body",
+      "status": "PASS",
+      "detail": "status=422"
+    },
+    {
+      "name": "Missing required fields",
+      "status": "PASS",
+      "detail": "status=422"
+    },
+    {
+      "name": "Invalid endpoint",
+      "status": "PASS",
+      "detail": "status=404"
+    },
+    {
+      "name": "Method not allowed",
+      "status": "PASS",
+      "detail": "status=405"
+    }
+  ]
+}
