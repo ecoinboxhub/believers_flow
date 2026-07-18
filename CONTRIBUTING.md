@@ -42,11 +42,11 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 ```bash
 # 1. Fork the repository on GitHub
 # 2. Clone your fork
-git clone https://github.com/YOUR_USERNAME/Christian_task_manager.git
+git clone https://github.com/YOUR_USERNAME/believers_flow.git
 cd Christian_Todo
 
 # 3. Add the upstream remote
-git remote add upstream https://github.com/ecoinboxhub/Christian_task_manager.git
+git remote add upstream https://github.com/ecoinboxhub/believers_flow.git
 
 # 4. Create a feature branch
 git checkout -b feature/your-feature-name
@@ -332,8 +332,8 @@ See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for detailed documentation.
 
 ## Getting Help
 
-- **Issues:** [GitHub Issues](https://github.com/ecoinboxhub/Christian_task_manager/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/ecoinboxhub/Christian_task_manager/discussions)
+- **Issues:** [GitHub Issues](https://github.com/ecoinboxhub/believers_flow/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/ecoinboxhub/believers_flow/discussions)
 - **Security:** See [SECURITY.md](SECURITY.md) for reporting security vulnerabilities
 
 ---

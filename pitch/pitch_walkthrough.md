@@ -260,7 +260,7 @@
 ### Visual
 - White background, purple thin top bar
 - Large purple block: "Thank You" / "Questions & Discussion"
-- URLs: believers-flow-frontend.vercel.app / github.com/ecoinboxhub/Christian_task_manager
+- URLs: believers-flow-frontend.vercel.app / github.com/ecoinboxhub/believers_flow
 - Version and tech stack badges
 
 ### Script

@@ -219,7 +219,7 @@ This document covers:
 For questions about data compliance:
 
 **Email:** privacy@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ---
 

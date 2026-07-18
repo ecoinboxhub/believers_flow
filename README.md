@@ -6,7 +6,7 @@
 
 **Version 4.1.0** | **MIT License (2025)**
 
-[![CI/CD](https://github.com/ecoinboxhub/Christian_task_manager/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/ecoinboxhub/Christian_task_manager/actions/workflows/ci-frontend.yml)
+[![CI/CD](https://github.com/ecoinboxhub/believers_flow/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/ecoinboxhub/believers_flow/actions/workflows/ci-frontend.yml)
 [![Vite](https://img.shields.io/badge/Vite-8.0.12-646CFF?logo=vite)](https://vitejs.dev)
 [![React](https://img.shields.io/badge/React-19.2.6-61DAFB?logo=react)](https://react.dev)
 [![Capacitor](https://img.shields.io/badge/Capacitor-8.4.0-119EFF?logo=ionic)](https://capacitorjs.com)
@@ -16,7 +16,7 @@
 
 A comprehensive faith-driven productivity platform for Christian believers. Manage daily tasks rooted in scripture, read the Bible across 104 translations, sing from a collection of 1000+ hymns, and track your spiritual growth journey — all in one beautifully designed app.
 
-[Web App](https://believersflow.vercel.app) · [Report Bug](https://github.com/ecoinboxhub/Christian_task_manager/issues) · [Request Feature](https://github.com/ecoinboxhub/Christian_task_manager/issues) · [Documentation](docs/)
+[Web App](https://believersflow.vercel.app) · [Report Bug](https://github.com/ecoinboxhub/believers_flow/issues) · [Request Feature](https://github.com/ecoinboxhub/believers_flow/issues) · [Documentation](docs/)
 
 </div>
 
@@ -95,7 +95,7 @@ A comprehensive faith-driven productivity platform for Christian believers. Mana
 
 ```bash
 # Clone the repository
-git clone https://github.com/ecoinboxhub/Christian_task_manager.git
+git clone https://github.com/ecoinboxhub/believers_flow.git
 cd Christian_Todo
 
 # Install dependencies

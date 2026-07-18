@@ -299,7 +299,7 @@ Hymn lyrics and melodies are protected by copyright. While we provide access for
 If you see content or behavior that violates these guidelines:
 1. Use the in-app "Report" feature (when available)
 2. Email: report@believersflow.app
-3. GitHub: github.com/ecoinboxhub/Christian_task_manager/issues
+3. GitHub: github.com/ecoinboxhub/believers_flow/issues
 
 ### 9.2 What to Include
 
@@ -361,7 +361,7 @@ If you believe an action was taken in error:
 ### 11.1 General Inquiries
 
 **Email:** support@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ### 11.2 Reports
 

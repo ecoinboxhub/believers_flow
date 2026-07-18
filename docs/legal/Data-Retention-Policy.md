@@ -160,7 +160,7 @@ When data is no longer needed in identifiable form, we may anonymize it for:
 For questions about data retention:
 
 **Email:** privacy@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ---
 

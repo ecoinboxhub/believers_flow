@@ -187,7 +187,7 @@ We may investigate suspected violations by:
 
 To report a violation:
 - Email: report@believersflow.app
-- GitHub: github.com/ecoinboxhub/Christian_task_manager/issues
+- GitHub: github.com/ecoinboxhub/believers_flow/issues
 
 ---
 
@@ -196,7 +196,7 @@ To report a violation:
 For questions about this policy:
 
 **Email:** support@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ---
 

@@ -545,7 +545,7 @@ Continued use after changes constitutes acceptance. If you do not agree to the m
 ### 18.1 General Inquiries
 
 **Email:** support@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ### 18.2 Legal Inquiries
 

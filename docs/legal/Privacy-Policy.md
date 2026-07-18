@@ -398,7 +398,7 @@ You have the right to:
 To exercise any of these rights:
 1. Use the Privacy Dashboard in-app
 2. Email: privacy@believersflow.app
-3. GitHub: github.com/ecoinboxhub/Christian_task_manager/issues
+3. GitHub: github.com/ecoinboxhub/believers_flow/issues
 
 We will respond to all requests within 30 days.
 
@@ -475,7 +475,7 @@ We will notify you of material changes to this Privacy Policy via:
 For privacy-related inquiries:
 
 **Email:** privacy@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ### 11.2 Response Time
 

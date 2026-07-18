@@ -1406,7 +1406,7 @@ The app currently has a **4-step onboarding walkthrough** triggered on first vis
 | Document | Location | Purpose |
 |---|---|---|
 | Web App | https://believers-flow-frontend.vercel.app | Live frontend |
-| GitHub | https://github.com/ecoinboxhub/Christian_task_manager | Source code |
+| GitHub | https://github.com/ecoinboxhub/believers_flow | Source code |
 | Backend API | https://christian-task-manager.vercel.app | Live API |
 | Backend Health | https://christian-task-manager.vercel.app/api/health | Health check |
 | Status | `status.md` | Implementation status |

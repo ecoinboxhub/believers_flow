@@ -595,7 +595,7 @@ const SettingsView = memo(function SettingsView({
             </div>
             <p className="about-desc">A Christian task manager and spiritual growth tracker. Built with faith, for believers.</p>
             <div className="about-links">
-              <a href="https://github.com/ecoinboxhub/Christian_task_manager" target="_blank" rel="noopener">GitHub</a>
+              <a href="https://github.com/ecoinboxhub/believers_flow" target="_blank" rel="noopener">GitHub</a>
               <a href="https://believers-flow-frontend.vercel.app" target="_blank" rel="noopener">Web App</a>
             </div>
           </div>

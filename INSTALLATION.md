@@ -20,7 +20,7 @@ Complete setup instructions for all platforms.
 
 ```bash
 # Clone the repository
-git clone https://github.com/ecoinboxhub/Christian_task_manager.git
+git clone https://github.com/ecoinboxhub/believers_flow.git
 cd Christian_Todo
 
 # Install dependencies

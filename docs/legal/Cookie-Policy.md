@@ -186,7 +186,7 @@ Disabling certain cookies may affect the app's functionality:
 If you have questions about our use of cookies:
 
 **Email:** privacy@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ---
 

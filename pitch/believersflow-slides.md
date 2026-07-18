@@ -336,7 +336,7 @@ _class: invert
 |---|---|
 | **Web App** | https://believers-flow-frontend.vercel.app |
 | **Android APK** | GitHub Releases (v2.0.1) |
-| **GitHub** | github.com/ecoinboxhub/Christian_task_manager |
+| **GitHub** | github.com/ecoinboxhub/believers_flow |
 | **Backend API** | https://christian-task-manager.vercel.app |
 
 ---
@@ -376,7 +376,7 @@ _class: invert
 
 - 🌐 **Web:** https://believers-flow-frontend.vercel.app
 - 📱 **APK:** GitHub Releases
-- 💻 **Contribute:** github.com/ecoinboxhub/Christian_task_manager
+- 💻 **Contribute:** github.com/ecoinboxhub/believers_flow
 
 ---
 

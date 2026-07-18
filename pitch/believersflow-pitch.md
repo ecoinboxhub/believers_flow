@@ -303,7 +303,7 @@ The Christian app market is substantial and growing:
 |---|---|---|
 | **Web App** | Live | https://believers-flow-frontend.vercel.app |
 | **Android APK** | Published | GitHub Releases (v3.1.0) |
-| **GitHub Repository** | Public | https://github.com/ecoinboxhub/Christian_task_manager |
+| **GitHub Repository** | Public | https://github.com/ecoinboxhub/believers_flow |
 | **Backend API** | Live | https://christian-task-manager.vercel.app |
 
 ### Feature Status (40+ features, all complete)
@@ -347,7 +347,7 @@ The Christian app market is substantial and growing:
 > **BelieversFlow is ready for daily use.** Try it free:
 > - **Web:** https://believers-flow-frontend.vercel.app
 > - **APK:** Download from GitHub Releases
-> - **Contribute:** github.com/ecoinboxhub/Christian_task_manager
+> - **Contribute:** github.com/ecoinboxhub/believers_flow
 > - **Feedback:** Open a GitHub issue or email the repository owner
 
 ---

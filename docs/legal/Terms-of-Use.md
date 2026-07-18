@@ -346,7 +346,7 @@ When discussing Scripture:
 If you see content or behavior that violates these Terms:
 1. Use the in-app "Report" feature (when available)
 2. Email: report@believersflow.app
-3. GitHub: github.com/ecoinboxhub/Christian_task_manager/issues
+3. GitHub: github.com/ecoinboxhub/believers_flow/issues
 
 ### 10.2 What to Include
 
@@ -444,7 +444,7 @@ While BelieversFlow provides tools for spiritual growth, you are responsible for
 ### 13.1 General Inquiries
 
 **Email:** support@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ### 13.2 Reports
 

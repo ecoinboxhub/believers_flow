@@ -194,7 +194,7 @@ Implement improvements:
 ### 6.1 Incident Response Team
 
 **Email:** security@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ### 6.2 Emergency Contacts
 

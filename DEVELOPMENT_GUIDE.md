@@ -40,7 +40,7 @@
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/ecoinboxhub/Christian_task_manager.git
+git clone https://github.com/ecoinboxhub/believers_flow.git
 cd Christian_Todo
 ```
 

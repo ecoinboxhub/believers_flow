@@ -149,7 +149,7 @@ We monitor third-party services for:
 For questions about third-party services:
 
 **Email:** privacy@believersflow.app
-**GitHub:** github.com/ecoinboxhub/Christian_task_manager/issues
+**GitHub:** github.com/ecoinboxhub/believers_flow/issues
 
 ---
 
