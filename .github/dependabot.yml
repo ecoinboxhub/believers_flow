@@ -1,0 +1,61 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    reviewers:
+      - ecoinboxhub
+    labels:
+      - dependencies
+      - automated
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+      capacitor:
+        patterns:
+          - "@capacitor/*"
+      testing:
+        patterns:
+          - "@playwright/*"
+          - "vitest"
+      eslint:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@eslint/*"
+
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - automated
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - ci
+      - automated
+    commit-message:
+      prefix: "chore(ci)"

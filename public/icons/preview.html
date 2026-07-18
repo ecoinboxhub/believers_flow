@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BelieversFlow - Icon Selection</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f0f1e; color: #e0e0e8; min-height: 100vh; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 2rem; text-align: center; margin-bottom: 8px; color: #f2c94c; font-weight: 600; }
+  .subtitle { text-align: center; color: #8888a0; margin-bottom: 40px; font-size: 0.95rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 40px; }
+  .card { background: #1a1a2e; border-radius: 16px; padding: 24px; border: 2px solid rgba(255,255,255,0.06); transition: all 0.3s; cursor: pointer; text-align: center; position: relative; }
+  .card:hover { border-color: rgba(242,201,76,0.3); transform: translateY(-2px); }
+  .card.selected { border-color: #f2c94c; box-shadow: 0 0 30px rgba(242,201,76,0.15); }
+  .card-label { position: absolute; top: 12px; right: 12px; font-size: 0.7rem; color: #6666aa; background: rgba(255,255,255,0.04); padding: 3px 10px; border-radius: 10px; font-weight: 600; letter-spacing: 0.05em; }
+  .card.selected .card-label { color: #f2c94c; background: rgba(242,201,76,0.12); }
+  .icon-preview { width: 120px; height: 120px; margin: 20px auto 16px; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .icon-preview img { width: 100%; height: 100%; display: block; }
+  .card-title { font-size: 1rem; font-weight: 600; color: #e0e0e8; margin-bottom: 4px; }
+  .card-desc { font-size: 0.78rem; color: #8888a0; line-height: 1.4; }
+  .card-tag { display: inline-block; background: rgba(242,201,76,0.1); color: #f2c94c; font-size: 0.65rem; padding: 2px 10px; border-radius: 8px; margin-top: 8px; }
+
+  .showcase { background: #1a1a2e; border-radius: 16px; padding: 32px; border: 1px solid rgba(255,255,255,0.06); margin-top: 32px; }
+  .showcase h2 { font-size: 1.2rem; color: #f2c94c; margin-bottom: 20px; }
+  .showcase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
+  .showcase-item { text-align: center; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px; }
+  .showcase-item .preview-box { margin: 0 auto 8px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+  .showcase-item .preview-box img { width: 100%; height: 100%; display: block; }
+  .showcase-item .size-label { font-size: 0.7rem; color: #6666aa; }
+  .showcase-item .use-label { font-size: 0.72rem; color: #8888a0; margin-top: 4px; }
+
+  .actions { display: flex; gap: 12px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .btn { padding: 12px 28px; border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: linear-gradient(135deg, #f2c94c, #d4a017); color: #1a1a2e; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(242,201,76,0.3); }
+  .btn-secondary { background: rgba(255,255,255,0.06); color: #e0e0e8; border: 1px solid rgba(255,255,255,0.1); }
+  .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+  .download-section { margin-top: 24px; padding: 20px; background: rgba(242,201,76,0.04); border-radius: 12px; border: 1px solid rgba(242,201,76,0.1); display: none; }
+  .download-section.visible { display: block; }
+  .download-section h3 { color: #f2c94c; margin-bottom: 12px; font-size: 0.95rem; }
+  .download-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
+  .download-btn { padding: 8px 16px; border: 1px solid rgba(242,201,76,0.2); border-radius: 8px; background: rgba(242,201,76,0.06); color: #f2c94c; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; text-align: center; }
+  .download-btn:hover { background: rgba(242,201,76,0.12); border-color: #f2c94c; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>✝ BelieversFlow</h1>
+  <p class="subtitle">Select your preferred icon design for the app. Click any card to preview.</p>
+
+  <div class="grid" id="designGrid">
+    <div class="card" data-design="a" onclick="selectDesign('a')">
+      <span class="card-label">DESIGN A</span>
+      <div class="icon-preview"><img src="design-a/icon.svg" alt="Design A"></div>
+      <div class="card-title">Cross + Waters</div>
+      <div class="card-desc">Rivers of living water flowing beneath the cross. John 7:38</div>
+      <span class="card-tag">🌊 Flow theme</span>
+    </div>
+    <div class="card" data-design="b" onclick="selectDesign('b')">
+      <span class="card-label">DESIGN B</span>
+      <div class="icon-preview"><img src="design-b/icon.svg" alt="Design B"></div>
+      <div class="card-title">Shield of Faith</div>
+      <div class="card-desc">The cross secured within a shield. Ephesians 6:16</div>
+      <span class="card-tag">🛡️ Protection</span>
+    </div>
+    <div class="card" data-design="c" onclick="selectDesign('c')">
+      <span class="card-label">DESIGN C</span>
+      <div class="icon-preview"><img src="design-c/icon.svg" alt="Design C"></div>
+      <div class="card-title">Cross + Dove</div>
+      <div class="card-desc">The Holy Spirit descending as a dove upon the cross. Matthew 3:16</div>
+      <span class="card-tag">🕊️ Holy Spirit</span>
+    </div>
+    <div class="card" data-design="d" onclick="selectDesign('d')">
+      <span class="card-label">DESIGN D</span>
+      <div class="icon-preview"><img src="design-d/icon.svg" alt="Design D"></div>
+      <div class="card-title">Radiant Cross</div>
+      <div class="card-desc">Cross radiating like the sun. Light of the World. John 8:12</div>
+      <span class="card-tag">☀️ Light</span>
+    </div>
+    <div class="card" data-design="e" onclick="selectDesign('e')">
+      <span class="card-label">DESIGN E</span>
+      <div class="icon-preview"><img src="design-e/icon.svg" alt="Design E"></div>
+      <div class="card-title">Minimalist Cross</div>
+      <div class="card-desc">Clean, modern cross with rounded elegance. Simple faith.</div>
+      <span class="card-tag">✨ Minimal</span>
+    </div>
+  </div>
+
+  <div class="showcase" id="showcase">
+    <h2>📱 Preview — <span id="selectedLabel">Design A</span></h2>
+    <div class="showcase-grid">
+      <div class="showcase-item">
+        <div class="preview-box" style="width:48px;height:48px"><img id="previewLogo" src="design-a/logo-icon.svg" alt="Logo"></div>
+        <div class="size-label">48×48</div>
+        <div class="use-label">App Logo</div>
+      </div>
+      <div class="showcase-item">
+        <div class="preview-box" style="width:64px;height:64px"><img id="previewFav" src="design-a/favicon.svg" alt="Favicon"></div>
+        <div class="size-label">64×64</div>
+        <div class="use-label">Favicon / Tab</div>
+      </div>
+      <div class="showcase-item">
+        <div class="preview-box" style="width:96px;height:96px;border-radius:20px"><img id="previewIcon192" src="design-a/icon.svg" alt="192"></div>
+        <div class="size-label">192×192</div>
+        <div class="use-label">PWA Icon (mobile)</div>
+      </div>
+      <div class="showcase-item">
+        <div class="preview-box" style="width:120px;height:120px;border-radius:24px"><img id="previewIcon512" src="design-a/icon.svg" alt="512"></div>
+        <div class="size-label">512×512</div>
+        <div class="use-label">PWA Splash / Store</div>
+      </div>
+      <div class="showcase-item">
+        <div class="preview-box" style="width:80px;height:80px;border-radius:16px"><img id="previewAndroid" src="design-a/icon.svg" alt="Android"></div>
+        <div class="size-label">Android</div>
+        <div class="use-label">Launcher Icon</div>
+      </div>
+    </div>
+
+    <div class="download-section" id="downloadSection">
+      <h3>⬇️ Download Assets for Selected Design</h3>
+      <div class="download-grid" id="downloadGrid">
+        <a class="download-btn" id="dlFavicon" download="favicon.svg">favicon.svg</a>
+        <a class="download-btn" id="dlIcon512" download="icon.svg">icon 512×512</a>
+        <a class="download-btn" id="dlLogo" download="logo-icon.svg">logo-icon.svg</a>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="applyDesign()">✨ Apply Selected Design</button>
+      <button class="btn btn-secondary" onclick="showDownloads()">⬇️ Download SVGs</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentDesign = 'a'
+
+function selectDesign(id) {
+  currentDesign = id
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('selected', c.dataset.design === id))
+  const names = { a:'Cross + Waters', b:'Shield of Faith', c:'Cross + Dove', d:'Radiant Cross', e:'Minimalist Cross' }
+  document.getElementById('selectedLabel').textContent = names[id] || `Design ${id.toUpperCase()}`
+  document.getElementById('previewLogo').src = `design-${id}/logo-icon.svg`
+  document.getElementById('previewFav').src = `design-${id}/favicon.svg`
+  document.getElementById('previewIcon192').src = `design-${id}/icon.svg`
+  document.getElementById('previewIcon512').src = `design-${id}/icon.svg`
+  document.getElementById('previewAndroid').src = `design-${id}/icon.svg`
+  document.getElementById('dlFavicon').href = `design-${id}/favicon.svg`
+  document.getElementById('dlIcon512').href = `design-${id}/icon.svg`
+  document.getElementById('dlLogo').href = `design-${id}/logo-icon.svg`
+  document.getElementById('downloadSection').classList.remove('visible')
+  document.querySelector('.card.selected')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+function showDownloads() {
+  document.getElementById('downloadSection').classList.toggle('visible')
+}
+
+function applyDesign() {
+  const msg = `Selected Design ${currentDesign.toUpperCase()}.\n\nFiles to update:\n• /favicon.svg → public/icons/design-${currentDesign}/favicon.svg\n• /icon.svg → public/icons/design-${currentDesign}/icon.svg\n• /logo-icon.svg → public/icons/design-${currentDesign}/logo-icon.svg\n• PWA manifest icons\n• Android launcher icons`
+  alert(msg)
+  // Trigger update by setting a hash
+  location.hash = `apply-${currentDesign}`
+}
+
+// Select first design by default
+selectDesign('a')
+</script>
+</body>
+</html>

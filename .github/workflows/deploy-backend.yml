@@ -1,4 +1,4 @@
-name: Deploy Backend to Vercel
+name: Deploy Backend to Railway
 
 on:
   push:
@@ -8,15 +8,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-      - name: Deploy to Vercel
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
         working-directory: backend
-        run: vercel deploy --prod --yes --token "${{ secrets.VERCEL_TOKEN }}"
+        run: pip install -r requirements.txt
+      - name: Run tests
+        working-directory: backend
+        run: python -m pytest tests/ -q
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DATABASE_URL: postgres://localhost/test
+          JWT_SECRET_KEY: test-key-for-ci-only-32chars-minimum!
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Railway
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: believersflow-api

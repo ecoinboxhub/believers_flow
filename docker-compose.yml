@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_INDEX=${PINECONE_INDEX:-believersflow}
+      - PINECONE_HOST=${PINECONE_HOST}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://believers-flow-frontend.vercel.app}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+      - REDIS_URL=redis://redis:6379
+      - APP_ENV=${APP_ENV:-production}
+      - DB_POOL_MIN=${DB_POOL_MIN:-5}
+      - DB_POOL_MAX=${DB_POOL_MAX:-50}
+      - DB_COMMAND_TIMEOUT=${DB_COMMAND_TIMEOUT:-30}
+      - FLUTTERWAVE_SECRET_KEY=${FLUTTERWAVE_SECRET_KEY:-}
+      - FLUTTERWAVE_PUBLIC_KEY=${FLUTTERWAVE_PUBLIC_KEY:-}
+      - FLUTTERWAVE_WEBHOOK_SECRET=${FLUTTERWAVE_WEBHOOK_SECRET:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r = httpx.get('http://localhost:8000/api/health'); r.raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis_data:

@@ -1,0 +1,303 @@
+{
+  "total": 59,
+  "passed": 56,
+  "failed": 0,
+  "warnings": 3,
+  "results": [
+    {
+      "name": "SQLi login: Classic bypass",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "SQLi register: Classic bypass",
+      "s": "PASS",
+      "d": "409"
+    },
+    {
+      "name": "SQLi login: Table drop",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "SQLi register: Table drop",
+      "s": "PASS",
+      "d": "409"
+    },
+    {
+      "name": "SQLi login: UNION exfil",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "SQLi register: UNION exfil",
+      "s": "PASS",
+      "d": "409"
+    },
+    {
+      "name": "SQLi login: Time-based blind",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "SQLi register: Time-based blind",
+      "s": "PASS",
+      "d": "409"
+    },
+    {
+      "name": "SQLi login: Comment truncation",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "SQLi register: Comment truncation",
+      "s": "PASS",
+      "d": "409"
+    },
+    {
+      "name": "SQLi login: Empty string bypass",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "SQLi register: Empty string bypass",
+      "s": "PASS",
+      "d": "409"
+    },
+    {
+      "name": "SQLi query param",
+      "s": "PASS",
+      "d": "400"
+    },
+    {
+      "name": "XSS chat: <script>alert('xss')</scr",
+      "s": "PASS",
+      "d": "safe"
+    },
+    {
+      "name": "XSS chat: <img src=x onerror=alert(",
+      "s": "PASS",
+      "d": "safe"
+    },
+    {
+      "name": "XSS chat: <svg onload=alert(1)>",
+      "s": "PASS",
+      "d": "safe"
+    },
+    {
+      "name": "XSS chat: javascript:alert(1)",
+      "s": "PASS",
+      "d": "safe"
+    },
+    {
+      "name": "XSS chat: {{7*7}}",
+      "s": "PASS",
+      "d": "safe"
+    },
+    {
+      "name": "XSS chat: ${7*7}",
+      "s": "PASS",
+      "d": "safe"
+    },
+    {
+      "name": "No token",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "Empty Bearer",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "Malformed JWT",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "Forged JWT (wrong sig)",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "Alg=none attack",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "Refresh used as access",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "Token works before logout",
+      "s": "PASS",
+      "d": "200"
+    },
+    {
+      "name": "Logout",
+      "s": "WARN",
+      "d": "422"
+    },
+    {
+      "name": "Password change",
+      "s": "PASS",
+      "d": "200"
+    },
+    {
+      "name": "Brute-force lockout",
+      "s": "WARN",
+      "d": "not triggered (may be rate limited first)"
+    },
+    {
+      "name": "Health endpoint fast",
+      "s": "PASS",
+      "d": "avg=0.248s"
+    },
+    {
+      "name": "Rate limit headers",
+      "s": "PASS",
+      "d": "limit=60 remaining=11"
+    },
+    {
+      "name": "CORS blocks evil origin",
+      "s": "PASS",
+      "d": "403"
+    },
+    {
+      "name": "CORS no-origin preflight",
+      "s": "PASS",
+      "d": "403"
+    },
+    {
+      "name": "Header: X-Content-Type-Options",
+      "s": "PASS",
+      "d": "=nosniff"
+    },
+    {
+      "name": "Header: X-Frame-Options",
+      "s": "PASS",
+      "d": "=DENY"
+    },
+    {
+      "name": "Header: X-XSS-Protection",
+      "s": "PASS",
+      "d": "=0"
+    },
+    {
+      "name": "Header: Referrer-Policy",
+      "s": "PASS",
+      "d": "=strict-origin-when-cross-origin"
+    },
+    {
+      "name": "Header: Permissions-Policy",
+      "s": "PASS",
+      "d": "=camera=(), microphone=(), geolocation=()"
+    },
+    {
+      "name": "CSP: frame-ancestors",
+      "s": "PASS",
+      "d": "present"
+    },
+    {
+      "name": "CSP: object-src none",
+      "s": "PASS",
+      "d": "present"
+    },
+    {
+      "name": "Validation: Oversized email",
+      "s": "PASS",
+      "d": "422"
+    },
+    {
+      "name": "Validation: Empty email",
+      "s": "PASS",
+      "d": "422"
+    },
+    {
+      "name": "Validation: Invalid email",
+      "s": "PASS",
+      "d": "409"
+    },
+    {
+      "name": "Validation: Short password",
+      "s": "PASS",
+      "d": "422"
+    },
+    {
+      "name": "Validation: Missing fields",
+      "s": "PASS",
+      "d": "422"
+    },
+    {
+      "name": "Path traversal: Unix traversal",
+      "s": "PASS",
+      "d": "400"
+    },
+    {
+      "name": "Path traversal: Windows traversal",
+      "s": "PASS",
+      "d": "400"
+    },
+    {
+      "name": "Path traversal: Direct traversal",
+      "s": "PASS",
+      "d": "404"
+    },
+    {
+      "name": "SSRF: AWS metadata",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "SSRF: Direct DB",
+      "s": "PASS",
+      "d": "401"
+    },
+    {
+      "name": "SSRF: File protocol",
+      "s": "PASS",
+      "d": "429"
+    },
+    {
+      "name": "Invalid JSON handled",
+      "s": "PASS",
+      "d": "429"
+    },
+    {
+      "name": "Wrong method 405",
+      "s": "PASS",
+      "d": "429"
+    },
+    {
+      "name": "404 endpoint",
+      "s": "PASS",
+      "d": "429"
+    },
+    {
+      "name": "Login error consistency",
+      "s": "WARN",
+      "d": "? vs ?"
+    },
+    {
+      "name": "50 concurrent health",
+      "s": "PASS",
+      "d": "all OK in 0.17s"
+    },
+    {
+      "name": "Avg latency",
+      "s": "PASS",
+      "d": "0.077s"
+    },
+    {
+      "name": "Max latency",
+      "s": "PASS",
+      "d": "0.096s"
+    },
+    {
+      "name": "20 concurrent Bible",
+      "s": "PASS",
+      "d": "20/20 OK in 6.15s"
+    }
+  ]
+}

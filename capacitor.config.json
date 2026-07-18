@@ -9,9 +9,9 @@
   "android": {
     "buildOptions": {
       "keystorePath": "believers-flow.jks",
-      "keystorePassword": "password123",
-      "keystoreAlias": "key0",
-      "keystoreAliasPassword": "password123"
+      "keystorePassword": "SET_VIA_ENV",
+      "keystoreAlias": "believersflow",
+      "keystoreAliasPassword": "SET_VIA_ENV"
     }
   }
 }

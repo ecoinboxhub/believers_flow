@@ -7,8 +7,8 @@ android {
         applicationId "com.believersguidelite.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "2.0.1"
+        versionCode 4
+        versionName "4.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,15 +18,31 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('../../believers-flow.jks')
-            storePassword 'password123'
-            keyAlias 'key0'
-            keyPassword 'password123'
+            def signingPropsFile = file('signing.properties')
+            def ksPassword = System.getenv("KEYSTORE_PASSWORD")
+            def ksAliasPassword = System.getenv("KEYSTORE_ALIAS_PASSWORD")
+            def ksAlias = 'believersflow'
+            def ksFile = file('believers-flow-release.jks')
+
+            if (ksPassword && ksFile.exists()) {
+                storeFile ksFile
+                storePassword ksPassword
+                keyAlias ksAlias
+                keyPassword ksAliasPassword ?: ksPassword
+            } else if (signingPropsFile.exists()) {
+                def props = new Properties()
+                props.load(signingPropsFile.newDataInputStream())
+                storeFile file(props['STORE_FILE'] ?: 'believers-flow-release.jks')
+                storePassword props['STORE_PASSWORD'] ?: ''
+                keyAlias props['KEY_ALIAS'] ?: ksAlias
+                keyPassword props['KEY_PASSWORD'] ?: props['STORE_PASSWORD'] ?: ''
+            }
         }
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }

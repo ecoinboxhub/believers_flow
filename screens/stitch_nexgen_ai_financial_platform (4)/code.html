@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&amp;family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-secondary-fixed-variant": "#93000e",
+                "primary-fixed-dim": "#d3bbff",
+                "surface-bright": "#31394d",
+                "inverse-surface": "#dae2fd",
+                "secondary-container": "#a00211",
+                "tertiary-fixed": "#ffe16d",
+                "on-primary-fixed": "#250059",
+                "inverse-primary": "#6f43c0",
+                "on-primary-fixed-variant": "#5727a6",
+                "primary-container": "#673ab7",
+                "on-secondary": "#690007",
+                "on-secondary-container": "#ffa9a0",
+                "on-primary-container": "#d8c2ff",
+                "on-primary": "#3f008d",
+                "surface-container-highest": "#2d3449",
+                "background": "#0b1326",
+                "surface-container-lowest": "#060e20",
+                "error": "#ffb4ab",
+                "surface-container-low": "#131b2e",
+                "surface-container-high": "#222a3d",
+                "surface": "#0b1326",
+                "secondary-fixed": "#ffdad6",
+                "outline-variant": "#4a4453",
+                "on-tertiary": "#3a3000",
+                "on-secondary-fixed": "#410003",
+                "on-tertiary-fixed": "#221b00",
+                "inverse-on-surface": "#283044",
+                "outline": "#958e9e",
+                "on-tertiary-container": "#4b3e00",
+                "on-error": "#690005",
+                "on-surface-variant": "#ccc3d5",
+                "on-error-container": "#ffdad6",
+                "on-tertiary-fixed-variant": "#544600",
+                "secondary": "#ffb4ac",
+                "primary-fixed": "#ebddff",
+                "surface-dim": "#0b1326",
+                "primary": "#d3bbff",
+                "tertiary": "#e9c400",
+                "secondary-fixed-dim": "#ffb4ac",
+                "on-surface": "#dae2fd",
+                "surface-container": "#171f33",
+                "tertiary-fixed-dim": "#e9c400",
+                "on-background": "#dae2fd",
+                "tertiary-container": "#c8a900",
+                "surface-tint": "#d3bbff",
+                "error-container": "#93000a",
+                "surface-variant": "#2d3449"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "unit": "8px",
+                "margin-desktop": "64px",
+                "gutter": "24px",
+                "container-max": "1280px",
+                "margin-mobile": "16px"
+        },
+        "fontFamily": {
+                "display-lg-mobile": ["EB Garamond"],
+                "label-sm": ["Hanken Grotesk"],
+                "display-lg": ["EB Garamond"],
+                "headline-md": ["EB Garamond"],
+                "body-lg": ["Hanken Grotesk"],
+                "body-md": ["Hanken Grotesk"],
+                "title-lg": ["Hanken Grotesk"]
+        },
+        "fontSize": {
+                "display-lg-mobile": ["36px", {"lineHeight": "42px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                "headline-md": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+                "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "title-lg": ["22px", {"lineHeight": "28px", "fontWeight": "600"}]
+        }
+      },
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: #0b1326;
+            color: #dae2fd;
+            -webkit-font-smoothing: antialiased;
+            font-family: 'Hanken Grotesk', sans-serif;
+        }
+        .glass-card {
+            background: rgba(23, 31, 51, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(211, 187, 255, 0.05);
+        }
+        .ecclesiastical-aura {
+            box-shadow: 0 0 40px -10px rgba(103, 58, 183, 0.15);
+        }
+        .spiritual-ring {
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 60;
+            transition: stroke-dashoffset 1s ease-out;
+        }
+        .verse-gradient {
+            background: linear-gradient(135deg, #131b2e 0%, #060e20 100%);
+            border: 1px solid rgba(233, 196, 0, 0.2);
+            position: relative;
+        }
+        .verse-gradient::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #673ab7, #e9c400, #a00211, transparent);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-32">
+<!-- Top AppBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-surface/10 backdrop-blur-xl flex justify-between items-center px-6 py-4">
+<div class="flex flex-col">
+<h1 class="font-display-lg-mobile text-[28px] font-bold text-primary leading-tight">Good morning, Sarah</h1>
+<p class="font-label-sm text-on-surface-variant uppercase tracking-widest">Sunday, May 12</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 hover:opacity-80 transition-opacity active:scale-95">
+<span class="material-symbols-outlined text-primary text-2xl">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-secondary-container rounded-full border-2 border-surface"></span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-primary/30 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A sophisticated portrait of a young woman with a peaceful expression, set against a dark, minimalist architectural background. The lighting is soft and cinematic, with warm golden highlights reflecting the premium spiritual app aesthetic. The color palette consists of deep navy and radiant gold, creating an atmosphere of quiet devotion." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsMOQnntp6PM8MTG9sqVpfRRMHsttt1pJezfj1qUJmpkAE3yso62NKewk8KrJnESTFVdzDkr90Lai-33BnFYO7-O_fBM0wr5W2yDU9f_WMsb9IFD-l8PRo0QbdV0voAV6obB5bhokgu4HAUxhovibgJr5ZPuh2cHP7VR2H5E_XnGejtw1uQPJyUdrf33DY63meEPLRe65AyS-ahHihRiY5h2t8M737fZEnkkA5u_92b6nmowF8z6VPpiPir6qX_wJ-FRbN95dP0rk"/>
+</div>
+</div>
+</header>
+<main class="mt-28 px-6 flex flex-col gap-10 max-w-[800px] mx-auto">
+<!-- Verse of the Day -->
+<section>
+<div class="verse-gradient rounded-lg p-8 ecclesiastical-aura overflow-hidden group transition-all duration-500 hover:scale-[1.01]">
+<div class="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl -mr-24 -mt-24"></div>
+<span class="material-symbols-outlined text-tertiary/40 text-4xl mb-4 block">format_quote</span>
+<p class="font-display-lg-mobile text-2xl text-tertiary italic mb-6 leading-relaxed">
+                    "For I know the plans I have for you,” declares the Lord, “plans to prosper you and not to harm you, plans to give you hope and a future."
+                </p>
+<div class="flex justify-between items-center border-t border-white/5 pt-4">
+<p class="font-label-sm text-on-surface/50 tracking-widest uppercase">Jeremiah 29:11</p>
+<button class="flex items-center gap-2 text-primary font-label-sm hover:text-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined text-sm">share</span>
+                        Share
+                    </button>
+</div>
+</div>
+</section>
+<!-- Spiritual Score & Stats -->
+<section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="glass-card rounded-lg p-6 flex items-center justify-between">
+<div class="flex flex-col">
+<h2 class="font-label-sm text-on-surface-variant uppercase mb-1">Today's Balance</h2>
+<div class="flex items-baseline gap-1">
+<span class="text-4xl font-bold text-primary">78</span>
+<span class="text-xl text-on-surface-variant font-light">%</span>
+</div>
+<p class="text-xs text-tertiary mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+                            5% from yesterday
+                        </p>
+</div>
+<div class="relative w-24 h-24">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-highest" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-width="4"></circle>
+<circle class="text-tertiary spiritual-ring" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="55" stroke-width="6"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-xl" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+</div>
+</div>
+<div class="glass-card rounded-lg p-6 space-y-4">
+<div class="flex justify-between items-center">
+<h3 class="font-label-sm text-on-surface uppercase tracking-wider">Segments</h3>
+<span class="material-symbols-outlined text-on-surface-variant text-sm">info</span>
+</div>
+<div class="space-y-4">
+<div class="space-y-1.5">
+<div class="flex justify-between text-[10px] text-on-surface-variant uppercase font-bold">
+<span>Spiritual</span>
+<span class="text-primary">90%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[90%]"></div>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between text-[10px] text-on-surface-variant uppercase font-bold">
+<span>Personal</span>
+<span class="text-tertiary">65%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[65%]"></div>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between text-[10px] text-on-surface-variant uppercase font-bold">
+<span>Service</span>
+<span class="text-secondary-container">40%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary-container w-[40%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Action Grid -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-label-sm text-on-surface uppercase tracking-widest">Sanctuary Tools</h2>
+<button class="text-xs text-primary font-bold uppercase tracking-tighter">View All</button>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<button class="flex flex-col items-center gap-3 p-4 glass-card rounded-lg hover:bg-primary/5 transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded border border-primary/20 flex items-center justify-center group-hover:border-primary transition-colors bg-primary/5">
+<span class="material-symbols-outlined text-primary">book</span>
+</div>
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Bible</span>
+</button>
+<button class="flex flex-col items-center gap-3 p-4 glass-card rounded-lg hover:bg-primary/5 transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded border border-primary/20 flex items-center justify-center group-hover:border-primary transition-colors bg-primary/5">
+<span class="material-symbols-outlined text-primary">temple_hindu</span>
+</div>
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Prayer</span>
+</button>
+<button class="flex flex-col items-center gap-3 p-4 glass-card rounded-lg hover:bg-primary/5 transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded border border-primary/20 flex items-center justify-center group-hover:border-primary transition-colors bg-primary/5">
+<span class="material-symbols-outlined text-primary">checklist</span>
+</div>
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Tasks</span>
+</button>
+<button class="flex flex-col items-center gap-3 p-4 glass-card rounded-lg hover:bg-primary/5 transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded border border-primary/20 flex items-center justify-center group-hover:border-primary transition-colors bg-primary/5">
+<span class="material-symbols-outlined text-primary">music_note</span>
+</div>
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Hymns</span>
+</button>
+<button class="flex flex-col items-center gap-3 p-4 glass-card rounded-lg hover:bg-primary/5 transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded border border-primary/20 flex items-center justify-center group-hover:border-primary transition-colors bg-primary/5">
+<span class="material-symbols-outlined text-primary">wb_sunny</span>
+</div>
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Devotion</span>
+</button>
+<button class="flex flex-col items-center gap-3 p-4 glass-card rounded-lg hover:bg-primary/5 transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded border border-primary/20 flex items-center justify-center group-hover:border-primary transition-colors bg-primary/5">
+<span class="material-symbols-outlined text-primary">edit_note</span>
+</div>
+<span class="font-label-sm text-[11px] text-on-surface-variant uppercase">Diary</span>
+</button>
+</div>
+</section>
+<!-- Continue Reading -->
+<section>
+<h2 class="font-label-sm text-on-surface uppercase tracking-widest mb-4">Journey in Progress</h2>
+<div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide no-scrollbar">
+<!-- Card 1 -->
+<div class="min-w-[260px] glass-card rounded-lg overflow-hidden flex flex-col hover:border-primary/30 border border-transparent transition-colors group">
+<div class="h-28 w-full relative">
+<img class="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all" data-alt="A tranquil landscape of rolling hills at dawn, with a golden sun rising over the horizon and soft mist clinging to the ground. The aesthetic is serene and spiritual, featuring a color palette of deep navy blues and radiant warm golds, perfectly matching the premium dark-mode theme of the application. The mood is peaceful and reflective." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDioMlVajlpKLsBr5hpIlaPqdYUrOUaL_2GS4QEf4Yf3nvVzK592XH8PdngOODJakPuWZZzw2JWtkbhzjMJgN7eBiWHUtEo3jN83JnZ-0efouQ2-etMoIGhKV6r9O2aNSCnpG5HDcANT5dv7kbWll1th5NR-shTbfPVp85ErMTmpLbW2bn_143VlFl5qP8kYcZX4--Yek4YOLQCfGIy1OheRgjVobN1s42zAKbsz2jc0K8ZbFetMR0wA2Ob9OCfBmeqk2kWqR77XuY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#0b1326] to-transparent"></div>
+</div>
+<div class="p-5 flex flex-col gap-2">
+<span class="text-[10px] font-bold text-tertiary uppercase tracking-wider">Scripture Study</span>
+<h3 class="font-headline-md text-xl text-on-surface">Psalm 23</h3>
+<p class="text-xs text-on-surface-variant">The Lord is my Shepherd...</p>
+<div class="mt-3 space-y-1.5">
+<div class="flex justify-between text-[10px] text-on-surface-variant font-bold uppercase">
+<span>Progress</span>
+<span>65%</span>
+</div>
+<div class="h-1 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[65%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="min-w-[260px] glass-card rounded-lg overflow-hidden flex flex-col hover:border-primary/30 border border-transparent transition-colors group">
+<div class="h-28 w-full relative">
+<img class="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all" data-alt="Close-up of an elegant, old leather-bound book lying on a dark wooden surface, with a single warm light source creating beautiful shadows and highlights on the gold-leafed edges of the pages. The setting evokes a sense of deep wisdom and spiritual tradition, maintaining the high-end dark mode aesthetic with rich textures and golden accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8bdu1bjnOFj2cCAjALz4NRmoMyQoKw_h5LQ82uSfyqWkzOkztD-PzKLypT6Iw8WhSoTdxptwbXsb2A4N4GSnUn87SECHjpfhxRwV8DNAhXeTvZ82deSyAom1ow2-o73udX51FbRnrKUfzrs8hJGdPIde_j06Aht19Ho-33_1MTzT6Fg6OczxJFrTMC6OILZ1B9zhgrl0b0pdg1xIps-lHvMLCk0faZKpFjIb4zx8EOMZjtu6Jr6Gyd8Ng4LPz1KcwbgSnq0f3mEY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#0b1326] to-transparent"></div>
+</div>
+<div class="p-5 flex flex-col gap-2">
+<span class="text-[10px] font-bold text-primary uppercase tracking-wider">Morning Grace</span>
+<h3 class="font-headline-md text-xl text-on-surface">Daily Devotional</h3>
+<p class="text-xs text-on-surface-variant">Day 12: Strength in Silence</p>
+<div class="mt-3 space-y-1.5">
+<div class="flex justify-between text-[10px] text-on-surface-variant font-bold uppercase">
+<span>Progress</span>
+<span>30%</span>
+</div>
+<div class="h-1 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[30%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-3 bg-surface-container-low border-t border-white/5 shadow-2xl">
+<a class="flex flex-col items-center justify-center text-primary group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-200" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-[10px] uppercase tracking-tighter font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-200">book_2</span>
+<span class="font-label-sm text-[10px] uppercase tracking-tighter">Bible</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-200">church</span>
+<span class="font-label-sm text-[10px] uppercase tracking-tighter">Prayer</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-200">grid_view</span>
+<span class="font-label-sm text-[10px] uppercase tracking-tighter">Tools</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-200">settings</span>
+<span class="font-label-sm text-[10px] uppercase tracking-tighter">Menu</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions for score ring
+        document.addEventListener('DOMContentLoaded', () => {
+            const ring = document.querySelector('.spiritual-ring');
+            if(ring) {
+                setTimeout(() => {
+                    ring.style.strokeDashoffset = '55';
+                }, 500);
+            }
+        });
+    </script>
+</body></html>
