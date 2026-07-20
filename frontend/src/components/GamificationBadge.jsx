@@ -108,6 +108,10 @@ export default function GamificationBadge({ isPremium = false, compact = false }
   const [expanded, setExpanded] = useState(false)
 
   const fetchStats = useCallback(async () => {
+    if (!token()) {
+      setLoading(false)
+      return
+    }
     try {
       const res = await fetch(`${API}/api/community/gamification/me`, {
         headers: { Authorization: `Bearer ${token()}` },

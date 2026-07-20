@@ -31,7 +31,7 @@ import GamificationBadge from './components/GamificationBadge.jsx'
 import { ErrorBoundary } from './components/ErrorBoundary.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
-const AI_READY = Boolean(API_URL)
+const AI_READY = true
 
 const VERSES = [
   { text: "I can do all things through Christ who strengthens me.", ref: "Philippians 4:13" },

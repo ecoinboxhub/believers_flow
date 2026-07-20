@@ -306,6 +306,7 @@ function NotificationCenter({ isPremium, onNavigate }) {
   const bellRef = useRef(null)
 
   const fetchNotifications = useCallback(async (nextCursor = null, append = false) => {
+    if (!token()) { setLoading(false); return }
     setLoading(true)
     try {
       const params = new URLSearchParams({ filter, limit: '20' })

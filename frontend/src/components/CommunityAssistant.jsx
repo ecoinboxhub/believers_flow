@@ -77,6 +77,14 @@ export default function CommunityAssistant({ showToast, isPremium }) {
     const trimmed = text.trim()
     if (!trimmed || loading) return
 
+    if (!token()) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: "Please sign in to use the AI assistant." },
+      ])
+      return
+    }
+
     const userMsg = { role: 'user', content: trimmed }
     setMessages((prev) => [...prev, userMsg])
     setInput('')
