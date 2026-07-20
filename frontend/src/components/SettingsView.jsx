@@ -48,19 +48,21 @@ function initGoogleButton(containerId, onSuccess) {
 }
 
 const COLOR_THEMES = {
-  believersflow: { name: 'BelieversFlow', bg: ['#0a0a1a','#1a0a2e','#16213e','#0f1a2e'], header: ['rgba(26,10,46,0.95)','rgba(123,45,142,0.35)','rgba(58,123,213,0.15)'], gold: '#f2c94c', blue: '#3a7bd5', purple: '#7b2d8e' },
-  royal: { name: 'Royal', bg: ['#1a0a0a','#2e0a0a','#3e1515','#2e0f0f'], header: ['rgba(46,10,10,0.95)','rgba(142,45,45,0.35)','rgba(213,58,58,0.15)'], gold: '#ffd700', blue: '#d54a3a', purple: '#8e2d2d' },
-  emerald: { name: 'Emerald', bg: ['#0a1a0f','#0a2e15','#153e20','#0f2e18'], header: ['rgba(10,46,21,0.95)','rgba(45,142,69,0.35)','rgba(58,213,99,0.15)'], gold: '#c9f24c', blue: '#3ad57b', purple: '#2d8e4a' },
-  ocean: { name: 'Ocean', bg: ['#0a0f1a','#0a152e','#15203e','#0f182e'], header: ['rgba(10,21,46,0.95)','rgba(45,69,142,0.35)','rgba(58,99,213,0.15)'], gold: '#4cf2e8', blue: '#3a7bd5', purple: '#2d4a8e' },
-  sunset: { name: 'Sunset', bg: ['#1a0f0a','#2e150a','#3e2015','#2e180f'], header: ['rgba(46,21,10,0.95)','rgba(142,69,45,0.35)','rgba(213,139,58,0.15)'], gold: '#f2a84c', blue: '#d58b3a', purple: '#8e5a2d' },
+  believersflow: { name: 'BelieversFlow', bg: ['#1a2618','#1e2e1e','#283828','#1e301e'], header: ['rgba(26,38,24,0.95)','rgba(40,56,40,0.35)','rgba(60,80,55,0.15)'], gold: '#c89830', blue: '#8ab87a', purple: '#d4b040' },
+  harvest: { name: 'Harvest', bg: ['#1a2618','#1e2e1e','#283828','#1e301e'], header: ['rgba(26,38,24,0.95)','rgba(40,56,40,0.35)','rgba(60,80,55,0.15)'], gold: '#c89830', blue: '#8ab87a', purple: '#d4b040' },
+  royal: { name: 'Royal', bg: ['#1a1210','#2e1a10','#3e2518','#2e1f15'], header: ['rgba(46,26,16,0.95)','rgba(142,69,45,0.35)','rgba(213,139,58,0.15)'], gold: '#e8c040', blue: '#d58b3a', purple: '#c08040' },
+  emerald: { name: 'Emerald', bg: ['#0a1a10','#0a2e18','#153e22','#0f2e1a'], header: ['rgba(10,46,24,0.95)','rgba(45,142,69,0.35)','rgba(58,213,99,0.15)'], gold: '#e0c850', blue: '#3ad57b', purple: '#2d8e4a' },
+  ocean: { name: 'Ocean', bg: ['#0a1218','#0a1828','#152238','#0f1a28'], header: ['rgba(10,24,40,0.95)','rgba(45,69,142,0.35)','rgba(58,99,213,0.15)'], gold: '#90d0c0', blue: '#3a7bd5', purple: '#2d4a8e' },
+  sunset: { name: 'Sunset', bg: ['#1a1010','#2e1810','#3e2218','#2e1a15'], header: ['rgba(46,24,16,0.95)','rgba(142,69,45,0.35)','rgba(213,139,58,0.15)'], gold: '#e8a84c', blue: '#d58b3a', purple: '#8e5a2d' },
 }
 
 const THEME_OPTIONS = [
-  { id: 'believersflow', name: 'BelieversFlow', colors: ['#7b2d8e', '#f2c94c', '#3a7bd5'] },
-  { id: 'royal', name: 'Royal', colors: ['#8e2d2d', '#ffd700', '#d54a3a'] },
-  { id: 'emerald', name: 'Emerald', colors: ['#2d8e4a', '#c9f24c', '#3ad57b'] },
-  { id: 'ocean', name: 'Ocean', colors: ['#2d4a8e', '#4cf2e8', '#3a7bd5'] },
-  { id: 'sunset', name: 'Sunset', colors: ['#8e5a2d', '#f2a84c', '#d58b3a'] },
+  { id: 'believersflow', name: 'BelieversFlow', colors: ['#c09030', '#c89830', '#3a4838'] },
+  { id: 'harvest', name: 'Harvest', colors: ['#c09030', '#c89830', '#3a4838'] },
+  { id: 'royal', name: 'Royal', colors: ['#c08040', '#e8c040', '#3e2518'] },
+  { id: 'emerald', name: 'Emerald', colors: ['#2d8e4a', '#e0c850', '#0a2e18'] },
+  { id: 'ocean', name: 'Ocean', colors: ['#2d4a8e', '#90d0c0', '#0a1828'] },
+  { id: 'sunset', name: 'Sunset', colors: ['#8e5a2d', '#e8a84c', '#2e1810'] },
 ]
 
 function GoogleSignInButton({ onSuccess }) {

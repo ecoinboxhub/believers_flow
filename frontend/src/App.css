@@ -5,18 +5,18 @@
 
 :root {
   /* Navy Palette */
-  --navy-base: #141210;
-  --navy-dim: #141210;
-  --navy-surface: #1c1915;
-  --navy-elevated: #24201a;
-  --navy-high: #2d2820;
-  --navy-highest: #383026;
+  --navy-base: #1a1f18;
+  --navy-dim: #1a1f18;
+  --navy-surface: #222822;
+  --navy-elevated: #2a3128;
+  --navy-high: #333a30;
+  --navy-highest: #3c4438;
   /* Brand */
   --purple-primary: #c09030;
   --purple-light: #e8d5a3;
   --purple-accent: #9e7820;
-  --gold-accent: #d4a030;
-  --gold-light: #e8c860;
+  --gold-accent: #c89830;
+  --gold-light: #e0c060;
   --crimson: #b85c38;
   --crimson-light: #e8a080;
   /* Text */
@@ -25,17 +25,17 @@
   --text-muted: #9096ad;
   --text-dim: #6b7190;
   /* Borders */
-  --border-subtle: rgba(180,160,140,0.08);
-  --border-medium: rgba(180,160,140,0.12);
-  --border-gold: rgba(212,160,48,0.15);
+  --border-subtle: rgba(160,180,140,0.08);
+  --border-medium: rgba(160,180,140,0.12);
+  --border-gold: rgba(192,152,48,0.15);
   --border-purple: rgba(192,144,48,0.2);
   /* Surfaces */
-  --glass-bg: rgba(20,18,16,0.90);
-  --surface-card: rgba(28,25,21,0.70);
-  --surface-hover: rgba(36,32,26,0.80);
+  --glass-bg: rgba(26,31,24,0.90);
+  --surface-card: rgba(34,40,34,0.70);
+  --surface-hover: rgba(42,48,40,0.80);
   /* Gradients */
-  --gradient-gold: linear-gradient(135deg, #d4a030, #e8b830, #d4a030);
-  --gradient-purple: linear-gradient(135deg, #c09030, #d4a030);
+  --gradient-gold: linear-gradient(135deg, #c89830, #e0b830, #c89830);
+  --gradient-purple: linear-gradient(135deg, #b88828, #d0a830);
   /* Spacing (4px grid) */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
@@ -1246,41 +1246,48 @@ footer p { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.06em; t
 .about-links a:hover { background: rgba(192,144,48,0.06); border-color: rgba(192,144,48,0.12); color: var(--purple-light); }
 
 /* ===== COLOR THEMES ===== */
-#app[data-theme="royal"] { background: linear-gradient(180deg, #1a0a0a 0%, #2e0a0a 20%, #3e1515 50%, #2e0f0f 100%) !important; }
-#app[data-theme="royal"] header { background: linear-gradient(180deg, rgba(46,10,10,0.98) 0%, rgba(46,10,10,0.85) 100%) !important; }
-#app[data-theme="royal"] .stat-value { color: #ffd700; }
-#app[data-theme="royal"] .nav-item.active { color: #ffb4ac; }
-#app[data-theme="royal"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #c62828, transparent); }
+#app[data-theme="royal"] { background: linear-gradient(180deg, #1a1210 0%, #2e1a10 20%, #3e2518 50%, #2e1f15 100%) !important; }
+#app[data-theme="royal"] header { background: linear-gradient(180deg, rgba(46,26,16,0.98) 0%, rgba(46,26,16,0.85) 100%) !important; }
+#app[data-theme="royal"] .stat-value { color: #e8c040; }
+#app[data-theme="royal"] .nav-item.active { color: #e8a060; }
+#app[data-theme="royal"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #c08040, transparent); }
 
-#app[data-theme="emerald"] { background: linear-gradient(180deg, #0a1a0f 0%, #0a2e15 20%, #153e20 50%, #0f2e18 100%) !important; }
-#app[data-theme="emerald"] header { background: linear-gradient(180deg, rgba(10,46,21,0.98) 0%, rgba(10,46,21,0.85) 100%) !important; }
-#app[data-theme="emerald"] .stat-value { color: #c9f24c; }
-#app[data-theme="emerald"] .nav-item.active { color: #c9f24c; }
-#app[data-theme="emerald"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #c9f24c, transparent); }
+#app[data-theme="emerald"] { background: linear-gradient(180deg, #0a1a10 0%, #0a2e18 20%, #153e22 50%, #0f2e1a 100%) !important; }
+#app[data-theme="emerald"] header { background: linear-gradient(180deg, rgba(10,46,24,0.98) 0%, rgba(10,46,24,0.85) 100%) !important; }
+#app[data-theme="emerald"] .stat-value { color: #e0c850; }
+#app[data-theme="emerald"] .nav-item.active { color: #e0e0a0; }
+#app[data-theme="emerald"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #c0d060, transparent); }
 
-#app[data-theme="ocean"] { background: linear-gradient(180deg, #0a0f1a 0%, #0a152e 20%, #15203e 50%, #0f182e 100%) !important; }
-#app[data-theme="ocean"] header { background: linear-gradient(180deg, rgba(10,21,46,0.98) 0%, rgba(10,21,46,0.85) 100%) !important; }
-#app[data-theme="ocean"] .stat-value { color: #4cf2e8; }
-#app[data-theme="ocean"] .nav-item.active { color: #4cf2e8; }
-#app[data-theme="ocean"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #4cf2e8, transparent); }
+#app[data-theme="ocean"] { background: linear-gradient(180deg, #0a1218 0%, #0a1828 20%, #152238 50%, #0f1a28 100%) !important; }
+#app[data-theme="ocean"] header { background: linear-gradient(180deg, rgba(10,24,40,0.98) 0%, rgba(10,24,40,0.85) 100%) !important; }
+#app[data-theme="ocean"] .stat-value { color: #90d0c0; }
+#app[data-theme="ocean"] .nav-item.active { color: #90d0c0; }
+#app[data-theme="ocean"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #60b8a8, transparent); }
 
-#app[data-theme="sunset"] { background: linear-gradient(180deg, #1a0f0a 0%, #2e150a 20%, #3e2015 50%, #2e180f 100%) !important; }
-#app[data-theme="sunset"] header { background: linear-gradient(180deg, rgba(46,21,10,0.98) 0%, rgba(46,21,10,0.85) 100%) !important; }
-#app[data-theme="sunset"] .stat-value { color: #f2a84c; }
-#app[data-theme="sunset"] .nav-item.active { color: #f2a84c; }
-#app[data-theme="sunset"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #f2a84c, transparent); }
+#app[data-theme="sunset"] { background: linear-gradient(180deg, #1a1010 0%, #2e1810 20%, #3e2218 50%, #2e1a15 100%) !important; }
+#app[data-theme="sunset"] header { background: linear-gradient(180deg, rgba(46,24,16,0.98) 0%, rgba(46,24,16,0.85) 100%) !important; }
+#app[data-theme="sunset"] .stat-value { color: #e8a84c; }
+#app[data-theme="sunset"] .nav-item.active { color: #e8a84c; }
+#app[data-theme="sunset"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #e09040, transparent); }
+#app[data-theme="harvest"] { background: linear-gradient(180deg, #1a2618 0%, #1e2e1e 20%, #283828 50%, #1e301e 100%) !important; }
+#app[data-theme="harvest"] header { background: linear-gradient(180deg, rgba(26,38,24,0.98) 0%, rgba(30,46,30,0.85) 100%) !important; }
+#app[data-theme="harvest"] .stat-value { color: #d4b040; }
+#app[data-theme="harvest"] .nav-item.active { color: #e0c860; }
+#app[data-theme="harvest"] .nav-item.active::after { background: linear-gradient(90deg, transparent, #c89830, transparent); }
+#app[data-theme="harvest"] .logo-cross { box-shadow: 0 2px 12px rgba(200,152,48,0.15); }
+
 
 /* ===== LIGHT MODE ===== */
-#app[data-mode="light"] { background: #f5f3f8 !important; }
-#app[data-mode="light"] header { background: #f5f3f8; border-bottom: 1px solid rgba(0,0,0,0.06); }
-#app[data-mode="light"] .logo-cross { box-shadow: 0 2px 12px rgba(233,196,0,0.12); }
+#app[data-mode="light"] { background: #f0f2ed !important; }
+#app[data-mode="light"] header { background: #eef0ea; border-bottom: 1px solid rgba(0,0,0,0.06); }
+#app[data-mode="light"] .logo-cross { box-shadow: 0 2px 12px rgba(192,152,48,0.12); }
 #app[data-mode="light"] .header-mode-toggle { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.06); }
 #app[data-mode="light"] .header-mode-btn { color: rgba(0,0,0,0.3); }
 #app[data-mode="light"] .header-mode-btn:hover { background: rgba(0,0,0,0.03); }
 #app[data-mode="light"] .header-mode-btn.active { background: rgba(192,144,48,0.08); }
 #app[data-mode="light"] .header-mode-btn.active svg { color: var(--purple-primary); }
 #app[data-mode="light"] .verse-container { background: rgba(255,255,255,0.6); border-left-color: var(--gold-accent); }
-#app[data-mode="light"] .verse-text { color: #1a1a2e; }
+#app[data-mode="light"] .verse-text { color: #2a2e28; }
 #app[data-mode="light"] .verse-ref { color: var(--purple-primary); }
 #app[data-mode="light"] .stats-bar { background: rgba(245,243,248,0.5); border-bottom: 1px solid rgba(0,0,0,0.04); }
 #app[data-mode="light"] .stat-label { color: rgba(0,0,0,0.35); }
@@ -1295,30 +1302,30 @@ footer p { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.06em; t
 #app[data-mode="light"] .card { background: rgba(255,255,255,0.8); border-color: rgba(0,0,0,0.06); }
 #app[data-mode="light"] .card h3 { color: var(--purple-primary); }
 #app[data-mode="light"] .card p { color: rgba(0,0,0,0.45); }
-#app[data-mode="light"] .card input, #app[data-mode="light"] .card select { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); color: #1a1a2e; }
+#app[data-mode="light"] .card input, #app[data-mode="light"] .card select { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); color: #2a2e28; }
 #app[data-mode="light"] .card input::placeholder { color: rgba(0,0,0,0.25); }
-#app[data-mode="light"] .card select option { background: #ffffff; color: #1a1a2e; }
+#app[data-mode="light"] .card select option { background: #f5f7f2; color: #2a2e28; }
 
 #app[data-mode="light"] .progress-card { background: rgba(255,255,255,0.6); border-color: rgba(0,0,0,0.04); border-top-color: rgba(192,144,48,0.15); }
 #app[data-mode="light"] .prayer-mini-card { background: rgba(255,255,255,0.5); border-color: rgba(0,0,0,0.04); border-top-color: rgba(233,196,0,0.1); }
 #app[data-mode="light"] .prayer-mini-label { color: rgba(0,0,0,0.4); }
 #app[data-mode="light"] .prayer-mini-status { color: var(--purple-primary); }
 
-#app[data-mode="light"] .input-group input, #app[data-mode="light"] .input-group select { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); color: #1a1a2e; }
+#app[data-mode="light"] .input-group input, #app[data-mode="light"] .input-group select { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); color: #2a2e28; }
 #app[data-mode="light"] .input-group input::placeholder { color: rgba(0,0,0,0.25); }
-#app[data-mode="light"] .input-group select option { background: #ffffff; color: #1a1a2e; }
+#app[data-mode="light"] .input-group select option { background: #f5f7f2; color: #2a2e28; }
 
 #app[data-mode="light"] .task-item { background: rgba(255,255,255,0.5); border-color: rgba(0,0,0,0.04); }
 #app[data-mode="light"] .task-item:hover { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.07); }
-#app[data-mode="light"] .task-title { color: #1a1a2e; }
+#app[data-mode="light"] .task-title { color: #2a2e28; }
 #app[data-mode="light"] .task-cat.spiritual { background: rgba(192,144,48,0.06); color: var(--purple-primary); }
 #app[data-mode="light"] .task-cat.personal { background: rgba(233,196,0,0.04); color: #8a7500; }
 #app[data-mode="light"] .task-cat.service { background: rgba(198,40,40,0.04); color: #a01020; }
 
 #app[data-mode="light"] .diary-entry-card { background: rgba(255,255,255,0.4); border-color: rgba(0,0,0,0.04); }
-#app[data-mode="light"] .diary-entry-title { color: #1a1a2e; }
+#app[data-mode="light"] .diary-entry-title { color: #2a2e28; }
 #app[data-mode="light"] .diary-entry-content { color: rgba(0,0,0,0.6); }
-#app[data-mode="light"] .diary-textarea { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); color: #1a1a2e; }
+#app[data-mode="light"] .diary-textarea { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); color: #2a2e28; }
 #app[data-mode="light"] .diary-textarea::placeholder { color: rgba(0,0,0,0.25); }
 
 #app[data-mode="light"] .progress-track { background: rgba(0,0,0,0.04); }
@@ -1328,7 +1335,7 @@ footer p { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.06em; t
 #app[data-mode="light"] .log-mins { color: rgba(0,0,0,0.7); }
 
 #app[data-mode="light"] .bible-content-card { background: rgba(255,255,255,0.5); border-color: rgba(0,0,0,0.04); }
-#app[data-mode="light"] .bible-verse-text { color: #1a1a2e; }
+#app[data-mode="light"] .bible-verse-text { color: #2a2e28; }
 #app[data-mode="light"] .bible-text-header { border-bottom-color: rgba(233,196,0,0.2); }
 
 #app[data-mode="light"] .settings-nav-btn { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); color: rgba(0,0,0,0.4); }
@@ -1364,7 +1371,7 @@ footer p { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.06em; t
 
 #app[data-mode="light"] .bn-test-btn { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); color: rgba(0,0,0,0.4); }
 #app[data-mode="light"] .bn-test-btn.active { background: rgba(192,144,48,0.06); color: var(--purple-primary); border-color: rgba(192,144,48,0.15); }
-#app[data-mode="light"] .bn-book-row select { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); color: #1a1a2e; }
+#app[data-mode="light"] .bn-book-row select { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); color: #2a2e28; }
 #app[data-mode="light"] .bible-loading p, #app[data-mode="light"] .bible-error p, #app[data-mode="light"] .bible-empty p { color: rgba(0,0,0,0.4); }
 #app[data-mode="light"] .recent-read-btn { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); color: rgba(0,0,0,0.4); }
 #app[data-mode="light"] .recent-read-btn:hover { background: rgba(192,144,48,0.03); border-color: rgba(192,144,48,0.08); }
