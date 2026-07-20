@@ -214,4 +214,5 @@ security_scalability_results.json
 *.docx
 *.pptx
 *.pdf
-!presentations/**
+presentations/
+reports/
