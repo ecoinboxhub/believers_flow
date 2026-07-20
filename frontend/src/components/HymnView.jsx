@@ -1,6 +1,8 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { getDayOfYear } from '../dateUtils'
 
+const API_URL = import.meta.env.VITE_API_URL || ''
+
 const HYMN_WITH_TUNES = new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,52,63,64,75,79,94,97,100])
 
 const HYMN_METADATA = {
@@ -108,7 +110,7 @@ export default function HymnView({
     setOnlineLyricsError(null)
     setOnlineLyrics(null)
     try {
-      const res = await fetch(`/api/hymns/lyrics?slug=${encodeURIComponent(slug)}`)
+      const res = await fetch(`${API_URL}/api/hymns/lyrics?slug=${encodeURIComponent(slug)}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.detail || `Failed (${res.status})`)

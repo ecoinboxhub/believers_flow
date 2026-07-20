@@ -145,7 +145,6 @@ export function stopSync() {
 }
 
 export async function ragSearch(query, topK = 5) {
-  if (!API_URL) return []
   try {
     const res = await callRefreshed('/api/rag/search', {
       method: 'POST',
@@ -161,7 +160,7 @@ export async function ragSearch(query, topK = 5) {
 
 export async function refreshAccessToken() {
   const refreshToken = localStorage.getItem('bf_refresh_token')
-  if (!refreshToken || !API_URL) return null
+  if (!refreshToken) return null
   try {
     const res = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',

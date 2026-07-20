@@ -43,7 +43,7 @@ async function attemptTokenRefresh() {
   }
 
   try {
-    const res = await fetch(`${API_URL}/api/auth/refresh`, {
+    const res = await fetch(`/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -111,7 +111,7 @@ async function request(endpoint, options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const headers = buildHeaders(fetchOptions)
-      const res = await fetch(`${API_URL}${endpoint}`, {
+      const res = await fetch(endpoint, {
         ...fetchOptions,
         headers,
         signal: combinedSignal,

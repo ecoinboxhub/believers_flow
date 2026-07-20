@@ -345,27 +345,29 @@ export default function App() {
     setBibleLoading(true); setBibleError(null)
     try {
       let data
-      if (API_URL) {
-        const res = await fetch(`${API_URL}/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`)
+      try {
+        const res = await fetch(`/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         data = await res.json()
-      } else if (BIBLE_API_DIRECT[ver]) {
-        const translation = BIBLE_API_DIRECT[ver]
-        const bookId = BIBLE_BOOK_IDS[book]
-        if (translation === 'cuv' && bookId) {
-          const url = `https://bible-api.com/data/${translation}/${bookId}/${chapter}`
-          const res = await fetch(url)
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          const raw = await res.json()
-          data = { reference: `${book} ${chapter}`, verses: raw.verses || [], version: ver }
+      } catch (backendErr) {
+        if (BIBLE_API_DIRECT[ver]) {
+          const translation = BIBLE_API_DIRECT[ver]
+          const bookId = BIBLE_BOOK_IDS[book]
+          if (translation === 'cuv' && bookId) {
+            const url = `https://bible-api.com/data/${translation}/${bookId}/${chapter}`
+            const res = await fetch(url)
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            const raw = await res.json()
+            data = { reference: `${book} ${chapter}`, verses: raw.verses || [], version: ver }
+          } else {
+            const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
+            const res = await fetch(url)
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            data = await res.json()
+          }
         } else {
-          const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
-          const res = await fetch(url)
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          data = await res.json()
+          throw new Error(`"${ver}" requires a backend server with an API key. Start the backend or select a free translation (KJV, WEB, ASV, BBE, Darby, YLT).`)
         }
-      } else {
-        throw new Error(`"${ver}" requires a backend server with an API key. Start the backend or select a free translation (KJV, WEB, ASV, BBE, Darby, YLT).`)
       }
       if (!data.verses) data = { reference: `${book} ${chapter}`, verses: [], version: ver }
       setBibleText(data)
@@ -523,7 +525,6 @@ export default function App() {
     const msg = chatMsg.trim()
     if (!msg || chatLoading) return
     if (!isPremium) { setShowAuth(true); return }
-    if (!API_URL) { showToast('Backend not configured. Please deploy backend.', 'warning'); return }
 
     const userEntry = { role: 'user', content: msg }
     setChatHistory(prev => [...prev, userEntry])
@@ -533,7 +534,7 @@ export default function App() {
 
     try {
       const token = localStorage.getItem('bf_token')
-      const res = await fetch(`${API_URL}/api/chat`, {
+      const res = await fetch(`/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -619,9 +620,8 @@ export default function App() {
   }, [dragTarget, swapNavItems])
 
   const apiPost = useCallback(async (path, body) => {
-    if (!API_URL) { showToast('Backend API not configured', 'warning'); return null }
     try {
-      const res = await fetch(`${API_URL}${path}`, {
+      const res = await fetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -672,12 +672,11 @@ export default function App() {
 
   const getInterlinear = useCallback(async () => {
     if (!isPremium) { setShowAuth(true); return }
-    if (!API_URL) { showToast('Backend API not configured', 'warning'); return }
     setInterlinearLoading(true); setInterlinear(null); setBibleStudyTab('interlinear')
     try {
       const token = localStorage.getItem('bf_token')
       const res = await fetch(
-        `${API_URL}/api/interlinear/${encodeURIComponent(bibleBook)}/${bibleChapter}?version=${bibleVersion}`,
+        `/api/interlinear/${encodeURIComponent(bibleBook)}/${bibleChapter}?version=${bibleVersion}`,
         { headers: token ? { 'Authorization': `Bearer ${token}` } : {} }
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)

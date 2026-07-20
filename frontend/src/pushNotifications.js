@@ -47,8 +47,8 @@ export async function unsubscribeFromPush(apiUrl, token) {
     const subscription = await registration.pushManager.getSubscription()
     if (subscription) {
       await subscription.unsubscribe()
-      if (apiUrl && token) {
-        await fetch(`${apiUrl}/api/notifications/unsubscribe`, {
+      if (token) {
+        await fetch(`/api/notifications/unsubscribe`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -64,9 +64,9 @@ export async function unsubscribeFromPush(apiUrl, token) {
 }
 
 async function sendSubscriptionToBackend(subscription, apiUrl, token) {
-  if (!apiUrl || !token) return
+  if (!token) return
   try {
-    await fetch(`${apiUrl}/api/notifications/subscribe`, {
+    await fetch(`/api/notifications/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
