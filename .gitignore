@@ -216,3 +216,9 @@ security_scalability_results.json
 *.pdf
 presentations/
 reports/
+
+# ---------------------------
+# UI design assets
+# ---------------------------
+frontend/public/UI icons/
+frontend/public/UI/

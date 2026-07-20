@@ -34,7 +34,7 @@ export default function Auth({ apiUrl, onLogin, onSkip }) {
   const gsiInitted = useRef(false)
 
   useEffect(() => {
-    if (mode !== 'register' || !GOOGLE_CLIENT_ID || gsiInitted.current) return
+    if ((mode !== 'register' && mode !== 'login') || !GOOGLE_CLIENT_ID || gsiInitted.current) return
     gsiInitted.current = true
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
@@ -218,14 +218,14 @@ export default function Auth({ apiUrl, onLogin, onSkip }) {
           </button>
         </form>
 
-        {mode === 'register' && GOOGLE_CLIENT_ID && (
+        {GOOGLE_CLIENT_ID && (
           <div className="auth-divider">
             <span className="auth-divider-line" />
             <span className="auth-divider-text">or continue with</span>
             <span className="auth-divider-line" />
           </div>
         )}
-        {mode === 'register' && GOOGLE_CLIENT_ID && (
+        {GOOGLE_CLIENT_ID && (
           <div ref={googleBtnRef} className="auth-google-btn" />
         )}
 
