@@ -207,3 +207,11 @@ docs/_build/
 # ---------------------------
 test_results.json
 security_scalability_results.json
+
+# ---------------------------
+# Large binary / presentation files
+# ---------------------------
+*.docx
+*.pptx
+*.pdf
+!presentations/**
