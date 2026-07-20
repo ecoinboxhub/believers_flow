@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 
 const token = () => localStorage.getItem('bf_token')
+const hasValidToken = () => { const t = token(); return !!t && t !== 'null' && t !== 'undefined' && t.split('.').length >= 3 }
 const API = import.meta.env.VITE_API_URL || ''
 
 const QUICK_ACTIONS = [
@@ -77,7 +78,7 @@ export default function CommunityAssistant({ showToast, isPremium }) {
     const trimmed = text.trim()
     if (!trimmed || loading) return
 
-    if (!token()) {
+    if (!hasValidToken()) {
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: "Please sign in to use the AI assistant." },
@@ -96,7 +97,7 @@ export default function CommunityAssistant({ showToast, isPremium }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token() ? { Authorization: `Bearer ${token()}` } : {}),
+          ...(hasValidToken() ? { Authorization: `Bearer ${token()}` } : {}),
         },
         body: JSON.stringify({
           message: trimmed,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
 const token = () => localStorage.getItem('bf_token')
+const hasValidToken = () => { const t = token(); return !!t && t !== 'null' && t !== 'undefined' && t.split('.').length >= 3 }
 const API = import.meta.env.VITE_API_URL || ''
 
 const LEVELS = [
@@ -108,7 +109,7 @@ export default function GamificationBadge({ isPremium = false, compact = false }
   const [expanded, setExpanded] = useState(false)
 
   const fetchStats = useCallback(async () => {
-    if (!token()) {
+    if (!hasValidToken()) {
       setLoading(false)
       return
     }

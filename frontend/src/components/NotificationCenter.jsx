@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 const token = () => localStorage.getItem('bf_token')
+const hasValidToken = () => { const t = token(); return !!t && t !== 'null' && t !== 'undefined' && t.split('.').length >= 3 }
 const API = import.meta.env.VITE_API_URL || ''
 
 const TIME_AGO_THRESHOLDS = [
@@ -306,7 +307,7 @@ function NotificationCenter({ isPremium, onNavigate }) {
   const bellRef = useRef(null)
 
   const fetchNotifications = useCallback(async (nextCursor = null, append = false) => {
-    if (!token()) { setLoading(false); return }
+    if (!hasValidToken()) { setLoading(false); return }
     setLoading(true)
     try {
       const params = new URLSearchParams({ filter, limit: '20' })
