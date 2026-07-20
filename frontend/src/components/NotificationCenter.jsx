@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 const token = () => localStorage.getItem('bf_token')
-const hasValidToken = () => { const t = token(); return !!t && t !== 'null' && t !== 'undefined' && t.split('.').length >= 3 }
+const hasValidToken = () => {
+  const t = token()
+  if (!t || t === 'null' || t === 'undefined' || t.split('.').length < 3) return false
+  try { const p = JSON.parse(atob(t.split('.')[1])); return !(p.exp && p.exp * 1000 < Date.now()) } catch { return false }
+}
 const API = import.meta.env.VITE_API_URL || ''
 
 const TIME_AGO_THRESHOLDS = [
