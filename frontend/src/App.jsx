@@ -885,7 +885,7 @@ export default function App() {
       <div className={`app-layout view-switcher-app-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
         <aside className="app-sidebar" aria-label="Sidebar navigation">
           <div className="sidebar-logo">
-            <span className="logo-cross"><img src="/logo-cross.svg" alt="" width="32" height="32" className="logo-svg" /></span>
+            <span className="logo-cross"><img src="/logo.png" alt="BelieversFlow" width="32" height="32" className="logo-svg" /></span>
             {!sidebarCollapsed && <span className="sidebar-logo-text">Believers Flow</span>}
           </div>
           <nav className="sidebar-nav">
@@ -936,7 +936,7 @@ export default function App() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
               </button>
               <div className="header-brand">
-                <span className="logo-cross"><img src="/logo-cross.svg" alt="" width="28" height="28" className="logo-svg" /></span>
+                <span className="logo-cross"><img src="/logo.png" alt="BelieversFlow" width="28" height="28" className="logo-svg" /></span>
                 <span className="header-brand-text">Believers Flow</span>
               </div>
               <div className="header-mobile-actions">
@@ -955,7 +955,7 @@ export default function App() {
             </div>
             <div className="header-top-row">
               <div className="logo">
-                <span className="logo-cross"><img src="/logo-cross.svg" alt="" width="36" height="36" className="logo-svg" /></span>
+                <span className="logo-cross"><img src="/logo.png" alt="BelieversFlow" width="36" height="36" className="logo-svg" /></span>
                 <span>Believers Flow</span>
               </div>
               <div className="header-actions">
@@ -1214,7 +1214,7 @@ export default function App() {
           <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
             <div className="mobile-drawer-header">
               <div className="mobile-drawer-brand">
-                <span className="logo-cross"><img src="/logo-cross.svg" alt="" width="28" height="28" className="logo-svg" /></span>
+                <span className="logo-cross"><img src="/logo.png" alt="BelieversFlow" width="28" height="28" className="logo-svg" /></span>
                 <span className="mobile-drawer-title">Believers Flow</span>
               </div>
               <button className="mobile-drawer-close" onClick={() => setMobileDrawerOpen(false)} aria-label="Close menu">
