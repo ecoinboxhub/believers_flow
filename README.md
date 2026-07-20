@@ -96,7 +96,7 @@ A comprehensive faith-driven productivity platform for Christian believers. Mana
 ```bash
 # Clone the repository
 git clone https://github.com/ecoinboxhub/believers_flow.git
-cd Christian_Todo
+cd believers_flow/frontend
 
 # Install dependencies
 npm install
@@ -134,9 +134,10 @@ python -m uvicorn api.index:app --host 0.0.0.0 --port 8000 --reload
 ### Android (Mobile)
 
 ```bash
+cd frontend
 npm run build
 npx cap sync android
-cd android && ./gradlew assembleDebug
+cd ../mobile && ./gradlew assembleDebug
 ```
 
 ### Docker
@@ -145,11 +146,13 @@ cd android && ./gradlew assembleDebug
 docker-compose up -d
 ```
 
-See [INSTALLATION.md](INSTALLATION.md) for detailed setup instructions.
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for detailed setup instructions.
 
 ---
 
 ## Available Scripts
+
+All frontend commands run from the `frontend/` directory:
 
 | Command | Description |
 |:--------|:------------|
@@ -163,7 +166,7 @@ See [INSTALLATION.md](INSTALLATION.md) for detailed setup instructions.
 | `npm run test:e2e:ui` | Run E2E tests with Playwright UI mode |
 | `npm run lighthouse` | Run Lighthouse performance audit |
 
-See [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md) for complete development workflow documentation.
+See [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) for complete development workflow documentation.
 
 ---
 
@@ -199,97 +202,106 @@ npx playwright test --project=mobile
 npm run test:e2e:ui
 ```
 
-See [TESTING.md](TESTING.md) for detailed testing documentation, patterns, and CI/CD integration.
+See [docs/TESTING.md](docs/TESTING.md) for detailed testing documentation, patterns, and CI/CD integration.
 
 ---
 
 ## Project Structure
 
 ```
-Christian_Todo/
-├── src/                            # React frontend source
-│   ├── main.jsx                    # App entrypoint
-│   ├── App.jsx                     # Root component (1,442 lines)
-│   ├── components/                 # 28 React view components
-│   │   ├── BibleView.jsx           # Bible reader
-│   │   ├── TasksView.jsx           # Task manager
-│   │   ├── SpiritualView.jsx       # Faith & prayer tracker
-│   │   ├── DiaryView.jsx           # Personal diary
-│   │   ├── MusicView.jsx           # Hymns & worship
-│   │   ├── DevotionalView.jsx      # Daily devotionals
-│   │   ├── CommunityFeedView.jsx   # Community feed
-│   │   ├── PrayerFeedView.jsx      # Prayer chains
-│   │   ├── TestimonyView.jsx       # Testimonies
-│   │   ├── CommunityAssistant.jsx  # AI faith assistant
-│   │   ├── GamificationBadge.jsx   # Points & achievements
-│   │   ├── NotificationCenter.jsx  # Notifications
-│   │   ├── SettingsView.jsx        # App settings
-│   │   ├── ErrorBoundary.jsx       # Error boundary
-│   │   └── ... (14 more views)
-│   ├── apiClient.js                # HTTP client with JWT, retry, refresh
-│   ├── syncService.js              # Cloud sync (push/pull/merge)
-│   ├── errorUtils.js               # Error handling utilities
-│   ├── dateUtils.js                # Timezone utilities
-│   ├── constants.js                # Bible data, navigation, themes
-│   ├── churchDevotionals/          # 23 church devotional data modules
-│   └── __tests__/                  # Unit tests (83 tests)
+believersflow/
+├── frontend/                       # React frontend (Vite + PWA)
+│   ├── src/
+│   │   ├── main.jsx                # App entrypoint
+│   │   ├── App.jsx                 # Root component (1,442 lines)
+│   │   ├── components/             # 28 React view components
+│   │   │   ├── BibleView.jsx       # Bible reader
+│   │   │   ├── TasksView.jsx       # Task manager
+│   │   │   ├── SpiritualView.jsx   # Faith & prayer tracker
+│   │   │   ├── DiaryView.jsx       # Personal diary
+│   │   │   ├── MusicView.jsx       # Hymns & worship
+│   │   │   ├── DevotionalView.jsx  # Daily devotionals
+│   │   │   ├── CommunityFeedView.jsx
+│   │   │   ├── PrayerFeedView.jsx
+│   │   │   ├── TestimonyView.jsx
+│   │   │   ├── CommunityAssistant.jsx
+│   │   │   ├── GamificationBadge.jsx
+│   │   │   ├── NotificationCenter.jsx
+│   │   │   ├── SettingsView.jsx
+│   │   │   └── ... (14 more views)
+│   │   ├── apiClient.js            # HTTP client with JWT, retry
+│   │   ├── syncService.js          # Cloud sync
+│   │   ├── constants.js            # Bible data, navigation, themes
+│   │   ├── churchDevotionals/      # 23 church devotional modules
+│   │   └── __tests__/              # Unit tests (83 tests)
+│   ├── public/                     # Static assets (icons, manifest)
+│   ├── package.json                # Node.js dependencies
+│   ├── vite.config.js              # Vite + PWA configuration
+│   ├── playwright.config.js        # Playwright E2E configuration
+│   ├── capacitor.config.json       # Capacitor mobile configuration
+│   ├── eslint.config.js            # ESLint flat configuration
+│   ├── Dockerfile.frontend         # Frontend Docker build
+│   └── nginx.conf                  # Nginx reverse proxy config
+├── backend/                        # Python FastAPI backend
+│   ├── api/                        # Core application modules (36 files)
+│   │   ├── index.py                # FastAPI entrypoint & routes
+│   │   ├── auth.py                 # JWT authentication
+│   │   ├── database.py             # PostgreSQL connection pool
+│   │   ├── community_api.py        # Community endpoints (18 routes)
+│   │   ├── llm_provider.py         # LLM integration (GROQ/OpenAI)
+│   │   └── ... (31 more modules)
+│   ├── tests/                      # Backend test suite
+│   ├── alembic/                    # Database migrations
+│   ├── requirements.txt            # Python dependencies
+│   └── Dockerfile                  # Backend Docker build
+├── mobile/                         # Capacitor Android project
+│   ├── app/
+│   │   ├── build.gradle            # App-level Gradle build
+│   │   └── src/main/               # Android manifest, resources
+│   ├── build.gradle                # Root Gradle build
+│   └── gradle/                     # Gradle wrapper
 ├── e2e/                            # Playwright E2E tests
 │   ├── helpers.js                  # Shared test helpers
 │   ├── app.spec.js                 # Core functionality tests
 │   ├── community.spec.js           # Community feature tests
-│   ├── diary-encouragement.spec.js # Diary encouragement tests
-│   ├── visual-regression.spec.js   # Visual regression (114 baselines)
-│   ├── screenshots.spec.js         # Static screenshot capture
+│   ├── visual-regression.spec.js   # Visual regression baselines
 │   └── smoke.spec.js               # Smoke tests
-├── backend/                        # Python FastAPI backend
-│   ├── api/                        # Core application modules
-│   │   ├── index.py                # FastAPI entrypoint & route registration
-│   │   ├── auth.py                 # JWT authentication
-│   │   ├── config.py               # Configuration management
-│   │   ├── database.py             # PostgreSQL connection pool
-│   │   ├── middleware.py            # CORS, rate limiting
-│   │   ├── community_api.py        # Community endpoints (18 routes)
-│   │   ├── sync.py                 # Data sync logic
-│   │   ├── llm_provider.py         # LLM integration (GROQ/OpenAI)
-│   │   ├── rag.py                  # RAG pipeline
-│   │   └── ... (27 more modules)
-│   ├── tests/                      # Backend test suite
-│   ├── alembic/                    # Database migrations
-│   ├── requirements.txt            # Python dependencies
-│   └── vercel.json                 # Vercel deployment config
-├── android/                        # Capacitor Android project
-│   ├── app/
-│   │   ├── build.gradle            # App-level Gradle build
-│   │   └── src/main/               # Android manifest, resources, assets
-│   ├── build.gradle                # Root Gradle build
-│   ├── variables.gradle            # SDK version management
-│   └── gradle/                     # Gradle wrapper
-├── public/                         # Static assets (icons, manifest, SVGs)
 ├── docs/                           # Documentation
-│   ├── COMMUNITY_API.md            # Community API reference
-│   ├── COMMUNITY_SCHEMA.md         # Community database schema
-│   ├── COMMUNITY_DESIGN.md         # Community product design
-│   ├── COMMUNITY_COMPONENTS.md     # Community component architecture
-│   └── ... (legal, compliance, policy docs)
+│   ├── community/                  # Community feature docs
+│   ├── legal/                      # Legal & compliance docs (14 files)
+│   ├── DEPLOYMENT_GUIDE.md         # Deployment instructions
+│   └── ... (architecture, config, guides)
+├── reports/                        # Audit & QA reports
+│   ├── ENTERPRISE_AUDIT_REPORT.md
+│   ├── FINAL_QA_REPORT.md
+│   ├── FINAL_SECURITY_AUDIT.md
+│   └── ... (audit, security, production readiness)
+├── presentations/                  # Pitch & investor materials
+│   ├── pitch/                      # Pitch decks & PRDs
+│   ├── assets/                     # Screenshots & diagrams
+│   └── *.docx, *.pptx, *.pdf      # Presentation files
 ├── scripts/                        # Utility scripts
-├── screenshots/                    # App screenshots
-├── pitch/                          # Investor pitch materials
+│   ├── dev.sh / dev.bat            # Dev startup helpers
+│   ├── generate-icons.cjs          # Icon generator
+│   └── ... (test runners, generators)
 ├── .github/workflows/              # CI/CD pipelines
 │   ├── ci-frontend.yml             # Frontend CI (5-job pipeline)
-│   └── deploy-backend.yml          # Backend deployment
-├── index.html                      # Vite SPA entry point
-├── package.json                    # Node.js dependencies
-├── vite.config.js                  # Vite + PWA configuration
-├── playwright.config.js            # Playwright E2E configuration
-├── capacitor.config.json           # Capacitor mobile configuration
-├── eslint.config.js                # ESLint flat configuration
-├── lighthouserc.js                 # Lighthouse CI configuration
+│   ├── build-apk.yml               # APK build + GitHub Release
+│   └── deploy-backend.yml          # Backend deployment to Railway
+├── README.md                       # This file
+├── LICENSE                         # MIT License
+├── CHANGELOG.md                    # Version history
+├── CONTRIBUTING.md                 # Contribution guidelines
+├── SECURITY.md                     # Security documentation
+├── CODE_OF_CONDUCT.md              # Community code of conduct
 ├── docker-compose.yml              # Docker Compose (3 services)
-├── Dockerfile.frontend             # Frontend Docker build
-└── nginx.conf                      # Nginx reverse proxy config
+├── vercel.json                     # Vercel deployment config
+├── .gitignore                      # Git ignore rules
+├── .editorconfig                   # Editor configuration
+└── .gitattributes                  # Git attributes
 ```
 
-See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for detailed documentation of each directory and file.
+See [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for detailed documentation of each directory and file.
 
 ---
 
@@ -325,7 +337,7 @@ The AI Faith Assistant uses a multi-provider strategy:
 - **OpenRouter** as a fallback provider
 - **Pinecone** for RAG-powered scripture search
 
-See [architecture.md](architecture.md) for the complete architecture document.
+See [docs/architecture.md](docs/architecture.md) for the complete architecture document.
 
 ---
 
@@ -385,7 +397,7 @@ GitHub Actions runs the full pipeline on every PR and push:
 Lint → Unit Tests → E2E Tests → Visual Regression → Lighthouse → Deploy
 ```
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment instructions.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete deployment instructions.
 
 ---
 
@@ -403,7 +415,7 @@ npm run build && npx cap sync android
 cd android && ./gradlew assembleDebug
 ```
 
-See [MOBILE.md](MOBILE.md) for complete mobile development documentation.
+See [docs/MOBILE.md](docs/MOBILE.md) for complete mobile development documentation.
 
 ---
 
@@ -414,7 +426,7 @@ See [MOBILE.md](MOBILE.md) for complete mobile development documentation.
 - **Push Notifications:** VAPID-based push messaging
 - **Installable:** Prompts install on supported browsers
 
-See [PWA.md](PWA.md) for complete PWA documentation.
+See [docs/PWA.md](docs/PWA.md) for complete PWA documentation.
 
 ---
 
@@ -489,7 +501,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines, cod
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for the complete security documentation, audit findings, and OWASP alignment.
+See [docs/SECURITY.md](docs/SECURITY.md) for the complete security documentation, audit findings, and OWASP alignment.
 
 ### Quick Security Notes
 

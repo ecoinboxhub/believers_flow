@@ -24,17 +24,21 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: frontend
         run: npm ci
 
       - name: Build frontend
+        working-directory: frontend
         run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
 
       - name: Sync Capacitor
+        working-directory: frontend
         run: npx cap sync android
 
       - name: Decode keystore
@@ -42,7 +46,7 @@ jobs:
 
       - name: Build signed APK
         run: |
-          cd android
+          cd mobile
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=../believers-flow.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
@@ -53,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: believersflow-release
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: mobile/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
 
       - name: Create Release (on tag)
@@ -69,7 +73,7 @@ jobs:
 
             ### What's New
             See [CHANGELOG.md](https://github.com/ecoinboxhub/believers_flow/blob/main/CHANGELOG.md) for details.
-          files: android/app/build/outputs/apk/release/app-release.apk
+          files: mobile/app/build/outputs/apk/release/app-release.apk
           draft: false
           prerelease: false
           tag_name: ${{ github.ref_name }}

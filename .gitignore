@@ -29,13 +29,15 @@ backend/.env
 backend/.env.local
 backend/.env.*.local
 
-# Android signing secrets
+# ---------------------------
+# Signing & Certificates
+# ---------------------------
 *.jks
 *.keystore
 *.p12
 *.pem
 *.key
-android/app/signing.properties
+mobile/app/signing.properties
 
 # API keys & credentials
 client_secret*.json
@@ -50,15 +52,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
-# Virtual environments
 venv/
 .venv/
 env/
 ENV/
 .python-version
-
-# Distribution / packaging
 *.egg-info/
 *.egg
 .eggs/
@@ -121,22 +119,20 @@ Desktop.ini
 ._*
 
 # ---------------------------
-# Android / Gradle
+# Mobile / Android / Gradle
 # ---------------------------
-android/.gradle/
-android/build/
-android/app/build/
-android/capacitor-cordova-android-plugins/build/
-android/local.properties
+mobile/.gradle/
+mobile/build/
+mobile/app/build/
+mobile/capacitor-cordova-android-plugins/build/
+mobile/local.properties
 *.apk
 *.aab
 *.ap_
-
-# Android Studio
-android/.idea/
-android/*.iml
-android/**/*.iml
-android/gradle/wrapper/gradle-wrapper.jar
+mobile/.idea/
+mobile/*.iml
+mobile/**/*.iml
+mobile/gradle/wrapper/gradle-wrapper.jar
 
 # ---------------------------
 # iOS
@@ -152,14 +148,11 @@ ios/**/*.mode2v3
 ios/**/*.perspectivev3
 
 # ---------------------------
-# Capacitor
-# ---------------------------
-node_modules/@capacitor/
-
-# ---------------------------
 # Testing & Coverage
 # ---------------------------
 test-results/
+frontend/test-results/
+frontend/playwright-report/
 playwright-report/
 playwright/.cache/
 blob-report/
@@ -173,11 +166,6 @@ logs/
 *.pid
 *.seed
 *.pid.lock
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 debug.log
 pm2-debug.log
 
@@ -192,12 +180,16 @@ pm2-debug.log
 *.OLD
 *~
 ~$*
+~$*.docx
+~$*.pptx
+~$*.xlsx
 
 # ---------------------------
 # Deployment
 # ---------------------------
 .vercel/
 .vercel/*.local
+backend/.vercel/
 
 # ---------------------------
 # Docker
@@ -211,24 +203,7 @@ docs/site/
 docs/_build/
 
 # ---------------------------
-# Pitch & Investor Materials (local only)
+# Generated test output
 # ---------------------------
-pitch/*.docx
-pitch/*.pptx
-pitch/*.pdf
-pitch/~$*
-
-# Presentation temp files
-~$*.docx
-~$*.pptx
-~$*.xlsx
-
-# ---------------------------
-# Archive
-# ---------------------------
-backup_old/
-
-# ---------------------------
-# Capacitor (root level)
-# ---------------------------
-capacitor-cordova-android-plugins/
+test_results.json
+security_scalability_results.json
