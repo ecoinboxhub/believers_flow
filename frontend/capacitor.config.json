@@ -4,14 +4,8 @@
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https"
-  },
-  "android": {
-    "buildOptions": {
-      "keystorePath": "believers-flow.jks",
-      "keystorePassword": "SET_VIA_ENV",
-      "keystoreAlias": "believersflow",
-      "keystoreAliasPassword": "SET_VIA_ENV"
-    }
+    "androidScheme": "https",
+    "url": "https://frontend-pi-seven-30.vercel.app",
+    "cleartext": false
   }
 }
