@@ -12,6 +12,12 @@ pinecone>=5.0.0
 alembic>=1.13.0
 sqlalchemy>=2.0.0
 
+# Web scraping for devotionals
+beautifulsoup4>=4.12.0
+
+# Environment variable loading
+python-dotenv>=1.0.0
+
 # Redis for distributed rate limiting
 redis[hiredis]==5.0.8
 
