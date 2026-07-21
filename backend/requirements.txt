@@ -10,7 +10,7 @@ pinecone>=5.0.0
 
 # Database migrations
 alembic>=1.13.0
-sqlalchemy>=2.0.0
+sqlalchemy>=2.0.51
 
 # Web scraping for devotionals
 beautifulsoup4>=4.12.0
