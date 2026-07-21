@@ -4,8 +4,6 @@
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https",
-    "url": "https://frontend-pi-seven-30.vercel.app",
-    "cleartext": false
+    "androidScheme": "https"
   }
 }
