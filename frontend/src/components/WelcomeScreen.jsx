@@ -48,8 +48,11 @@ export default function WelcomeScreen({ onAction }) {
                   <line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
                 </svg>
               </span>
-              <span className="welcome-card-label">Create Account</span>
-              <span className="welcome-card-desc">Sync data across devices and unlock AI features</span>
+              <div className="welcome-card-text">
+                <span className="welcome-card-label">Create Account</span>
+                <span className="welcome-card-desc">Sync data across devices and unlock AI features</span>
+              </div>
+              <svg className="welcome-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
 
             <button
@@ -63,8 +66,11 @@ export default function WelcomeScreen({ onAction }) {
                   <polyline points="10 17 15 12 10 7" /><line x1="15" y1="12" x2="3" y2="12" />
                 </svg>
               </span>
-              <span className="welcome-card-label">Sign In</span>
-              <span className="welcome-card-desc">Continue with your existing account</span>
+              <div className="welcome-card-text">
+                <span className="welcome-card-label">Sign In</span>
+                <span className="welcome-card-desc">Continue with your existing account</span>
+              </div>
+              <svg className="welcome-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
 
             <button
@@ -78,8 +84,11 @@ export default function WelcomeScreen({ onAction }) {
                   <circle cx="12" cy="12" r="3" />
                 </svg>
               </span>
-              <span className="welcome-card-label">Continue as Guest</span>
-              <span className="welcome-card-desc">Use the app locally. Sign up anytime from Settings</span>
+              <div className="welcome-card-text">
+                <span className="welcome-card-label">Continue as Guest</span>
+                <span className="welcome-card-desc">Use the app locally. Sign up anytime from Settings</span>
+              </div>
+              <svg className="welcome-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
         </div>
