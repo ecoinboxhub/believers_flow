@@ -75,6 +75,12 @@ jobs:
           ls -la mobile/app/src/main/assets/public/ 2>/dev/null || echo "NOT FOUND"
           echo "============================="
 
+      - name: Copy Capacitor generated files to mobile project
+        run: |
+          cp -r frontend/android/capacitor-cordova-android-plugins mobile/capacitor-cordova-android-plugins
+          cp frontend/android/capacitor.settings.gradle mobile/capacitor.settings.gradle
+          echo "Copied capacitor-cordova-android-plugins and capacitor.settings.gradle"
+
       - name: Copy web assets to mobile project
         run: |
           mkdir -p mobile/app/src/main/assets/public
