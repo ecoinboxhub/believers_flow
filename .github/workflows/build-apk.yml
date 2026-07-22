@@ -98,6 +98,9 @@ jobs:
           echo "KEY_PASSWORD secret set: ${{ secrets.KEY_PASSWORD != '' && 'YES' || 'NO' }}"
           echo "============================="
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Build signed APK
         run: |
           cd mobile
