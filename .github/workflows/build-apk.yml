@@ -94,7 +94,7 @@ jobs:
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > believers-flow.jks
-          cp believers-flow.jks mobile/app/believers-flow-release.jks
+          cp believers-flow.jks mobile/believers-flow.jks
 
       - name: Debug - Keystore and signing
         run: |
