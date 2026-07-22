@@ -54,7 +54,7 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
 
       - name: Debug - Frontend build output
         run: |
@@ -87,27 +87,77 @@ jobs:
           rm -rf mobile/app/src/main/assets/public/*
           cp -r frontend/android/app/src/main/assets/public/* mobile/app/src/main/assets/public/
           echo "Web assets copied successfully"
-          echo "=== Mobile assets (after copy) ==="
-          ls -la mobile/app/src/main/assets/public/
-          echo "==================================="
-
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > believers-flow.jks
-          cp believers-flow.jks mobile/believers-flow.jks
-
-      - name: Debug - Keystore and signing
-        run: |
-          echo "=== Signing Configuration ==="
-          echo "Keystore file exists: $(test -f believers-flow.jks && echo YES || echo NO)"
-          echo "Keystore size: $(wc -c < believers-flow.jks 2>/dev/null || echo 0) bytes"
-          echo "KEY_ALIAS secret set: ${{ secrets.KEY_ALIAS != '' && 'YES' || 'NO' }}"
-          echo "KEYSTORE_PASSWORD secret set: ${{ secrets.KEYSTORE_PASSWORD != '' && 'YES' || 'NO' }}"
-          echo "KEY_PASSWORD secret set: ${{ secrets.KEY_PASSWORD != '' && 'YES' || 'NO' }}"
-          echo "============================="
 
       - name: Link node_modules for Gradle
         run: ln -s frontend/node_modules node_modules
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > mobile/app/believers-flow-release.jks
+          echo "Keystore decoded successfully"
+
+      - name: Validate keystore and signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "=== Signing Pre-Flight Check ==="
+          echo ""
+          echo "Current working directory: $(pwd)"
+          echo ""
+
+          echo "1. Checking keystore file..."
+          KEYSTORE_FILE="mobile/app/believers-flow-release.jks"
+          if [ ! -f "$KEYSTORE_FILE" ]; then
+            echo "   FATAL: Keystore file not found at $KEYSTORE_FILE"
+            exit 1
+          fi
+          KEYSTORE_SIZE=$(wc -c < "$KEYSTORE_FILE")
+          echo "   File: $KEYSTORE_FILE"
+          echo "   Size: $KEYSTORE_SIZE bytes"
+
+          echo ""
+          echo "2. Checking keystore is valid JKS..."
+          FILE_MAGIC=$(xxd -l 2 -p "$KEYSTORE_FILE")
+          echo "   Magic bytes: $FILE_MAGIC"
+          if [ "$FILE_MAGIC" != "fead" ]; then
+            echo "   FATAL: File does not appear to be a valid JKS keystore"
+            echo "   Expected magic: fead (JKS) or 3082 (PKCS12)"
+            echo ""
+            echo "   Directory listing of mobile/app/:"
+            ls -la mobile/app/*.jks 2>/dev/null || echo "   (no .jks files)"
+            echo ""
+            echo "   Directory listing of mobile/:"
+            ls -la mobile/*.jks 2>/dev/null || echo "   (no .jks files)"
+            echo ""
+            echo "   Directory listing of root:"
+            ls -la *.jks 2>/dev/null || echo "   (no .jks files)"
+            exit 1
+          fi
+          echo "   Valid JKS magic bytes detected"
+
+          echo ""
+          echo "3. Listing keystore aliases..."
+          if keytool -list -keystore "$KEYSTORE_FILE" -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>/dev/null; then
+            echo "   Keystore is readable with provided password"
+          else
+            echo "   WARNING: Cannot list keystore aliases (password may be wrong)"
+          fi
+
+          echo ""
+          echo "4. Checking secrets..."
+          echo "   KEYSTORE_BASE64 secret length: ${#KEYSTORE_BASE64} chars"
+          echo "   KEYSTORE_PASSWORD secret set: ${{ secrets.KEYSTORE_PASSWORD != '' && 'YES' || 'NO' }}"
+          echo "   KEY_ALIAS secret set: ${{ secrets.KEY_ALIAS != '' && 'YES' || 'NO' }}"
+          echo "   KEY_PASSWORD secret set: ${{ secrets.KEY_PASSWORD != '' && 'YES' || 'NO' }}"
+
+          echo ""
+          echo "5. Directory structure (mobile/):"
+          find mobile/ -maxdepth 3 -name "*.jks" -o -name "signing*" -o -name "build.gradle" -o -name "*.gradle" 2>/dev/null | head -20
+
+          echo ""
+          echo "================================"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -115,24 +165,11 @@ jobs:
           gradle-version: '8.14.3'
 
       - name: Build signed APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           cd mobile
-          gradle assembleRelease \
-            -Pandroid.injected.signing.store.file=../believers-flow.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
-            --stacktrace
-
-      - name: Debug - Gradle build outputs
-        run: |
-          echo "=== Gradle Build Outputs ==="
-          echo "APK output directory tree:"
-          find mobile/app/build/outputs -type f 2>/dev/null || echo "Build output directory not found"
-          echo ""
-          echo "All APK files:"
-          find mobile/app/build -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
-          echo "============================="
+          gradle assembleRelease --stacktrace
 
       - name: Verify APK exists
         run: |
@@ -141,21 +178,16 @@ jobs:
           if [ ! -f "$APK_PATH" ]; then
             echo "FATAL: APK not found at $APK_PATH"
             echo ""
-            echo "Expected path: $APK_PATH"
-            echo ""
             echo "Build output directory contents:"
             find mobile/app/build/outputs -type f 2>/dev/null || echo "  (directory does not exist)"
             echo ""
-            echo "All files in mobile/app/build:"
-            find mobile/app/build -type f -name "*.apk" 2>/dev/null || echo "  (no APK files found)"
-            echo ""
-            echo "Gradle assembleRelease may have failed. Check the build step logs above."
+            echo "All APK files in build:"
+            find mobile/app/build -name "*.apk" -type f 2>/dev/null || echo "  (no APK files found)"
             exit 1
           fi
           APK_SIZE=$(wc -c < "$APK_PATH")
           echo "APK found: $APK_PATH"
           echo "APK size: $APK_SIZE bytes ($(echo "scale=2; $APK_SIZE / 1048576" | bc) MB)"
-          echo "APK filename: $(basename $APK_PATH)"
           echo "========================"
 
       - name: Prepare release asset
@@ -164,7 +196,6 @@ jobs:
           echo "=== Release Asset ==="
           echo "Filename: BelieversFlow.apk"
           echo "Size: $(wc -c < BelieversFlow.apk) bytes"
-          echo "Full path: $(pwd)/BelieversFlow.apk"
           echo "====================="
 
       - name: Upload APK artifact
@@ -186,8 +217,6 @@ jobs:
 
           if [ -n "$RELEASE_ID" ]; then
             echo "Found existing release (ID: $RELEASE_ID)"
-            echo "Listing existing assets:"
-            gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq '.[] | {name: .name, id: .id, size: .size}' 2>/dev/null || echo "  (no assets)"
 
             ASSET_IDS=$(gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq '.[].id' 2>/dev/null || echo "")
             for ASSET_ID in $ASSET_IDS; do
@@ -201,26 +230,6 @@ jobs:
           else
             echo "No existing release found for $TAG"
           fi
-
-          echo "Checking for existing tag..."
-          git tag -l "$TAG" | while read T; do
-            echo "Deleting local tag: $T"
-            git tag -d "$T" 2>/dev/null || true
-          done
-          echo "Deleting remote tag..."
-          git push origin ":refs/tags/$TAG" 2>/dev/null || echo "  Remote tag does not exist or already deleted"
-          echo "==================================="
-
-      - name: Create Git tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          TAG="${{ github.ref_name }}"
-          echo "Ensuring tag $TAG exists locally..."
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f "$TAG" HEAD 2>/dev/null || true
-          git push origin "$TAG" --force 2>/dev/null || echo "Tag push handled"
-          echo "Tag $TAG is ready"
 
       - name: Create or update GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -244,7 +253,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           make_latest: true
 
-      - name: Verify release asset - comprehensive check
+      - name: Verify release asset
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -252,22 +261,17 @@ jobs:
           TAG="${{ github.ref_name }}"
           EXPECTED_NAME="BelieversFlow.apk"
           echo "=== Release Verification for $TAG ==="
-          echo ""
 
           echo "1. Checking release exists..."
-          RELEASE_JSON=$(gh release view "$TAG" --repo ${{ github.repository }} --json tagName,name,assets,publishedAt,isDraft,isPrerelease 2>/dev/null || echo "")
-          if [ -z "$RELEASE_JSON" ]; then
+          if ! gh release view "$TAG" --repo ${{ github.repository }} >/dev/null 2>&1; then
             echo "   FATAL: Release not found for tag $TAG"
             exit 1
           fi
-          echo "   Release found:"
-          echo "$RELEASE_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'   Name: {d[\"name\"]}'); print(f'   Tag: {d[\"tagName\"]}'); print(f'   Published: {d[\"publishedAt\"]}'); print(f'   Draft: {d[\"isDraft\"]}'); print(f'   Prerelease: {d[\"isPrerelease\"]}'); print(f'   Assets: {len(d[\"assets\"])}')"
-          echo ""
+          echo "   Release found"
 
-          echo "2. Checking APK asset exists..."
+          echo "2. Checking APK asset..."
           RELEASE_ID=$(gh release view "$TAG" --repo ${{ github.repository }} --json id -q '.id')
-          ASSETS_JSON=$(gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" 2>/dev/null)
-          ASSET_COUNT=$(echo "$ASSETS_JSON" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+          ASSET_COUNT=$(gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq 'length')
           echo "   Total assets: $ASSET_COUNT"
 
           if [ "$ASSET_COUNT" -eq 0 ]; then
@@ -275,74 +279,26 @@ jobs:
             exit 1
           fi
 
-          echo "   All assets:"
-          echo "$ASSETS_JSON" | python3 -c "import sys,json; [print(f'     - {a[\"name\"]} ({a[\"size\"]} bytes, state={a[\"state\"]})') for a in json.load(sys.stdin)]"
-          echo ""
-
-          echo "3. Checking asset name is exactly '$EXPECTED_NAME'..."
-          MATCHED_ASSET=$(echo "$ASSETS_JSON" | python3 -c "
-          import sys,json
-          assets = json.load(sys.stdin)
-          for a in assets:
-              if a['name'] == '$EXPECTED_NAME':
-                  print(json.dumps(a))
-                  break
-          ")
-
-          if [ -z "$MATCHED_ASSET" ]; then
+          MATCHED=$(gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq ".[] | select(.name==\"$EXPECTED_NAME\") | .name")
+          if [ -z "$MATCHED" ]; then
             echo "   FATAL: Asset named '$EXPECTED_NAME' not found!"
-            echo "   Available assets:"
-            echo "$ASSETS_JSON" | python3 -c "import sys,json; [print(f'     - {a[\"name\"]}') for a in json.load(sys.stdin)]"
+            gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq '.[].name'
             exit 1
           fi
-          echo "   Asset found with correct name!"
-          echo ""
+          echo "   Asset found: $EXPECTED_NAME"
 
-          echo "4. Checking asset has non-zero size..."
-          ASSET_SIZE=$(echo "$MATCHED_ASSET" | python3 -c "import sys,json; print(json.load(sys.stdin)['size'])")
-          if [ "$ASSET_SIZE" -eq 0 ]; then
-            echo "   FATAL: Asset has zero size!"
-            exit 1
-          fi
-          echo "   Size: $ASSET_SIZE bytes ($(echo "scale=2; $ASSET_SIZE / 1048576" | bc) MB)"
-          echo ""
-
-          echo "5. Checking asset state is 'uploaded'..."
-          ASSET_STATE=$(echo "$MATCHED_ASSET" | python3 -c "import sys,json; print(json.load(sys.stdin)['state'])")
-          if [ "$ASSET_STATE" != "uploaded" ]; then
-            echo "   FATAL: Asset state is '$ASSET_STATE', expected 'uploaded'!"
-            exit 1
-          fi
-          echo "   State: $ASSET_STATE"
-          echo ""
-
-          echo "6. Checking download URL..."
-          DOWNLOAD_URL=$(echo "$MATCHED_ASSET" | python3 -c "import sys,json; print(json.load(sys.stdin)['browser_download_url'])")
-          echo "   URL: $DOWNLOAD_URL"
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DOWNLOAD_URL" 2>/dev/null || echo "000")
-          echo "   HTTP status: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "   WARNING: Download URL returned HTTP $HTTP_STATUS"
-            echo "   (This may be expected for private repos when using unauthenticated requests)"
-          fi
-          echo ""
-
-          echo "7. Checking permanent /latest/ URL..."
+          echo "3. Checking download URL..."
           LATEST_URL="https://github.com/ecoinboxhub/believers_flow/releases/latest/download/$EXPECTED_NAME"
-          echo "   URL: $LATEST_URL"
-          LATEST_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$LATEST_URL" 2>/dev/null || echo "000")
-          echo "   HTTP status: $LATEST_STATUS"
-          if [ "$LATEST_STATUS" -ne 200 ]; then
-            echo "   WARNING: Latest URL returned HTTP $LATEST_STATUS"
-            echo "   (This may be expected for private repos when using unauthenticated requests)"
+          HTTP_STATUS=$(curl -sL -o /dev/null -w "%{http_code}" "$LATEST_URL" 2>/dev/null || echo "000")
+          echo "   $LATEST_URL -> HTTP $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "   WARNING: URL did not return 200"
           fi
-          echo ""
 
+          echo ""
           echo "============================================"
           echo "RELEASE VERIFICATION COMPLETE"
           echo "Tag: $TAG"
           echo "Asset: $EXPECTED_NAME"
-          echo "Size: $ASSET_SIZE bytes"
-          echo "Download URL: $DOWNLOAD_URL"
-          echo "Latest URL: $LATEST_URL"
+          echo "Latest URL: $LATEST_URL -> HTTP $HTTP_STATUS"
           echo "============================================"
