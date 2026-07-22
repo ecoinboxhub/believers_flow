@@ -101,6 +101,7 @@ jobs:
       - name: Build signed APK
         run: |
           cd mobile
+          chmod +x gradlew
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=../believers-flow.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
