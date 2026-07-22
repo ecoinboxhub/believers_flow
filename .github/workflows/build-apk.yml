@@ -77,8 +77,9 @@ jobs:
 
       - name: Copy web assets to mobile project
         run: |
-          rm -rf mobile/app/src/main/assets/public
-          cp -r frontend/android/app/src/main/assets/public mobile/app/src/main/assets/public
+          mkdir -p mobile/app/src/main/assets/public
+          rm -rf mobile/app/src/main/assets/public/*
+          cp -r frontend/android/app/src/main/assets/public/* mobile/app/src/main/assets/public/
           echo "Web assets copied successfully"
           echo "=== Mobile assets (after copy) ==="
           ls -la mobile/app/src/main/assets/public/
