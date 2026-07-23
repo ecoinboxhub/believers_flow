@@ -91,16 +91,14 @@ jobs:
       - name: Link node_modules for Gradle
         run: ln -s frontend/node_modules node_modules
 
-      - name: Decode keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      - name: Prepare keystore for signing
         run: |
-          printf '%s' "$KEYSTORE_BASE64" | base64 -d > mobile/app/believers-flow-release.jks
-          echo "Keystore decoded successfully"
+          cp frontend/believers-flow.jks mobile/app/believers-flow-release.jks
+          echo "Keystore copied to mobile/app/believers-flow-release.jks"
 
       - name: Validate keystore and signing secrets
         env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           echo "=== Signing Pre-Flight Check ==="
           echo ""
@@ -116,47 +114,42 @@ jobs:
           KEYSTORE_SIZE=$(wc -c < "$KEYSTORE_FILE")
           echo "   File: $KEYSTORE_FILE"
           echo "   Size: $KEYSTORE_SIZE bytes"
-
-          echo ""
-          echo "2. Checking keystore is valid JKS..."
-          FILE_MAGIC=$(xxd -l 2 -p "$KEYSTORE_FILE")
-          echo "   Magic bytes: $FILE_MAGIC"
-          if [ "$FILE_MAGIC" != "fead" ]; then
-            echo "   FATAL: File does not appear to be a valid JKS keystore"
-            echo "   Expected magic: fead (JKS) or 3082 (PKCS12)"
-            echo ""
-            echo "   Directory listing of mobile/app/:"
-            ls -la mobile/app/*.jks 2>/dev/null || echo "   (no .jks files)"
-            echo ""
-            echo "   Directory listing of mobile/:"
-            ls -la mobile/*.jks 2>/dev/null || echo "   (no .jks files)"
-            echo ""
-            echo "   Directory listing of root:"
-            ls -la *.jks 2>/dev/null || echo "   (no .jks files)"
+          if [ "$KEYSTORE_SIZE" -eq 0 ]; then
+            echo "   FATAL: Keystore file is empty!"
             exit 1
           fi
-          echo "   Valid JKS magic bytes detected"
 
           echo ""
-          echo "3. Listing keystore aliases..."
-          if keytool -list -keystore "$KEYSTORE_FILE" -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>/dev/null; then
-            echo "   Keystore is readable with provided password"
+          echo "2. Checking keystore magic bytes..."
+          FILE_MAGIC=$(xxd -l 2 -p "$KEYSTORE_FILE")
+          echo "   Magic bytes: $FILE_MAGIC"
+
+          echo ""
+          echo "3. Listing keystore aliases with keytool..."
+          if keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" 2>&1; then
+            echo "   SUCCESS: Keystore is readable with provided password"
           else
-            echo "   WARNING: Cannot list keystore aliases (password may be wrong)"
+            echo "   FATAL: Cannot read keystore with provided password!"
+            exit 1
           fi
 
           echo ""
-          echo "4. Checking secrets..."
-          echo "   KEYSTORE_BASE64 secret length: ${#KEYSTORE_BASE64} chars"
-          echo "   KEYSTORE_PASSWORD secret set: ${{ secrets.KEYSTORE_PASSWORD != '' && 'YES' || 'NO' }}"
-          echo "   KEY_ALIAS secret set: ${{ secrets.KEY_ALIAS != '' && 'YES' || 'NO' }}"
-          echo "   KEY_PASSWORD secret set: ${{ secrets.KEY_PASSWORD != '' && 'YES' || 'NO' }}"
+          echo "4. Checking alias 'believersflow' exists..."
+          if keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" -alias believersflow 2>&1; then
+            echo "   SUCCESS: Alias 'believersflow' found"
+          else
+            echo "   FATAL: Alias 'believersflow' not found in keystore!"
+            exit 1
+          fi
 
           echo ""
-          echo "5. Directory structure (mobile/):"
-          find mobile/ -maxdepth 3 -name "*.jks" -o -name "signing*" -o -name "build.gradle" -o -name "*.gradle" 2>/dev/null | head -20
+          echo "5. Checking secrets..."
+          echo "   KEYSTORE_PASSWORD secret set: YES (${#KEYSTORE_PASSWORD} chars)"
+          echo "   KEY_ALIAS_PASSWORD secret set: ${{ secrets.KEY_ALIAS_PASSWORD != '' && 'YES' || 'NO' }}"
 
           echo ""
+          echo "================================"
+          echo "SIGNING PRE-FLIGHT: ALL CHECKS PASSED"
           echo "================================"
 
       - name: Setup Gradle
