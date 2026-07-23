@@ -2,6 +2,31 @@ import { useState, useRef, useEffect } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
+const BotAvatar = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}>
+    <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1"/><circle cx="15" cy="16" r="1"/>
+    <path d="M12 11V7a4 4 0 0 0-4-4H8"/><path d="M12 11V7a4 4 0 0 1 4-4h0"/>
+  </svg>
+)
+
+const UserAvatar = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}>
+    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+)
+
+const SendIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}>
+    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  </svg>
+)
+
+const HeartIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:36,height:36}}>
+    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+  </svg>
+)
+
 export default function ChatPanel({ isOpen, onClose, chatHistory, setChatHistory, isPremium, setShowAuth }) {
   const [chatMsg, setChatMsg] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
@@ -9,7 +34,9 @@ export default function ChatPanel({ isOpen, onClose, chatHistory, setChatHistory
   const chatInput = useRef(null)
 
   useEffect(() => {
-    if (isOpen && chatInput.current) chatInput.current.focus()
+    if (isOpen && chatInput.current) {
+      setTimeout(() => chatInput.current?.focus(), 350)
+    }
   }, [isOpen])
 
   useEffect(() => {
@@ -51,43 +78,100 @@ export default function ChatPanel({ isOpen, onClose, chatHistory, setChatHistory
     <div className="chat-overlay">
       <div className="chat-panel">
         <div className="chat-header">
-          <span className="chat-title"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign: 'middle', marginRight: '6px'}}><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1"/><circle cx="15" cy="16" r="1"/><path d="M12 11V7a4 4 0 0 0-4-4H8"/><path d="M12 11V7a4 4 0 0 1 4-4h0"/></svg>Faith Assistant</span>
-          <button className="chat-close" onClick={onClose}>✕</button>
+          <div className="chat-header-left">
+            <div className="chat-header-icon"><BotAvatar /></div>
+            <div className="chat-header-info">
+              <span className="chat-title">Faith Assistant</span>
+              <span className="chat-status">{isPremium ? 'Online' : 'Sign in to chat'}</span>
+            </div>
+          </div>
+          <button className="chat-close" onClick={onClose} aria-label="Close chat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:20,height:20}}>
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
+
         <div className="chat-body">
           {!chatHistory.length && (
             <div className="chat-welcome">
-              <span className="chat-welcome-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span>
-              <p>Hi! I'm your faith assistant. Ask me anything about scripture, prayer, life advice, or your tasks.</p>
+              <div className="chat-welcome-icon-wrap">
+                <HeartIcon />
+              </div>
+              <h3 className="chat-welcome-title">How can I help you today?</h3>
+              <p className="chat-welcome-desc">
+                I'm here to help with scripture, prayer, life advice, and more.
+              </p>
+              {!isPremium && (
+                <button className="chat-auth-prompt" onClick={() => setShowAuth(true)}>
+                  Sign in to start chatting
+                </button>
+              )}
               <div className="chat-suggestions">
-                {["Give me a Bible verse for today", "How can I improve my prayer life?", "What does the Bible say about patience?", "Encourage me based on my tasks"].map((s, i) => (
+                {[
+                  "Give me a Bible verse for today",
+                  "How can I improve my prayer life?",
+                  "What does the Bible say about patience?",
+                  "Encourage me based on my tasks"
+                ].map((s, i) => (
                   <button key={i} className="chat-suggestion-chip" onClick={() => { setChatMsg(s); setTimeout(() => chatInput.current?.focus(), 50) }}>
-                    {s}
+                    <span className="chat-suggestion-text">{s}</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:14,height:14,flexShrink:0,opacity:0.4}}>
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
                   </button>
                 ))}
               </div>
             </div>
           )}
+
           {chatHistory.map((m, i) => (
             <div key={i} className={`chat-msg ${m.role} fade-in`}>
-              <span className="chat-avatar">{m.role === 'user' ? <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1"/><circle cx="15" cy="16" r="1"/><path d="M12 11V7a4 4 0 0 0-4-4H8"/><path d="M12 11V7a4 4 0 0 1 4-4h0"/></svg>}</span>
-              <div className="chat-bubble">{m.content}</div>
+              <div className={`chat-avatar ${m.role}`}>
+                {m.role === 'user' ? <UserAvatar /> : <BotAvatar />}
+              </div>
+              <div className="chat-msg-content">
+                <div className="chat-bubble">{m.content}</div>
+              </div>
             </div>
           ))}
+
           {chatLoading && (
-            <div className="chat-msg assistant">
-              <span className="chat-avatar"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1"/><circle cx="15" cy="16" r="1"/><path d="M12 11V7a4 4 0 0 0-4-4H8"/><path d="M12 11V7a4 4 0 0 1 4-4h0"/></svg></span>
-              <div className="chat-bubble typing">
-                <span className="dot-pulse" />
+            <div className="chat-msg assistant fade-in">
+              <div className="chat-avatar assistant"><BotAvatar /></div>
+              <div className="chat-msg-content">
+                <div className="chat-bubble typing">
+                  <span className="dot-pulse" />
+                  <span className="dot-pulse" style={{animationDelay:'0.15s'}} />
+                  <span className="dot-pulse" style={{animationDelay:'0.3s'}} />
+                </div>
               </div>
             </div>
           )}
           <div ref={chatEnd} />
         </div>
+
         <div className="chat-input-area">
-          <input ref={chatInput} type="text" placeholder="Ask anything..." value={chatMsg}
-            onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} />
-          <button onClick={sendChat} disabled={chatLoading || !chatMsg.trim()}>Send</button>
+          <div className="chat-input-wrap">
+            <input
+              ref={chatInput}
+              type="text"
+              placeholder={isPremium ? "Type your message..." : "Sign in to send messages..."}
+              value={chatMsg}
+              onChange={e => setChatMsg(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChat()}
+              disabled={!isPremium}
+              aria-label="Type your message"
+            />
+            <button
+              className="chat-send-btn"
+              onClick={sendChat}
+              disabled={chatLoading || !chatMsg.trim() || !isPremium}
+              aria-label="Send message"
+            >
+              <SendIcon />
+            </button>
+          </div>
         </div>
       </div>
     </div>

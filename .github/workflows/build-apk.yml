@@ -16,27 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Debug - Environment info
-        run: |
-          echo "=== Runner Environment ==="
-          echo "OS: $(uname -a)"
-          echo "GitHub ref: ${{ github.ref }}"
-          echo "GitHub event: ${{ github.event_name }}"
-          echo "Tag: ${{ github.ref_name }}"
-          echo "================================"
-
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-
-      - name: Debug - Java version
-        run: |
-          echo "=== Java Version ==="
-          java -version
-          echo "JAVA_HOME: $JAVA_HOME"
-          echo "===================="
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -45,7 +29,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
@@ -56,37 +40,17 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
 
-      - name: Debug - Frontend build output
-        run: |
-          echo "=== Frontend Build Output ==="
-          ls -la frontend/dist/ 2>/dev/null || echo "frontend/dist/ not found"
-          echo "============================="
-
       - name: Sync Capacitor
         working-directory: frontend
         run: npx cap sync android
 
-      - name: Debug - Capacitor sync result
-        run: |
-          echo "=== Capacitor Sync Result ==="
-          echo "frontend/android assets:"
-          ls -la frontend/android/app/src/main/assets/public/ 2>/dev/null || echo "NOT FOUND"
-          echo "mobile assets (before copy):"
-          ls -la mobile/app/src/main/assets/public/ 2>/dev/null || echo "NOT FOUND"
-          echo "============================="
-
-      - name: Copy Capacitor generated files to mobile project
+      - name: Copy Capacitor files to mobile project
         run: |
           cp -r frontend/android/capacitor-cordova-android-plugins mobile/capacitor-cordova-android-plugins
           cp frontend/android/capacitor.settings.gradle mobile/capacitor.settings.gradle
-          echo "Copied capacitor-cordova-android-plugins and capacitor.settings.gradle"
-
-      - name: Copy web assets to mobile project
-        run: |
           mkdir -p mobile/app/src/main/assets/public
           rm -rf mobile/app/src/main/assets/public/*
           cp -r frontend/android/app/src/main/assets/public/* mobile/app/src/main/assets/public/
-          echo "Web assets copied successfully"
 
       - name: Link node_modules for Gradle
         run: ln -s frontend/node_modules node_modules
@@ -94,66 +58,7 @@ jobs:
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          printf '%s' "$KEYSTORE_BASE64" | base64 -d > mobile/app/believers-flow-release.jks
-          KEYSTORE_SIZE=$(wc -c < mobile/app/believers-flow-release.jks)
-          echo "Keystore decoded: $KEYSTORE_SIZE bytes"
-
-      - name: Validate keystore and signing secrets
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: |
-          echo "=== Signing Pre-Flight Check ==="
-          echo ""
-          echo "Current working directory: $(pwd)"
-          echo ""
-
-          echo "1. Checking keystore file..."
-          KEYSTORE_FILE="mobile/app/believers-flow-release.jks"
-          if [ ! -f "$KEYSTORE_FILE" ]; then
-            echo "   FATAL: Keystore file not found at $KEYSTORE_FILE"
-            exit 1
-          fi
-          KEYSTORE_SIZE=$(wc -c < "$KEYSTORE_FILE")
-          echo "   File: $KEYSTORE_FILE"
-          echo "   Size: $KEYSTORE_SIZE bytes"
-          if [ "$KEYSTORE_SIZE" -eq 0 ]; then
-            echo "   FATAL: Keystore file is empty!"
-            exit 1
-          fi
-
-          echo ""
-          echo "2. Checking keystore magic bytes..."
-          FILE_MAGIC=$(xxd -l 2 -p "$KEYSTORE_FILE")
-          echo "   Magic bytes: $FILE_MAGIC"
-
-          echo ""
-          echo "3. Listing keystore aliases with keytool..."
-          if keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" 2>&1; then
-            echo "   SUCCESS: Keystore is readable with provided password"
-          else
-            echo "   FATAL: Cannot read keystore with provided password!"
-            exit 1
-          fi
-
-          echo ""
-          echo "4. Checking alias 'believersflow' exists..."
-          if keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" -alias believersflow 2>&1; then
-            echo "   SUCCESS: Alias 'believersflow' found"
-          else
-            echo "   FATAL: Alias 'believersflow' not found in keystore!"
-            exit 1
-          fi
-
-          echo ""
-          echo "5. Checking secrets..."
-          echo "   KEYSTORE_PASSWORD secret set: YES (${#KEYSTORE_PASSWORD} chars)"
-          echo "   KEY_ALIAS_PASSWORD secret set: ${{ secrets.KEY_ALIAS_PASSWORD != '' && 'YES' || 'NO' }}"
-
-          echo ""
-          echo "================================"
-          echo "SIGNING PRE-FLIGHT: ALL CHECKS PASSED"
-          echo "================================"
+        run: printf '%s' "$KEYSTORE_BASE64" | base64 -d > mobile/app/app-release.jks
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -167,32 +72,18 @@ jobs:
           cd mobile
           gradle assembleRelease --stacktrace
 
-      - name: Verify APK exists
+      - name: Verify APK
         run: |
           APK_PATH="mobile/app/build/outputs/apk/release/app-release.apk"
-          echo "=== APK Verification ==="
           if [ ! -f "$APK_PATH" ]; then
-            echo "FATAL: APK not found at $APK_PATH"
-            echo ""
-            echo "Build output directory contents:"
-            find mobile/app/build/outputs -type f 2>/dev/null || echo "  (directory does not exist)"
-            echo ""
-            echo "All APK files in build:"
-            find mobile/app/build -name "*.apk" -type f 2>/dev/null || echo "  (no APK files found)"
+            echo "APK not found at $APK_PATH"
+            find mobile/app/build/outputs -type f 2>/dev/null || echo "Build output directory does not exist"
             exit 1
           fi
-          APK_SIZE=$(wc -c < "$APK_PATH")
-          echo "APK found: $APK_PATH"
-          echo "APK size: $APK_SIZE bytes ($(echo "scale=2; $APK_SIZE / 1048576" | bc) MB)"
-          echo "========================"
+          echo "APK found: $(wc -c < "$APK_PATH") bytes"
 
       - name: Prepare release asset
-        run: |
-          cp mobile/app/build/outputs/apk/release/app-release.apk BelieversFlow.apk
-          echo "=== Release Asset ==="
-          echo "Filename: BelieversFlow.apk"
-          echo "Size: $(wc -c < BelieversFlow.apk) bytes"
-          echo "====================="
+        run: cp mobile/app/build/outputs/apk/release/app-release.apk BelieversFlow.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -201,33 +92,7 @@ jobs:
           path: BelieversFlow.apk
           retention-days: 30
 
-      - name: Delete existing release and assets for rebuilds
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ github.ref_name }}"
-          echo "=== Checking for existing release: $TAG ==="
-
-          RELEASE_ID=$(gh release view "$TAG" --repo ${{ github.repository }} --json id -q '.id' 2>/dev/null || echo "")
-
-          if [ -n "$RELEASE_ID" ]; then
-            echo "Found existing release (ID: $RELEASE_ID)"
-
-            ASSET_IDS=$(gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq '.[].id' 2>/dev/null || echo "")
-            for ASSET_ID in $ASSET_IDS; do
-              echo "Deleting asset ID: $ASSET_ID"
-              gh api "repos/${{ github.repository }}/releases/assets/$ASSET_ID" -X DELETE 2>/dev/null || echo "  Failed to delete asset $ASSET_ID"
-            done
-
-            echo "Deleting release (ID: $RELEASE_ID)..."
-            gh api "repos/${{ github.repository }}/releases/$RELEASE_ID" -X DELETE 2>/dev/null || echo "  Failed to delete release"
-            echo "Existing release deleted."
-          else
-            echo "No existing release found for $TAG"
-          fi
-
-      - name: Create or update GitHub Release
+      - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
@@ -235,66 +100,13 @@ jobs:
           body: |
             ## BelieversFlow ${{ github.ref_name }}
 
-            ### Android APK
             Download and install `BelieversFlow.apk` on your Android device.
 
-            Permanent download URL (always points to latest release):
-            [https://github.com/ecoinboxhub/believers_flow/releases/latest/download/BelieversFlow.apk](https://github.com/ecoinboxhub/believers_flow/releases/latest/download/BelieversFlow.apk)
+            **Permanent download:** [BelieversFlow.apk](https://github.com/ecoinboxhub/believers_flow/releases/latest/download/BelieversFlow.apk)
 
-            ### What's New
             See [CHANGELOG.md](https://github.com/ecoinboxhub/believers_flow/blob/main/CHANGELOG.md) for details.
           files: BelieversFlow.apk
           draft: false
           prerelease: false
           tag_name: ${{ github.ref_name }}
           make_latest: true
-
-      - name: Verify release asset
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ github.ref_name }}"
-          EXPECTED_NAME="BelieversFlow.apk"
-          echo "=== Release Verification for $TAG ==="
-
-          echo "1. Checking release exists..."
-          if ! gh release view "$TAG" --repo ${{ github.repository }} >/dev/null 2>&1; then
-            echo "   FATAL: Release not found for tag $TAG"
-            exit 1
-          fi
-          echo "   Release found"
-
-          echo "2. Checking APK asset..."
-          RELEASE_ID=$(gh release view "$TAG" --repo ${{ github.repository }} --json id -q '.id')
-          ASSET_COUNT=$(gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq 'length')
-          echo "   Total assets: $ASSET_COUNT"
-
-          if [ "$ASSET_COUNT" -eq 0 ]; then
-            echo "   FATAL: No assets found in release!"
-            exit 1
-          fi
-
-          MATCHED=$(gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq ".[] | select(.name==\"$EXPECTED_NAME\") | .name")
-          if [ -z "$MATCHED" ]; then
-            echo "   FATAL: Asset named '$EXPECTED_NAME' not found!"
-            gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq '.[].name'
-            exit 1
-          fi
-          echo "   Asset found: $EXPECTED_NAME"
-
-          echo "3. Checking download URL..."
-          LATEST_URL="https://github.com/ecoinboxhub/believers_flow/releases/latest/download/$EXPECTED_NAME"
-          HTTP_STATUS=$(curl -sL -o /dev/null -w "%{http_code}" "$LATEST_URL" 2>/dev/null || echo "000")
-          echo "   $LATEST_URL -> HTTP $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "   WARNING: URL did not return 200"
-          fi
-
-          echo ""
-          echo "============================================"
-          echo "RELEASE VERIFICATION COMPLETE"
-          echo "Tag: $TAG"
-          echo "Asset: $EXPECTED_NAME"
-          echo "Latest URL: $LATEST_URL -> HTTP $HTTP_STATUS"
-          echo "============================================"
