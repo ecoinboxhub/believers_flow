@@ -91,10 +91,13 @@ jobs:
       - name: Link node_modules for Gradle
         run: ln -s frontend/node_modules node_modules
 
-      - name: Prepare keystore for signing
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          cp frontend/believers-flow.jks mobile/app/believers-flow-release.jks
-          echo "Keystore copied to mobile/app/believers-flow-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > mobile/app/believers-flow-release.jks
+          KEYSTORE_SIZE=$(wc -c < mobile/app/believers-flow-release.jks)
+          echo "Keystore decoded: $KEYSTORE_SIZE bytes"
 
       - name: Validate keystore and signing secrets
         env:
