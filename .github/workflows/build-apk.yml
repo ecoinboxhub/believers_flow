@@ -42,7 +42,9 @@ jobs:
 
       - name: Sync Capacitor
         working-directory: frontend
-        run: npx cap sync android
+        run: |
+          if [ ! -d android ]; then npx cap add android; fi
+          npx cap sync android
 
       - name: Copy Capacitor files to mobile project
         run: |
