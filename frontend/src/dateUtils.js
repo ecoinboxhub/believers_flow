@@ -36,11 +36,12 @@ function formatPartsInTz(date, tz) {
       hour12: false, dayPeriod: 'short',
     }).formatToParts(now)
     const getVal = (type) => parseInt(parts.find(p => p.type === type)?.value || '0')
+    const hour = getVal('hour')
     return {
       year: getVal('year'),
       month: getVal('month') - 1,
       day: getVal('day'),
-      hour: getVal('hour'),
+      hour: hour === 24 ? 0 : hour,
       minute: getVal('minute'),
       second: getVal('second'),
       dayPeriod: parts.find(p => p.type === 'dayPeriod')?.value || '',
