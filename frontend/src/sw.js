@@ -53,7 +53,13 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(
     caches.match(request).then(resp =>
-      resp || fetch(request).catch(() => caches.match('./index.html'))
+      resp || fetch(request).catch(err => {
+        // Only navigation (page) requests fall back to the app shell. API/data
+        // requests must propagate their failure so the page can show a real
+        // error instead of receiving the HTML shell as a misleading 200.
+        if (request.mode === 'navigate') return caches.match('./index.html')
+        throw err
+      })
     )
   )
 })

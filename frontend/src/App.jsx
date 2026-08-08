@@ -670,8 +670,8 @@ const generateDiaryReflection = useCallback(async (entry) => {
         }
         return
       }
-      if (!data || typeof data.message !== 'string') {
-        pushError("The assistant returned an empty response. Please try again.")
+      if (!data || typeof data.message !== 'string' || !data.message.trim()) {
+        pushError("The assistant is having trouble responding right now. Please try again in a moment.")
         return
       }
       setChatHistory(prev => [...prev, { role: 'assistant', content: data.message }])

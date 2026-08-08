@@ -115,6 +115,19 @@ async def close_http_client():
         _http_client = None
 
 
+def _extract_choice_content(data) -> Optional[str]:
+    """Extract the assistant message content from a chat completion response."""
+    try:
+        content = data["choices"][0]["message"].get("content")
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return None
+    return content if isinstance(content, str) else None
+
+
+def _valid_content(content) -> bool:
+    return isinstance(content, str) and bool(content.strip())
+
+
 async def call_llm(
     system_prompt: str,
     user_message: str,
@@ -150,10 +163,13 @@ async def call_llm(
 
     try:
         client = await _get_http_client()
-        resp = await client.post(config["url"], headers=headers, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-        return data["choices"][0]["message"]["content"]
+        for _ in range(2):
+            resp = await client.post(config["url"], headers=headers, json=payload)
+            resp.raise_for_status()
+            content = _extract_choice_content(resp.json())
+            if _valid_content(content):
+                return content
+        raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=f"{provider.upper()} API error: {e.response.status_code}")
     except httpx.RequestError:
@@ -191,10 +207,13 @@ async def call_llm_multi(
 
     try:
         client = await _get_http_client()
-        resp = await client.post(config["url"], headers=headers, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-        return data["choices"][0]["message"]["content"]
+        for _ in range(2):
+            resp = await client.post(config["url"], headers=headers, json=payload)
+            resp.raise_for_status()
+            content = _extract_choice_content(resp.json())
+            if _valid_content(content):
+                return content
+        raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=f"{provider.upper()} API error: {e.response.status_code}")
     except httpx.RequestError:

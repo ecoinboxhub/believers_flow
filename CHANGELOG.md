@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened reminder time/date validation (rejects out-of-range hours, minutes, seconds, months, and days).
 - Unit and source-contract tests for reminder scheduling and native integration (`taskReminders.test.js`).
 
+## [4.15.0] - 2026-08-08
+
+### Fixed
+
+- **Faith Assistant "empty response" on mobile**: the PWA service worker's catch-all fetch handler was silently returning the app's HTML shell (HTTP 200) whenever any network request failed — including `/api/chat`. The assistant then parsed the HTML as JSON, failed, and reported "empty response". The service worker now only falls back to the app shell for page (navigation) requests; API requests propagate real failures so the assistant shows an honest message.
+- **Backend AI empty-content guard**: the chat/LLM helpers now treat missing or blank model content as a failure, retry once, and return a clear 502 instead of ever serializing `{"message": null}`.
+- **Assistant blank-message handling**: the Faith Assistant now treats an empty/blank model reply as a problem and surfaces a clear retry message rather than a blank bubble.
+
 ## [4.14.0] - 2026-08-08
 
 ### Fixed
