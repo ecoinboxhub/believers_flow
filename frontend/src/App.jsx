@@ -6,8 +6,9 @@ import Auth from './Auth.jsx'
 import WelcomeScreen from './components/WelcomeScreen.jsx'
 import LegalScreen, { hasAcceptedLegal, LEGAL_VERSION } from './LegalScreen.jsx'
 import { getUser, logout, pullFromServer, mergeServerData, scheduleSync, refreshAccessToken, isTokenExpired } from './syncService.js'
-import { requestNotificationPermission, subscribeToPush, unsubscribeFromPush } from './pushNotifications.js'
-import { getTaskReminderTs, cancelBackgroundReminder, reconcileBackgroundReminders, canScheduleBackgroundReminders, notificationSupported, playTaskAlarmSound, stopTaskAlarmSound, initTaskAlarmAudio, REMINDER_GRACE_MS, REMINDER_TICK_MS } from './taskReminders.js'
+import { subscribeToPush, unsubscribeFromPush } from './pushNotifications.js'
+import { getTaskReminderTs, cancelBackgroundReminder, reconcileBackgroundReminders, canScheduleBackgroundReminders, notificationSupported, playTaskAlarmSound, stopTaskAlarmSound, initTaskAlarmAudio, requestReminderPermission, REMINDER_GRACE_MS, REMINDER_TICK_MS } from './taskReminders.js'
+import { NATIVE_ANDROID, listenNativeAlarms } from './nativeReminders.js'
 import { requestDiaryReflection } from './diaryReflection.js'
 import BibleView from './components/BibleView.jsx'
 import { BIBLE_API_DIRECT, BIBLE_BOOK_IDS } from './constants.js'
@@ -310,7 +311,7 @@ const [diaryTitle, setDiaryTitle] = useState('')
     try {
       let data
       try {
-        const res = await fetch(`/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`)
+        const res = await fetch(`${API_URL}/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         data = await res.json()
       } catch {
@@ -367,7 +368,7 @@ const [diaryTitle, setDiaryTitle] = useState('')
   const handleLogin = useCallback((token, user) => {
     setAuthUser(user)
     setShowAuth(false)
-    requestNotificationPermission().then(granted => {
+    requestReminderPermission().then(granted => {
       if (granted) {
         subscribeToPush(API_URL, token)
       }
@@ -422,7 +423,7 @@ const [diaryTitle, setDiaryTitle] = useState('')
       showToast('Reminder time is in the past \u2014 set a future time to be reminded', 'warning')
     }
     if (taskTime && taskReminder && settings.notifications.taskReminders && scheduleFuture) {
-      requestNotificationPermission().then(ok => {
+      requestReminderPermission().then(ok => {
         if (!ok) showToast('Notifications blocked \u2014 reminders will alert in-app only', 'warning')
       })
     }
@@ -446,7 +447,7 @@ const [diaryTitle, setDiaryTitle] = useState('')
       showToast('Reminder time is in the past \u2014 set a future time to be reminded', 'warning')
     }
     if (taskTime && taskReminder && settings.notifications.taskReminders && scheduleFuture) {
-      requestNotificationPermission().then(ok => {
+      requestReminderPermission().then(ok => {
         if (!ok) showToast('Notifications blocked \u2014 reminders will alert in-app only', 'warning')
       })
     }
@@ -517,9 +518,11 @@ const [diaryTitle, setDiaryTitle] = useState('')
         showToast(`\u23F0 ${title}`, 'info')
         setAlarmBanner({ taskId: t.id, title })
         if (navigator.vibrate) navigator.vibrate([200, 100, 200])
-        playTaskAlarmSound()
-        cancelBackgroundReminder(t.id)
-        if (notificationSupported() && Notification.permission === 'granted' && !canScheduleBackgroundReminders()) {
+        if (!NATIVE_ANDROID) {
+          playTaskAlarmSound()
+          cancelBackgroundReminder(t.id)
+        }
+        if (!NATIVE_ANDROID && notificationSupported() && Notification.permission === 'granted' && !canScheduleBackgroundReminders()) {
           try { new Notification('\u23F0 Task Reminder', { body: `${title} is due now.`, icon: './icon-192.png', badge: './icon-192.png' }) } catch { /* noop */ }
         }
       })
@@ -554,6 +557,14 @@ const [diaryTitle, setDiaryTitle] = useState('')
 
   useEffect(() => {
     initTaskAlarmAudio()
+  }, [])
+
+  useEffect(() => {
+    if (!NATIVE_ANDROID) return
+    return listenNativeAlarms(({ taskId, title }) => {
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+      setAlarmBanner({ taskId, title })
+    })
   }, [])
 
   const logPrayer = useCallback(() => {
@@ -727,7 +738,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
           return null
         }
       }
-      const res = await fetch(path, {
+      const res = await fetch(`${API_URL}${path}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -744,12 +755,11 @@ const generateDiaryReflection = useCallback(async (entry) => {
   }, [showToast])
 
   const explainVerse = useCallback(async (reference, text) => {
-    if (!isPremium) { setShowAuth(true); return }
     setExplanationLoading(true); setExplanation(null); setBibleStudyTab('explain')
     const data = await apiPost('/api/bible/explain', { reference, text, version: bibleVersion })
     if (data) setExplanation(data)
     setExplanationLoading(false)
-  }, [apiPost, bibleVersion, isPremium])
+  }, [apiPost, bibleVersion])
 
   const getCommentary = useCallback(async (sourceId) => {
     if (!isPremium) { setShowAuth(true); return }
@@ -761,7 +771,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
       try {
         let token = localStorage.getItem('bf_token')
         if (token && isTokenExpired(token)) token = (await refreshAccessToken()) || token
-        const res = await fetch('/api/bible/commentary/sources', {
+        const res = await fetch(`${API_URL}/api/bible/commentary/sources`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         })
         if (res.ok) {
@@ -822,7 +832,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
     try {
       const token = localStorage.getItem('bf_token')
       const res = await fetch(
-        `/api/interlinear/${encodeURIComponent(bibleBook)}/${bibleChapter}?version=${bibleVersion}`,
+        `${API_URL}/api/interlinear/${encodeURIComponent(bibleBook)}/${bibleChapter}?version=${bibleVersion}`,
         { headers: token ? { 'Authorization': `Bearer ${token}` } : {} }
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -966,6 +976,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
 
   const primaryNav = ['tasks', 'spiritual', 'diary', 'bible', 'devotional', 'music', 'assistant', 'guide']
   const MAIN_NAV_KEYS = ['tasks', 'spiritual', 'diary', 'bible', 'devotional', 'music', 'assistant', 'guide', 'settings']
+  const BOTTOM_NAV_KEYS = ['tasks', 'spiritual', 'diary', 'bible', 'music']
 
   const shortNavLabels = {
     ...navLabels,
@@ -1280,8 +1291,8 @@ const generateDiaryReflection = useCallback(async (entry) => {
       </div>
 
       <nav className="bottom-nav" aria-label="Mobile navigation">
-        {[...primaryNav, 'settings'].map(renderBottomNavButton)}
-        <button className={`bottom-nav-item${!primaryNav.includes(currentView) ? ' active' : ''}`}
+        {BOTTOM_NAV_KEYS.map(renderBottomNavButton)}
+        <button className={`bottom-nav-item${!BOTTOM_NAV_KEYS.includes(currentView) ? ' active' : ''}`}
           onClick={() => setMobileDrawerOpen(true)}
           aria-label="More navigation options">
           <span className="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span>

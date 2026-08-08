@@ -3,7 +3,7 @@ import { AlertTriangleIcon, LightbulbIcon } from './icons.jsx'
 const ico = { width: '1em', height: '1em', style: { verticalAlign: '-0.125em' } }
 
 export default function ExplainView({
-  bibleBook, bibleChapter, bibleText, explanation, explanationLoading, explainVerse, isPremium, setShowAuth,
+  bibleBook, bibleChapter, bibleText, explanation, explanationLoading, explainVerse,
 }) {
   return (
     <div className="card bs-panel">
@@ -14,7 +14,6 @@ export default function ExplainView({
         <div className="explain-quick-verses">
           {(bibleText.verses || []).slice(0, 10).map((v, i) => (
             <button key={i} className="explain-verse-chip" onClick={() => {
-              if (!isPremium) { setShowAuth(true); return }
               explainVerse(`${bibleBook} ${bibleChapter}:${v.verse}`, v.text)
             }}>
               <sup>{v.verse}</sup> {v.text.slice(0, 60)}...

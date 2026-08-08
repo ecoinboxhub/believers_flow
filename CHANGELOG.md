@@ -5,6 +5,22 @@ All notable changes to BelieversFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.0] - 2026-08-08
+
+### Fixed
+
+- **Native task reminders on Android**: task alarms now fire with audio even when the app is backgrounded or closed. Added the Capacitor Local Notifications plugin with a high-importance alarm channel, custom `alarm.ogg` sound, notification icon, runtime `POST_NOTIFICATIONS` permission request, exact-alarm scheduling (`SCHEDULE_EXACT_ALARM`), and automatic rescheduling after device reboot.
+- **Bible Read/Explain pipeline**: chapter fetches and all Bible study API calls (explain, commentary, concordance, dictionary, compare, interlinear) now target `VITE_API_URL`, fixing them inside the Capacitor app where relative `/api` URLs cannot reach the backend.
+- **AI responses for guests**: guests can now use the Faith Assistant chat and Bible verse explanations without signing in; the backend `/api/bible/explain` endpoint now accepts guest (optional) auth.
+- **Boom Christian layout**: result cards wrap cleanly on narrow screens — cover and info on one row, playback controls on a dedicated row below, no horizontal overflow.
+- **Bottom navigation**: trimmed to five primary items (Tasks, Faith, Diary, Bible, Music) with the overflow drawer ("More") preserving access to all other features including Settings.
+
+### Added
+
+- Native reminder scheduling, cancellation, and reconciliation logic (`nativeReminders.js`) with stable 32-bit notification ids and `allowWhileIdle` Doze support.
+- Hardened reminder time/date validation (rejects out-of-range hours, minutes, seconds, months, and days).
+- Unit and source-contract tests for reminder scheduling and native integration (`taskReminders.test.js`).
+
 ## [Unreleased]
 
 ### Added

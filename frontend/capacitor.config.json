@@ -25,6 +25,11 @@
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_believersflow",
+      "iconColor": "#b8860b",
+      "sound": "alarm.ogg"
     }
   }
 }

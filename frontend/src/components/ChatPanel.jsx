@@ -45,7 +45,6 @@ export default function ChatPanel({ isOpen, onClose, chatHistory, setChatHistory
 
   const sendChat = async () => {
     if (!chatMsg.trim() || chatLoading) return
-    if (!isPremium) { setShowAuth(true); return }
 
     const userMsg = { role: 'user', content: chatMsg.trim() }
     const newHistory = [...chatHistory, userMsg]
@@ -156,17 +155,16 @@ export default function ChatPanel({ isOpen, onClose, chatHistory, setChatHistory
             <input
               ref={chatInput}
               type="text"
-              placeholder={isPremium ? "Type your message..." : "Sign in to send messages..."}
+              placeholder={isPremium ? "Type your message..." : "Type a message..."}
               value={chatMsg}
               onChange={e => setChatMsg(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChat()}
-              disabled={!isPremium}
               aria-label="Type your message"
             />
             <button
               className="chat-send-btn"
               onClick={sendChat}
-              disabled={chatLoading || !chatMsg.trim() || !isPremium}
+              disabled={chatLoading || !chatMsg.trim()}
               aria-label="Send message"
             >
               <SendIcon />

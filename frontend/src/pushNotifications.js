@@ -48,7 +48,7 @@ export async function unsubscribeFromPush(apiUrl, token) {
     if (subscription) {
       await subscription.unsubscribe()
       if (token) {
-        await fetch(`/api/notifications/unsubscribe`, {
+        await fetch(`${apiUrl}/api/notifications/unsubscribe`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export async function unsubscribeFromPush(apiUrl, token) {
 async function sendSubscriptionToBackend(subscription, apiUrl, token) {
   if (!token) return
   try {
-    await fetch(`/api/notifications/subscribe`, {
+    await fetch(`${apiUrl}/api/notifications/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

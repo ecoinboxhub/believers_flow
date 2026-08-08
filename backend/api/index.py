@@ -736,7 +736,7 @@ def _parse_explain_json(raw: str) -> Optional[dict]:
 
 
 @app.post("/api/bible/explain")
-async def explain_verse(req: ExplainVerseRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+async def explain_verse(req: ExplainVerseRequest, user=Depends(optional_user), _db=Depends(require_db)):
     ref = _parse_reference(req.reference)
     context = {}
     if ref.get("book"):

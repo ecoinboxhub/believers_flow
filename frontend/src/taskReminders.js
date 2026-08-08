@@ -1,4 +1,11 @@
 import { requestNotificationPermission } from './pushNotifications.js'
+import {
+  NATIVE_ANDROID,
+  isNativeReminderSupported,
+  requestNativeReminderPermission,
+  cancelNativeReminder,
+  reconcileNativeReminders,
+} from './nativeReminders.js'
 
 export const REMINDER_TAG_PREFIX = 'bf-task-'
 export const REMINDER_GRACE_MS = 5 * 60 * 1000
@@ -16,11 +23,14 @@ export function getTaskReminderTs(task) {
   const parts = time.split(':').map(Number)
   if (parts.length < 2 || parts.some(isNaN)) return null
   const [h = 0, m = 0, s = 0] = parts
+  if (h < 0 || h > 23 || m < 0 || m > 59 || s < 0 || s > 59) return null
   let d
   if (task.date) {
     const dp = task.date.split('-').map(Number)
     if (dp.length !== 3 || dp.some(isNaN)) return null
+    if (dp[0] < 1 || dp[1] < 1 || dp[1] > 12 || dp[2] < 1 || dp[2] > 31) return null
     d = new Date(dp[0], dp[1] - 1, dp[2], h, m, s)
+    if (d.getFullYear() !== dp[0] || d.getMonth() !== dp[1] - 1 || d.getDate() !== dp[2]) return null
   } else {
     d = new Date()
     d.setHours(h, m, s, 0)
@@ -35,14 +45,17 @@ export function notificationSupported() {
 }
 
 export function canScheduleBackgroundReminders() {
+  if (isNativeReminderSupported()) return true
   return notificationSupported() && 'showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined'
 }
 
 export function requestReminderPermission() {
+  if (NATIVE_ANDROID) return requestNativeReminderPermission()
   return requestNotificationPermission()
 }
 
 export async function cancelBackgroundReminder(taskId) {
+  if (NATIVE_ANDROID) { await cancelNativeReminder(taskId); return }
   if (!canScheduleBackgroundReminders() || !('serviceWorker' in navigator)) return
   try {
     const reg = await navigator.serviceWorker.ready
@@ -54,6 +67,7 @@ export async function cancelBackgroundReminder(taskId) {
 }
 
 export async function reconcileBackgroundReminders(tasks, enabled) {
+  if (NATIVE_ANDROID) { await reconcileNativeReminders(tasks, enabled); return }
   if (!enabled || !canScheduleBackgroundReminders() || !('serviceWorker' in navigator)) return
   if (Notification.permission !== 'granted') return
   try {

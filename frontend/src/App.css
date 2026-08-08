@@ -4111,6 +4111,18 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .music-result-play:hover { opacity: 0.9; }
 .music-result-play:disabled { opacity: 0.4; cursor: not-allowed; }
 .music-result-play.playing { background: var(--danger, #c62828); }
+
+/* Boom result cards: wrap cleanly on narrow screens instead of overflowing.
+   Cover + info on the first row, playback controls on their own row below. */
+.music-result-card { flex-wrap: wrap; }
+.music-result-card .music-player-controls { flex-wrap: nowrap; }
+@media (max-width: 560px) {
+  .music-result-card .music-player-controls {
+    width: 100%; margin-left: 0; justify-content: flex-start;
+  }
+  .music-result-card .music-player-volume { margin-left: auto; }
+  .music-player-range { width: 64px; }
+}
 .music-error-state {
   padding: var(--sp-4); text-align: center; background: rgba(198,40,40,0.06);
   border: 1px solid rgba(198,40,40,0.2); border-radius: var(--radius-lg);

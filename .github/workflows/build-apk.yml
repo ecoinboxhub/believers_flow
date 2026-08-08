@@ -46,6 +46,14 @@ jobs:
           if [ ! -d android ]; then npx cap add android; fi
           npx cap sync android
 
+      - name: Add native notification resources
+        run: |
+          mkdir -p frontend/android/app/src/main/res/drawable
+          mkdir -p frontend/android/app/src/main/res/raw
+          cp frontend/public/sounds/alarm.ogg frontend/android/app/src/main/res/raw/alarm.ogg
+          cp mobile/app/src/main/res/drawable/ic_stat_believersflow.xml frontend/android/app/src/main/res/drawable/ic_stat_believersflow.xml
+          cp mobile/app/src/main/res/raw/keep.xml frontend/android/app/src/main/res/raw/keep.xml
+
       - name: Copy Capacitor files to mobile project
         run: |
           cp -r frontend/android/capacitor-cordova-android-plugins mobile/capacitor-cordova-android-plugins
