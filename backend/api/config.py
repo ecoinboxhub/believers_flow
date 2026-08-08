@@ -31,6 +31,7 @@ OPTIONAL_VARS = {
     "PINECONE_INDEX": {"default": "believersflow", "description": "Pinecone index name"},
     "PINECONE_HOST": {"description": "Pinecone host URL"},
     "ALLOWED_ORIGINS": {"description": "Comma-separated CORS origins"},
+    "ADMIN_EMAILS": {"description": "Comma-separated admin email allowlist for diagnostic endpoints (e.g. /api/dbtest, /api/pinetest)"},
     "RATE_LIMIT_PER_MINUTE": {"default": "60", "description": "Rate limit RPM"},
     "SMTP_HOST": {"description": "SMTP server host for email delivery"},
     "SMTP_PORT": {"default": "587", "description": "SMTP server port"},

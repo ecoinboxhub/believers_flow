@@ -3,19 +3,17 @@ import { getDayOfYear } from '../dateUtils'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-const HYMN_WITH_TUNES = new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,52,63,64,75,79,94,97,100])
-
 const HYMN_METADATA = {
-  1: { meter:'8.8.8.6', scripture:'Ephesians 2:8-9', year:1779, tags:['grace','salvation','testimony','conversion'], tune:'New Britain' },
-  2: { meter:'10.10.10.10', scripture:'Psalm 23', year:1865, tags:['psalm','shepherd','comfort','providence'], tune:'Crimond' },
-  3: { meter:'8.8.8.8.8.8', scripture:'Revelation 4:8', year:1744, tags:['trinity','worship','praise','holiness'], tune:'Holy, Holy, Holy' },
-  4: { meter:'8.8.8.8', scripture:'Psalm 103:1', year:1774, tags:['praise','doxology','psalm','thanksgiving'], tune:'Old 100th' },
-  5: { meter:'10.10.10.4', scripture:'Philippians 4:6-7', year:1882, tags:['prayer','mercy','penitence'], tune:'Pass Me Not' },
-  6: { meter:'8.8.8.8.8.8', scripture:'Isaiah 53:5', year:1707, tags:['cross','crucifixion','love','sacrifice'], tune:'Martyn' },
-  7: { meter:'8.7.8.7.8.7', scripture:'Psalm 91:1-2', year:1779, tags:['protection','psalm','refuge','trust'], tune:'Germany' },
-  8: { meter:'10.10.10.10', scripture:'Romans 8:38-39', year:1874, tags:['trust','patience','sovereignty','comfort'], tune:'Finlandia' },
-  9: { meter:'8.8.8.8', scripture:'Psalm 46:10', year:1850, tags:['peace','trust','surrender'], tune:'St. Columba' },
-  10: { meter:'8.8.8.8.8.8', scripture:'Psalm 34:1-3', year:1779, tags:['praise','psalm','universal'], tune:'Old Hundredth' },
+  1: { meter:'8.8.8.6', scripture:'Ephesians 2:8-9', year:1779, tags:['grace','salvation','testimony','conversion'] },
+  2: { meter:'10.10.10.10', scripture:'Psalm 23', year:1865, tags:['psalm','shepherd','comfort','providence'] },
+  3: { meter:'8.8.8.8.8.8', scripture:'Revelation 4:8', year:1744, tags:['trinity','worship','praise','holiness'] },
+  4: { meter:'8.8.8.8', scripture:'Psalm 103:1', year:1774, tags:['praise','doxology','psalm','thanksgiving'] },
+  5: { meter:'10.10.10.4', scripture:'Philippians 4:6-7', year:1882, tags:['prayer','mercy','penitence'] },
+  6: { meter:'8.8.8.8.8.8', scripture:'Isaiah 53:5', year:1707, tags:['cross','crucifixion','love','sacrifice'] },
+  7: { meter:'8.7.8.7.8.7', scripture:'Psalm 91:1-2', year:1779, tags:['protection','psalm','refuge','trust'] },
+  8: { meter:'10.10.10.10', scripture:'Romans 8:38-39', year:1874, tags:['trust','patience','sovereignty','comfort'] },
+  9: { meter:'8.8.8.8', scripture:'Psalm 46:10', year:1850, tags:['peace','trust','surrender'] },
+  10: { meter:'8.8.8.8.8.8', scripture:'Psalm 34:1-3', year:1779, tags:['praise','psalm','universal'] },
 }
 
 function normalize(text) {
@@ -42,7 +40,7 @@ function searchHymns(query, hymns) {
   const num = parseInt(q, 10)
   return hymns
     .map(h => {
-      let score = 0
+      let score
       if (!isNaN(num) && h.id === num) score = 1.0
       else if (!isNaN(num) && h.id.toString().includes(q)) score = 0.9
       else {
@@ -72,11 +70,28 @@ function getSuggestions(query, hymns, limit = 5) {
     .map(h => ({ id: h.id, title: h.title, author: h.author }))
 }
 
+function splitStanzas(text) {
+  if (!text) return []
+  const rawLines = text.split('\n')
+  const groups = []
+  let current = []
+  rawLines.forEach((line) => {
+    if (line.trim() === '' && current.length > 0) {
+      groups.push(current)
+      current = []
+    } else if (line.trim() !== '') {
+      current.push(line.trim())
+    }
+  })
+  if (current.length > 0) groups.push(current)
+  return groups.filter(g => g.length > 0)
+}
+
 export default function HymnView({
   hymnSearch, setHymnSearch, hymnSort, setHymnSort,
   hymnCategory, setHymnCategory, hymnFavorites, hymnRecentlyViewed,
-  selectedHymn, hymnPlaying, openHymn, closeHymn,
-  toggleHymnFavorite, toggleHymnPlay,
+  selectedHymn, openHymn, closeHymn,
+  toggleHymnFavorite,
 }) {
   const [hymns, setHymns] = useState([])
   const [hymnsLoading, setHymnsLoading] = useState(true)
@@ -91,13 +106,9 @@ export default function HymnView({
     })
     return () => { cancelled = true }
   }, [])
-  const [suggestions, setSuggestions] = useState([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedVerse, setSelectedVerse] = useState(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [shareStatus, setShareStatus] = useState(null)
-  const [volume, setVolume] = useState(0.7)
-  const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
-  const [isPaused, setIsPaused] = useState(false)
   const [onlineLyrics, setOnlineLyrics] = useState(null)
   const [onlineLyricsLoading, setOnlineLyricsLoading] = useState(false)
   const [onlineLyricsError, setOnlineLyricsError] = useState(null)
@@ -139,20 +150,13 @@ export default function HymnView({
       else if (hymnSort === 'alpha-desc') list = [...list].sort((a, b) => b.title.localeCompare(a.title))
     }
     return list
-  }, [hymnSearch, hymnCategory, hymnSort])
+  }, [hymnSearch, hymnCategory, hymnSort, hymns])
 
   const getDailyHymn = () => hymns.length > 0 ? hymns[getDayOfYear() % hymns.length] : null
 
-  useEffect(() => {
-    if (hymnSearch.length >= 2) {
-      const results = getSuggestions(hymnSearch, hymns)
-      setSuggestions(results)
-      setShowSuggestions(results.length > 0)
-    } else {
-      setSuggestions([])
-      setShowSuggestions(false)
-    }
-  }, [hymnSearch])
+  const suggestions = useMemo(() => {
+    return hymnSearch.length >= 2 ? getSuggestions(hymnSearch, hymns) : []
+  }, [hymnSearch, hymns])
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -177,10 +181,10 @@ export default function HymnView({
       setShowSuggestions(false)
       setHymnSearch('')
     }
-  }, [openHymn, setHymnSearch])
+  }, [hymns, openHymn, setHymnSearch])
 
   const handleShare = useCallback(async (hymn) => {
-    const text = `${hymn.id}. ${hymn.title}\nBy ${hymn.author || 'Unknown'}\n\n${hymn.lyrics || ''}`
+    const text = `${hymn.title}\n${hymn.author || 'Unknown'}\n\n${hymn.lyrics || ''}`
     if (navigator.share) {
       try {
         await navigator.share({ title: hymn.title, text })
@@ -201,23 +205,10 @@ export default function HymnView({
 
   const verseLines = useMemo(() => {
     if (!selectedHymn) return []
-    const lines = (selectedHymn.lyrics || selectedHymn.first_verse || '').split('\n')
-    const groups = []
-    let current = []
-    lines.forEach((line, i) => {
-      if (line.trim() === '' && current.length > 0) {
-        groups.push(current)
-        current = []
-      } else {
-        current.push({ text: line, index: i })
-      }
-    })
-    if (current.length > 0) groups.push(current)
-    return groups
+    return splitStanzas(selectedHymn.lyrics || selectedHymn.first_verse || '')
   }, [selectedHymn])
 
   const meta = selectedHymn ? HYMN_METADATA[selectedHymn.id] : null
-  const hasTune = selectedHymn && HYMN_WITH_TUNES.has(selectedHymn.id)
 
   return (
     <section className="view fade-in">
@@ -235,18 +226,25 @@ export default function HymnView({
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const h = getDailyHymn(); openHymn(h) } }}>
               <div className="hymn-daily-info">
                 <span className="hymn-daily-label">Today's Hymn</span>
-                <span className="hymn-daily-title">{getDailyHymn().id} {getDailyHymn().title}</span>
+                <span className="hymn-daily-title">{getDailyHymn().title}</span>
                 <span className="hymn-daily-author">{getDailyHymn().author}</span>
               </div>
-              <span className="hymn-daily-arrow">{'>'}</span>
+              <span className="hymn-daily-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </span>
             </div>
             )}
 
             <div className="hymn-search-box" ref={searchRef}>
+              <span className="hymn-search-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              </span>
               <input type="text" placeholder="Search by title, author, first line, or number..."
                 value={hymnSearch} onChange={handleSearchChange}
                 onFocus={() => suggestions.length > 0 && setShowSuggestions(true)} />
-              {hymnSearch && <button className="hymn-search-clear" onClick={() => setHymnSearch('')}>{'x'}</button>}
+              {hymnSearch && <button className="hymn-search-clear" onClick={() => setHymnSearch('')} aria-label="Clear search">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>}
               {showSuggestions && suggestions.length > 0 && (
                 <div className="hymn-suggestions" ref={suggestionsRef}>
                   {suggestions.map(s => (
@@ -293,10 +291,9 @@ export default function HymnView({
                       tabIndex={0} role="button" aria-label={`Open ${h.title} by ${h.author || 'Unknown'}`}
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openHymn(h) } }}>
                       <div className="hymn-item-info">
-                        <span className="hymn-item-title">{h.id} {h.title}</span>
+                        <span className="hymn-item-title">{h.title}</span>
                         <span className="hymn-item-author">{h.author || 'Unknown'}</span>
                       </div>
-                      {HYMN_WITH_TUNES.has(h.id) && <span className="hymn-has-tune" title="Has audio">{'>'}</span>}
                     </div>
                   )
                 })}
@@ -314,13 +311,12 @@ export default function HymnView({
               <div key={h.id} className="hymn-list-item" onClick={() => openHymn(h)}
               tabIndex={0} role="button" aria-label={`Open ${h.title} by ${h.author || 'Unknown'}`}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openHymn(h) } }}>
+                <div className="hymn-item-num">{h.id}</div>
                 <div className="hymn-item-info">
-                  <span className="hymn-item-title">{h.id} {h.title}</span>
+                  <span className="hymn-item-title">{h.title}</span>
                   <span className="hymn-item-author">{h.author || 'Unknown'}</span>
-                  <span className="hymn-item-cat">{h.category}</span>
                 </div>
                 <div className="hymn-item-actions">
-                  {HYMN_WITH_TUNES.has(h.id) && <span className="hymn-has-tune" title="Has audio">{'>'}</span>}
                   <button className={`hymn-fav-btn${hymnFavorites.includes(h.id) ? ' active' : ''}`}
                     onClick={e => { e.stopPropagation(); toggleHymnFavorite(h.id) }}
                     title={hymnFavorites.includes(h.id) ? 'Remove from favorites' : 'Add to favorites'}>
@@ -350,10 +346,9 @@ export default function HymnView({
                       tabIndex={0} role="button" aria-label={`Open ${h.title} by ${h.author || 'Unknown'}`}
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openHymn(h) } }}>
                       <div className="hymn-item-info">
-                        <span className="hymn-item-title">{h.id} {h.title}</span>
+                        <span className="hymn-item-title">{h.title}</span>
                         <span className="hymn-item-author">{h.author || 'Unknown'}</span>
                       </div>
-                      {HYMN_WITH_TUNES.has(h.id) && <span className="hymn-has-tune">{'>'}</span>}
                     </div>
                   )
                 })}
@@ -364,15 +359,11 @@ export default function HymnView({
       ) : (
         <div className="hymn-detail-view">
           <div className="hymn-detail-header">
-            <button className="hymn-back-btn" onClick={closeHymn}>{'<'} Back</button>
+            <button className="hymn-back-btn" onClick={closeHymn}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Back
+            </button>
             <div className="hymn-detail-header-right">
-              {hasTune && (
-                <button className={`hymn-play-btn${hymnPlaying ? ' playing' : ''}`}
-                  onClick={() => toggleHymnPlay(selectedHymn.id)}
-                  title={hymnPlaying ? 'Stop' : 'Play melody'}>
-                  {hymnPlaying ? 'Stop' : 'Play'}
-                </button>
-              )}
               <button className={`hymn-fav-btn${hymnFavorites.includes(selectedHymn.id) ? ' active' : ''}`}
                 onClick={() => toggleHymnFavorite(selectedHymn.id)}
                 aria-label={hymnFavorites.includes(selectedHymn.id) ? 'Remove from favorites' : 'Add to favorites'}>
@@ -385,12 +376,12 @@ export default function HymnView({
             </div>
           </div>
           <div className="hymn-detail-card">
-            <h2 className="hymn-detail-title">{selectedHymn.id} {selectedHymn.title}</h2>
+            <p className="hymn-detail-number">Hymn {selectedHymn.id}</p>
+            <h2 className="hymn-detail-title">{selectedHymn.title}</h2>
             <p className="hymn-detail-author">{selectedHymn.author || 'Unknown'}</p>
             {selectedHymn.category && <span className="hymn-detail-cat">{selectedHymn.category}</span>}
             {meta && (
               <div className="hymn-meta-row">
-                {meta.tune && <span className="hymn-meta-item">Tune: {meta.tune}</span>}
                 {meta.meter && <span className="hymn-meta-item">Meter: {meta.meter}</span>}
                 {meta.scripture && <span className="hymn-meta-item">Scripture: {meta.scripture}</span>}
                 {meta.year && <span className="hymn-meta-item">Year: {meta.year}</span>}
@@ -404,28 +395,15 @@ export default function HymnView({
               </div>
             )}
           </div>
-          {hasTune && hymnPlaying && (
-            <div className="hymn-player-controls">
-              <div className="hymn-player-row">
-                <label>Vol</label>
-                <input type="range" min="0" max="1" step="0.1" value={volume}
-                  onChange={e => setVolume(parseFloat(e.target.value))} />
-                <span>{Math.round(volume * 100)}%</span>
-              </div>
-              <div className="hymn-player-row">
-                <label>Speed</label>
-                <button className="hymn-speed-btn" onClick={() => setPlaybackSpeed(s => Math.max(0.5, s - 0.25))}>-</button>
-                <span>{playbackSpeed}x</span>
-                <button className="hymn-speed-btn" onClick={() => setPlaybackSpeed(s => Math.min(2.0, s + 0.25))}>+</button>
-              </div>
-            </div>
-          )}
           <div className="hymn-detail-lyrics">
             {verseLines.map((verse, vi) => (
               <div key={vi} className={`hymn-verse-group${selectedVerse === vi ? ' selected' : ''}`}
                 onClick={() => setSelectedVerse(selectedVerse === vi ? null : vi)}>
+                {verseLines.length > 1 && (
+                  <p className="hymn-verse-number">{`Verse ${vi + 1}`}</p>
+                )}
                 {verse.map((line, li) => (
-                  <p key={li} className="hymn-lyric-line">{line.text || '\u00A0'}</p>
+                  <p key={li} className="hymn-lyric-line">{line}</p>
                 ))}
               </div>
             ))}

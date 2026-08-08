@@ -4,6 +4,16 @@ function getToken() {
   return localStorage.getItem('bf_token')
 }
 
+export function isTokenExpired(token) {
+  if (!token) return true
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return Date.now() >= (payload.exp * 1000)
+  } catch {
+    return true
+  }
+}
+
 function headers() {
   const token = getToken()
   return {
@@ -167,7 +177,10 @@ export async function refreshAccessToken() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken })
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      if (res.status === 401) logout()
+      return null
+    }
     const data = await res.json()
     if (data.access_token) {
       localStorage.setItem('bf_token', data.access_token)
@@ -181,15 +194,22 @@ export async function refreshAccessToken() {
 
 export async function callRefreshed(path, options = {}) {
   let token = getToken()
+  if (!token || isTokenExpired(token)) {
+    const newToken = await refreshAccessToken()
+    if (!newToken) return null
+    token = newToken
+  }
   const doFetch = (t) => fetch(`${API_URL}${path}`, {
     ...options,
     headers: { ...headers(), ...(t ? { 'Authorization': `Bearer ${t}` } : {}), ...options.headers }
   })
   let res = await doFetch(token)
   if (res.status === 401) {
-    const newToken = await refreshAccessToken()
-    if (newToken) {
-      res = await doFetch(newToken)
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      res = await doFetch(refreshed)
+    } else {
+      return null
     }
   }
   return res

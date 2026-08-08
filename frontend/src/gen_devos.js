@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 const fs = require('fs');
 const path = 'C:\\Users\\ibrah\\Documents\\Gemini\\Christian_Todo\\src\\devotional.js';
 

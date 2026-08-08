@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 const CACHE = 'believersflow-v1'
 
 const precacheManifest = self.__WB_MANIFEST
@@ -88,6 +89,18 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close()
+
+  const action = event.action
+  const taskId = event.notification.data?.taskId
+
+  if (action === 'complete' && taskId) {
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+        clientList.forEach(client => client.postMessage({ type: 'TASK_COMPLETE', taskId }))
+      })
+    )
+    return
+  }
 
   const urlToOpen = event.notification.data?.url || './'
 

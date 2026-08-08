@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const BELIEVERSLOVEWORLD_DEVOTIONALS = {
   name: "Believers Loveworld (Christ Embassy)",
   pastor: "Pastor Chris Oyakhilome",

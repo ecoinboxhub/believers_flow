@@ -47,7 +47,15 @@ export default function PrayerAnalyticsView({ showToast, isPremium, setShowAuth 
     finally { setLoading(false) }
   }, [period, showToast])
 
-  useEffect(() => { if (isPremium) fetchAnalytics() }, [isPremium, fetchAnalytics])
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      await Promise.resolve()
+      if (cancelled) return
+      if (isPremium) fetchAnalytics()
+    })()
+    return () => { cancelled = true }
+  }, [isPremium, fetchAnalytics])
 
   const saveGoals = useCallback(async () => {
     try {

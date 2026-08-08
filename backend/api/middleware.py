@@ -38,6 +38,8 @@ def _is_allowed_origin(origin: str) -> bool:
         return True
     if not ALLOWED_ORIGINS and _is_dev_origin(origin):
         return True
+    if not ALLOWED_ORIGINS and not origin:
+        return True
     return False
 
 
@@ -106,7 +108,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return hashlib.sha256(ip.encode()).hexdigest()[:16]
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path in ("/api/health", "/api/dbtest"):
+        if request.url.path == "/api/health":
             return await call_next(request)
 
         client_id = self._get_client_id(request)

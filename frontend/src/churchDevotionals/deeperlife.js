@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const DEEPERLIFE_DEVOTIONALS = {
   name: "Deeper Life Bible Church",
   pastor: "Pastor W.F. Kumuyi",

@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useRef } from 'react'
+import { memo, useState, useEffect, useRef, useCallback, useId } from 'react'
 import { getAllTimezones, formatDateTime, getUserTimezone, getUserTimezoneAbbr, getUserTimezoneOffset } from '../dateUtils'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -31,7 +31,7 @@ function initGoogleButton(containerId, onSuccess) {
             if (data.refresh_token) localStorage.setItem('bf_refresh_token', data.refresh_token)
             localStorage.setItem('bf_user', JSON.stringify(data.user))
             onSuccess(data.token, data.user)
-          } catch {}
+          } catch { /* ignore */ }
         },
       })
       const el = document.getElementById(containerId)
@@ -47,15 +47,6 @@ function initGoogleButton(containerId, onSuccess) {
   document.head.appendChild(script)
 }
 
-const COLOR_THEMES = {
-  believersflow: { name: 'BelieversFlow', bg: ['#1a2618','#1e2e1e','#283828','#1e301e'], header: ['rgba(26,38,24,0.95)','rgba(40,56,40,0.35)','rgba(60,80,55,0.15)'], gold: '#c89830', blue: '#8ab87a', purple: '#d4b040' },
-  harvest: { name: 'Harvest', bg: ['#1a2618','#1e2e1e','#283828','#1e301e'], header: ['rgba(26,38,24,0.95)','rgba(40,56,40,0.35)','rgba(60,80,55,0.15)'], gold: '#c89830', blue: '#8ab87a', purple: '#d4b040' },
-  royal: { name: 'Royal', bg: ['#1a1210','#2e1a10','#3e2518','#2e1f15'], header: ['rgba(46,26,16,0.95)','rgba(142,69,45,0.35)','rgba(213,139,58,0.15)'], gold: '#e8c040', blue: '#d58b3a', purple: '#c08040' },
-  emerald: { name: 'Emerald', bg: ['#0a1a10','#0a2e18','#153e22','#0f2e1a'], header: ['rgba(10,46,24,0.95)','rgba(45,142,69,0.35)','rgba(58,213,99,0.15)'], gold: '#e0c850', blue: '#3ad57b', purple: '#2d8e4a' },
-  ocean: { name: 'Ocean', bg: ['#0a1218','#0a1828','#152238','#0f1a28'], header: ['rgba(10,24,40,0.95)','rgba(45,69,142,0.35)','rgba(58,99,213,0.15)'], gold: '#90d0c0', blue: '#3a7bd5', purple: '#2d4a8e' },
-  sunset: { name: 'Sunset', bg: ['#1a1010','#2e1810','#3e2218','#2e1a15'], header: ['rgba(46,24,16,0.95)','rgba(142,69,45,0.35)','rgba(213,139,58,0.15)'], gold: '#e8a84c', blue: '#d58b3a', purple: '#8e5a2d' },
-}
-
 const THEME_OPTIONS = [
   { id: 'believersflow', name: 'BelieversFlow', colors: ['#c09030', '#c89830', '#3a4838'] },
   { id: 'harvest', name: 'Harvest', colors: ['#c09030', '#c89830', '#3a4838'] },
@@ -66,7 +57,7 @@ const THEME_OPTIONS = [
 ]
 
 function GoogleSignInButton({ onSuccess }) {
-  const id = 'google-btn-' + Math.random().toString(36).slice(2, 8)
+  const id = useId()
   const mounted = useRef(false)
 
   useEffect(() => {
@@ -159,7 +150,7 @@ function SettingsAuthForm({ mode, onSuccess, onSwitch }) {
 
 const SettingsView = memo(function SettingsView({
   settings, updateSetting, updateNotification, customColors, updateCustomColor,
-  isPremium, authUser, setShowAuth, handleLogout,
+  isPremium, authUser, handleLogout,
   exportData, importData, resetAllData, openLegalSettings, showToast,
   settingsAuthMode, setSettingsAuthMode,
 }) {
@@ -173,6 +164,46 @@ const SettingsView = memo(function SettingsView({
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const [showPayment, setShowPayment] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentPlans, setPaymentPlans] = useState(null)
+  const [paymentStatus, setPaymentStatus] = useState(null)
+
+  const handleUpgrade = useCallback(async (plan) => {
+    setPaymentLoading(true)
+    try {
+      const token = localStorage.getItem('bf_token')
+      const res = await fetch(`${API_URL}/api/billing/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ plan })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Checkout failed')
+      if (data.checkout_url) {
+        window.open(data.checkout_url, '_blank')
+        showToast('Payment page opened in new tab')
+      } else {
+        showToast(`Checkout created: ${data.reference}`, 'success')
+      }
+    } catch (err) {
+      showToast(err.message || 'Payment system unavailable', 'warning')
+    } finally { setPaymentLoading(false) }
+  }, [showToast])
+
+  useEffect(() => {
+    if (isPremium) {
+      fetch(`${API_URL}/api/billing/status`).then(r => r.ok && r.json()).then(d => {
+        if (d) setPaymentPlans(d.plans)
+      }).catch(() => {})
+      fetch(`${API_URL}/api/billing/subscription`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('bf_token')}` }
+      }).then(r => r.ok && r.json()).then(d => {
+        if (d) setPaymentStatus(d)
+      }).catch(() => {})
+    }
+  }, [isPremium])
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword) return
@@ -346,13 +377,70 @@ const SettingsView = memo(function SettingsView({
       {settingsSection === 'profile' && (
         <div className="settings-content">
           {!isPremium && (
-            <div className="upgrade-banner" onClick={() => setShowAuth(true)}>
-              <span className="upgrade-banner-icon">Upgrade</span>
-              <div className="upgrade-banner-info">
-                <span className="upgrade-banner-title">Upgrade to Premium</span>
-                <span className="upgrade-banner-desc">Unlock AI features, cloud sync, and more</span>
+            <div className="upgrade-banner">
+              <div className="upgrade-banner-content">
+                <span className="upgrade-banner-icon">Upgrade</span>
+                <div className="upgrade-banner-info">
+                  <span className="upgrade-banner-title">Upgrade to Premium</span>
+                  <span className="upgrade-banner-desc">Unlock AI features, cloud sync, and more</span>
+                </div>
               </div>
-              <button className="upgrade-banner-btn">Upgrade</button>
+              <button className="upgrade-banner-btn" onClick={() => setShowPayment(!showPayment)}>
+                {showPayment ? 'Close' : paymentPlans ? 'Subscribe' : 'Check'}
+              </button>
+            </div>
+          )}
+          {showPayment && !isPremium && (
+            <div className="card payment-plans-card">
+              <h3>Choose Your Plan</h3>
+              <p>Premium features include AI Faith Assistant, cloud sync, hymn audio, and more.</p>
+              <div className="payment-plans">
+                <div className="payment-plan">
+                  <h4>Monthly</h4>
+                  <div className="plan-price">$2.99<span className="plan-period">/month</span></div>
+                  <ul className="plan-features">
+                    <li>AI Faith Assistant</li>
+                    <li>AI Verse Explanations</li>
+                    <li>Cloud Sync</li>
+                    <li>Hymn Audio</li>
+                    <li>Community Features</li>
+                  </ul>
+                  <button className="btn-primary" onClick={() => handleUpgrade('monthly')} disabled={paymentLoading}>
+                    {paymentLoading ? 'Processing...' : 'Subscribe Monthly'}
+                  </button>
+                </div>
+                <div className="payment-plan featured">
+                  <div className="plan-badge">Best Value</div>
+                  <h4>Annual</h4>
+                  <div className="plan-price">$29.99<span className="plan-period">/year</span></div>
+                  <div className="plan-save">Save $5.89</div>
+                  <ul className="plan-features">
+                    <li>Everything in Monthly</li>
+                    <li>Priority Support</li>
+                    <li>Early Access Features</li>
+                    <li>Ad-Free Experience</li>
+                  </ul>
+                  <button className="btn-primary" onClick={() => handleUpgrade('annual')} disabled={paymentLoading}>
+                    {paymentLoading ? 'Processing...' : 'Subscribe Annual'}
+                  </button>
+                </div>
+              </div>
+              <p className="payment-note">Secure payment via Flutterwave. No data stored on our servers.</p>
+            </div>
+          )}
+          {isPremium && paymentStatus && (
+            <div className="upgrade-banner premium-active">
+              <div className="upgrade-banner-content">
+                <span className="upgrade-banner-icon premium-icon">Premium</span>
+                <div className="upgrade-banner-info">
+                  <span className="upgrade-banner-title">Premium Active</span>
+                  <span className="upgrade-banner-desc">
+                    {paymentStatus.is_active
+                      ? `Plan: ${paymentStatus.plan}${paymentStatus.expires_at ? ` · Expires: ${new Date(paymentStatus.expires_at).toLocaleDateString()}` : ''}`
+                      : 'Subscription expired'}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
           <div className="card">
@@ -389,7 +477,7 @@ const SettingsView = memo(function SettingsView({
             ) : settingsAuthMode ? (
               <SettingsAuthForm
                 mode={settingsAuthMode}
-                onSuccess={(token, user) => {
+                onSuccess={() => {
                   setSettingsAuthMode(null)
                   showToast('Signed in successfully!')
                   setTimeout(() => window.location.reload(), 500)

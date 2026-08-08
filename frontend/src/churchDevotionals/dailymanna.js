@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const DAILYMANNA_DEVOTIONALS = {
   name: "Daily Manna",
   pastor: "DCLM Daily Manna",

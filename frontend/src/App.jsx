@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import ViewSwitcher from './components/ViewSwitcher.jsx'
 import { getNow, getDayOfYear, formatDateShort, formatTimeShort, getGreeting as getTzGreeting, getUserTimezoneAbbr } from './dateUtils.js'
-import { playHymn, stopHymn } from './hymnMusic.js'
 import Auth from './Auth.jsx'
 import WelcomeScreen from './components/WelcomeScreen.jsx'
 import LegalScreen, { hasAcceptedLegal, LEGAL_VERSION } from './LegalScreen.jsx'
-import { getUser, logout, pullFromServer, mergeServerData, scheduleSync } from './syncService.js'
+import { getUser, logout, pullFromServer, mergeServerData, scheduleSync, refreshAccessToken, isTokenExpired } from './syncService.js'
 import { requestNotificationPermission, subscribeToPush, unsubscribeFromPush } from './pushNotifications.js'
+import { getTaskReminderTs, cancelBackgroundReminder, reconcileBackgroundReminders, canScheduleBackgroundReminders, notificationSupported, playTaskAlarmSound, stopTaskAlarmSound, initTaskAlarmAudio, REMINDER_GRACE_MS, REMINDER_TICK_MS } from './taskReminders.js'
+import { requestDiaryReflection } from './diaryReflection.js'
 import BibleView from './components/BibleView.jsx'
 import { BIBLE_API_DIRECT, BIBLE_BOOK_IDS } from './constants.js'
 import DiaryView from './components/DiaryView.jsx'
@@ -16,17 +17,6 @@ import DevotionalView from './components/DevotionalView.jsx'
 import TasksView from './components/TasksView.jsx'
 import SpiritualView from './components/SpiritualView.jsx'
 import SettingsView from './components/SettingsView.jsx'
-import GroupsView from './components/GroupsView.jsx'
-import ChurchView from './components/ChurchView.jsx'
-import EventsView from './components/EventsView.jsx'
-import SermonView from './components/SermonView.jsx'
-import ForumView from './components/ForumView.jsx'
-import PrayerAnalyticsView from './components/PrayerAnalyticsView.jsx'
-import CommunityFeedView from './components/CommunityFeedView.jsx'
-import PrayerFeedView from './components/PrayerFeedView.jsx'
-import TestimonyView from './components/TestimonyView.jsx'
-import CommunityAssistant from './components/CommunityAssistant.jsx'
-import { NotificationBell } from './components/NotificationCenter.jsx'
 import GamificationBadge from './components/GamificationBadge.jsx'
 import { ErrorBoundary } from './components/ErrorBoundary.jsx'
 
@@ -51,7 +41,7 @@ const VERSES = [
 const FONT_SIZES = { small: '13px', medium: '15px', large: '17px' }
 
 const DEFAULT_SETTINGS = {
-  theme: 'believersflow', mode: 'dark', fontSize: 'medium', readingLayout: 'standard',
+  theme: 'believersflow', mode: 'light', fontSize: 'medium', readingLayout: 'standard',
   notifications: { prayerReminder: true, dailyVerse: true, taskReminders: true },
   language: 'en', profileName: '', profileEmail: '', backupEnabled: false,
 }
@@ -107,6 +97,11 @@ export default function App() {
   const [taskText, setTaskText] = useState('')
   const [taskTime, setTaskTime] = useState('')
   const [taskCategory, setTaskCategory] = useState('spiritual')
+  const [taskDate, setTaskDate] = useState('')
+  const [taskDescription, setTaskDescription] = useState('')
+  const [taskReminder, setTaskReminder] = useState(true)
+  const [editingTask, setEditingTask] = useState(null)
+  const [alarmBanner, setAlarmBanner] = useState(null)
   const [prayerMinutes, setPrayerMinutes] = useState('')
   const [studyBook, setStudyBook] = useState('')
   const [studyChapter, setStudyChapter] = useState('')
@@ -115,10 +110,11 @@ export default function App() {
   const [chatHistory, setChatHistory] = useState(() => loadState('btf_chat', []))
   const [chatLoading, setChatLoading] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
-  const [diaryTitle, setDiaryTitle] = useState('')
+const [diaryTitle, setDiaryTitle] = useState('')
   const [diaryContent, setDiaryContent] = useState('')
-  const [diaryMood, setDiaryMood] = useState('😊')
+  const [diaryMood, setDiaryMood] = useState('\uD83D\uDE0A')
   const [editingDiary, setEditingDiary] = useState(null)
+  const [reflectionLoadingId, setReflectionLoadingId] = useState(null)
   const [bibleBook, setBibleBook] = useState('Genesis')
   const [bibleChapter, setBibleChapter] = useState(1)
   const [bibleText, setBibleText] = useState(null)
@@ -138,6 +134,12 @@ export default function App() {
   const [comparisonLoading, setComparisonLoading] = useState(false)
   const [interlinear, setInterlinear] = useState(null)
   const [interlinearLoading, setInterlinearLoading] = useState(false)
+  const [commentarySources, setCommentarySources] = useState([])
+  const [commentarySourceId, setCommentarySourceId] = useState('matthew-henry')
+  const [concordanceError, setConcordanceError] = useState(null)
+  const [dictionaryTerm, setDictionaryTerm] = useState('')
+  const [dictionaryMatches, setDictionaryMatches] = useState(null)
+  const [dictionaryLoading, setDictionaryLoading] = useState(false)
   const chatEnd = useRef(null)
   const chatInput = useRef(null)
   const [settings, setSettings] = useState(() => loadState('btf_settings', DEFAULT_SETTINGS))
@@ -160,9 +162,8 @@ export default function App() {
   const [hymnCategory, setHymnCategory] = useState('all')
   const [hymnSort, setHymnSort] = useState('number')
   const [hymnFavorites, setHymnFavorites] = useState(() => loadState('btf_hymnFavorites', []))
-  const [hymnPlaying, setHymnPlaying] = useState(false)
   const [hymnRecentlyViewed, setHymnRecentlyViewed] = useState(() => loadState('btf_recentHymns', []))
-  const [navOrder, setNavOrder] = useState(() => loadState('btf_navOrder', ['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings', 'groups', 'church', 'events', 'sermons', 'forum', 'analytics']))
+  const [navOrder, setNavOrder] = useState(() => loadState('btf_navOrder', ['tasks', 'spiritual', 'diary', 'bible', 'devotional', 'music', 'assistant', 'guide', 'settings']))
   const [draggedItem, setDraggedItem] = useState(null)
   const [dragTarget, setDragTarget] = useState(null)
   const navRef = useRef(null)
@@ -171,20 +172,28 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadState('btf_sidebarCollapsed', false))
   const [previewMode, setPreviewMode] = useState('desktop')
 
-  // Devotional state
+  // Devotional state — `devotionalDay` is an OFFSET from today's calendar day,
+  // so the daily devotional auto-advances with the date (no manual intervention).
   const [devotionalDay, setDevotionalDay] = useState(() => {
-    const migrated = loadState('btf_devotional_v2', false)
+    const migrated = loadState('btf_devotional_v3', false)
     if (!migrated) {
-      saveState('btf_devotional_v2', true)
-      const correct = (getDayOfYear() - 1 + 365) % 365
-      saveState('btf_devotionalDay', correct)
-      return correct
+      saveState('btf_devotional_v3', true)
+      const today = Math.min(getDayOfYear() - 1, 364)
+      const legacy = loadState('btf_devotionalDay', null)
+      if (legacy !== null && typeof legacy === 'number') {
+        const offset = ((legacy - today) % 365 + 365) % 365
+        saveState('btf_devotionalOffset', offset)
+        return offset
+      }
+      const off = loadState('btf_devotionalOffset', 0)
+      return typeof off === 'number' ? off : 0
     }
-    return loadState('btf_devotionalDay', (getDayOfYear() - 1 + 365) % 365)
+    const off = loadState('btf_devotionalOffset', 0)
+    return typeof off === 'number' ? off : 0
   })
   const [devotionalFontSize, setDevotionalFontSize] = useState(() => loadState('btf_devFontSize', 'medium'))
   const [selectedChurch, setSelectedChurch] = useState(() => loadState('btf_selectedChurch', ''))
-  const [churchDevotionalDay, setChurchDevotionalDay] = useState(() => loadState('btf_churchDevotionalDay', 0))
+  const [churchDevotionalDay, setChurchDevotionalDay] = useState(() => loadState('btf_churchDevotionalDay', Math.min(getDayOfYear() - 1, 364)))
 
   const completeOnboarding = useCallback(() => {
     setShowOnboarding(false)
@@ -222,6 +231,8 @@ export default function App() {
   const verse = VERSES[verseIndex]
 
   useEffect(() => { saveState('btf_tasks', tasks) }, [tasks])
+  const tasksRef = useRef(tasks)
+  useEffect(() => { tasksRef.current = tasks }, [tasks])
   useEffect(() => { saveState('btf_prayerLogs', prayerLogs) }, [prayerLogs])
   useEffect(() => { saveState('btf_studyPlan', studyPlan) }, [studyPlan])
   useEffect(() => { saveState('btf_chat', chatHistory) }, [chatHistory])
@@ -230,7 +241,7 @@ export default function App() {
   useEffect(() => { saveState('btf_recentReads', recentReads) }, [recentReads])
   useEffect(() => { saveState('btf_hymnFavorites', hymnFavorites) }, [hymnFavorites])
   useEffect(() => { saveState('btf_recentHymns', hymnRecentlyViewed) }, [hymnRecentlyViewed])
-  useEffect(() => { saveState('btf_devotionalDay', devotionalDay) }, [devotionalDay])
+  useEffect(() => { saveState('btf_devotionalOffset', devotionalDay) }, [devotionalDay])
   useEffect(() => { saveState('btf_devFontSize', devotionalFontSize) }, [devotionalFontSize])
   useEffect(() => { saveState('btf_selectedChurch', selectedChurch) }, [selectedChurch])
   useEffect(() => { saveState('btf_churchDevotionalDay', churchDevotionalDay) }, [churchDevotionalDay])
@@ -275,53 +286,6 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const el = document.querySelector('.fab-group')
-    if (!el) return
-    let x = 0, y = 0, startX = 0, startY = 0, dragging = false
-
-    function onStart(e) {
-      const t = e.touches ? e.touches[0] : e
-      startX = t.clientX - el.offsetLeft
-      startY = t.clientY - el.offsetTop
-      dragging = true
-      el.style.transition = 'none'
-    }
-    function onMove(e) {
-      if (!dragging) return
-      e.preventDefault()
-      const t = e.touches ? e.touches[0] : e
-      x = t.clientX - startX
-      y = t.clientY - startY
-      x = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, x))
-      y = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, y))
-      el.style.left = x + 'px'
-      el.style.right = 'auto'
-      el.style.top = y + 'px'
-      el.style.bottom = 'auto'
-    }
-    function onEnd() {
-      dragging = false
-      el.style.transition = 'all 0.2s'
-    }
-
-    el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchmove', onMove, { passive: false })
-    el.addEventListener('touchend', onEnd)
-    el.addEventListener('mousedown', onStart)
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onEnd)
-
-    return () => {
-      el.removeEventListener('touchstart', onStart)
-      el.removeEventListener('touchmove', onMove)
-      el.removeEventListener('touchend', onEnd)
-      el.removeEventListener('mousedown', onStart)
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onEnd)
-    }
-  }, [])
-
-  useEffect(() => {
     const app = document.getElementById('app')
     if (!app) return
     const isLight = settings.mode === 'light'
@@ -349,7 +313,7 @@ export default function App() {
         const res = await fetch(`/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         data = await res.json()
-      } catch (backendErr) {
+      } catch {
         if (BIBLE_API_DIRECT[ver]) {
           const translation = BIBLE_API_DIRECT[ver]
           const bookId = BIBLE_BOOK_IDS[book]
@@ -452,28 +416,145 @@ export default function App() {
   const addTask = useCallback(() => {
     const text = taskText.trim()
     if (!text) return
-    setTasks(prev => [{ id: Date.now(), text, time: taskTime, category: taskCategory, completed: false, createdAt: new Date().toISOString() }, ...prev])
-    setTaskText(''); setTaskTime(''); showToast('Task added!')
+    const ts = getTaskReminderTs({ date: taskDate, time: taskTime })
+    const scheduleFuture = ts && ts > Date.now()
+    if (taskTime && taskReminder && settings.notifications.taskReminders && !scheduleFuture) {
+      showToast('Reminder time is in the past \u2014 set a future time to be reminded', 'warning')
+    }
+    if (taskTime && taskReminder && settings.notifications.taskReminders && scheduleFuture) {
+      requestNotificationPermission().then(ok => {
+        if (!ok) showToast('Notifications blocked \u2014 reminders will alert in-app only', 'warning')
+      })
+    }
+    setTasks(prev => [{
+      id: Date.now(), text, description: taskDescription.trim(), date: taskDate, time: taskTime,
+      category: taskCategory, reminder: taskReminder, completed: false, reminderFiredAt: null,
+      createdAt: new Date().toISOString(),
+    }, ...prev])
+    setTaskText(''); setTaskDescription(''); setTaskDate(''); setTaskTime(''); setTaskCategory('spiritual'); setTaskReminder(true)
+    showToast(taskTime ? 'Task added with reminder!' : 'Task added!')
     if (navigator.vibrate) navigator.vibrate(10)
-  }, [taskText, taskTime, taskCategory, showToast])
+  }, [taskText, taskDescription, taskDate, taskTime, taskCategory, taskReminder, settings.notifications.taskReminders, showToast])
+
+  const editTask = useCallback(() => {
+    if (!editingTask) return
+    const text = taskText.trim()
+    if (!text) return
+    const ts = getTaskReminderTs({ date: taskDate, time: taskTime })
+    const scheduleFuture = ts && ts > Date.now()
+    if (taskTime && taskReminder && settings.notifications.taskReminders && !scheduleFuture) {
+      showToast('Reminder time is in the past \u2014 set a future time to be reminded', 'warning')
+    }
+    if (taskTime && taskReminder && settings.notifications.taskReminders && scheduleFuture) {
+      requestNotificationPermission().then(ok => {
+        if (!ok) showToast('Notifications blocked \u2014 reminders will alert in-app only', 'warning')
+      })
+    }
+    setTasks(prev => prev.map(t => t.id === editingTask.id ? {
+      ...t, text, description: taskDescription.trim(), date: taskDate, time: taskTime,
+      category: taskCategory, reminder: taskReminder, reminderFiredAt: null,
+    } : t))
+    setEditingTask(null); setTaskText(''); setTaskDescription(''); setTaskDate(''); setTaskTime(''); setTaskCategory('spiritual'); setTaskReminder(true)
+    showToast('Task updated!')
+    if (navigator.vibrate) navigator.vibrate(10)
+  }, [editingTask, taskText, taskDescription, taskDate, taskTime, taskCategory, taskReminder, settings.notifications.taskReminders, showToast])
+
+  const editTaskInit = useCallback((task) => {
+    setEditingTask(task)
+    setTaskText(task.text || '')
+    setTaskDescription(task.description || '')
+    setTaskDate(task.date || '')
+    setTaskTime(task.time || '')
+    setTaskCategory(task.category || 'spiritual')
+    setTaskReminder(task.reminder !== false)
+    setCurrentView('tasks')
+  }, [])
+
+  const cancelEditTask = useCallback(() => {
+    setEditingTask(null); setTaskText(''); setTaskDescription(''); setTaskDate(''); setTaskTime(''); setTaskCategory('spiritual'); setTaskReminder(true)
+  }, [])
 
   const toggleTask = useCallback((id) => {
-    setTasks(prev => {
-      const t = prev.find(x => x.id === id)
-      if (t && !t.completed) { showToast('Well done!'); if (navigator.vibrate) navigator.vibrate(20) }
-      return prev.map(x => x.id === id ? { ...x, completed: !x.completed } : x)
-    })
-  }, [showToast])
+    const target = tasks.find(x => x.id === id)
+    if (target && !target.completed) {
+      showToast('Well done!')
+      if (navigator.vibrate) navigator.vibrate(20)
+      cancelBackgroundReminder(id)
+    }
+    setTasks(prev => prev.map(x => x.id === id ? {
+      ...x, completed: !x.completed,
+      reminderFiredAt: !x.completed ? new Date().toISOString() : null,
+    } : x))
+  }, [tasks, showToast])
 
   const deleteTask = useCallback((id) => {
-    setTasks(prev => {
-      const item = prev.find(t => t.id === id)
-      if (item) {
-        showToast('Task deleted')
+    if (tasks.find(t => t.id === id)) showToast('Task deleted')
+    if (editingTask && editingTask.id === id) {
+      setEditingTask(null); setTaskText(''); setTaskDescription(''); setTaskDate(''); setTaskTime(''); setTaskCategory('spiritual'); setTaskReminder(true)
+    }
+    cancelBackgroundReminder(id)
+    setTasks(prev => prev.filter(t => t.id !== id))
+  }, [tasks, editingTask, showToast])
+
+  useEffect(() => {
+    if (!settings.notifications.taskReminders) return
+    const fireDue = () => {
+      const now = Date.now()
+      const due = []
+      const missed = []
+      for (const t of tasksRef.current) {
+        if (t.completed || t.reminderFiredAt) continue
+        const ts = getTaskReminderTs(t)
+        if (!ts) continue
+        const delta = now - ts
+        if (delta >= -1000 && delta <= REMINDER_GRACE_MS) due.push(t)
+        else if (delta > REMINDER_GRACE_MS) missed.push(t)
       }
-      return prev.filter(t => t.id !== id)
-    })
-  }, [showToast])
+      if (due.length === 0 && missed.length === 0) return
+      const firedAt = new Date().toISOString()
+      due.forEach(t => {
+        const title = t.text || 'Task'
+        showToast(`\u23F0 ${title}`, 'info')
+        setAlarmBanner({ taskId: t.id, title })
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+        playTaskAlarmSound()
+        cancelBackgroundReminder(t.id)
+        if (notificationSupported() && Notification.permission === 'granted' && !canScheduleBackgroundReminders()) {
+          try { new Notification('\u23F0 Task Reminder', { body: `${title} is due now.`, icon: './icon-192.png', badge: './icon-192.png' }) } catch { /* noop */ }
+        }
+      })
+      setTasks(prev => prev.map(x => (due.some(d => d.id === x.id) || missed.some(d => d.id === x.id)) ? { ...x, reminderFiredAt: firedAt } : x))
+    }
+    const id = setInterval(fireDue, REMINDER_TICK_MS)
+    return () => clearInterval(id)
+  }, [settings.notifications.taskReminders, showToast])
+
+  useEffect(() => {
+    reconcileBackgroundReminders(tasks, settings.notifications.taskReminders)
+  }, [tasks, settings.notifications.taskReminders])
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const onMessage = e => {
+      if (e.data && e.data.type === 'TASK_COMPLETE') toggleTask(e.data.taskId)
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage)
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage)
+  }, [toggleTask])
+
+  useEffect(() => {
+    if (!alarmBanner) return
+    const id = setTimeout(() => setAlarmBanner(null), 12000)
+    return () => clearTimeout(id)
+  }, [alarmBanner])
+
+  useEffect(() => {
+    if (!alarmBanner) stopTaskAlarmSound()
+  }, [alarmBanner])
+
+  useEffect(() => {
+    initTaskAlarmAudio()
+  }, [])
 
   const logPrayer = useCallback(() => {
     const m = parseInt(prayerMinutes)
@@ -494,17 +575,30 @@ export default function App() {
     setBibleBook(book); setBibleChapter(chapter); setCurrentView('bible')
   }, [])
 
+const generateDiaryReflection = useCallback(async (entry) => {
+    if (!entry || !entry.id) return
+    setReflectionLoadingId(entry.id)
+    try {
+      const result = await requestDiaryReflection({ title: entry.title, content: entry.content, mood: entry.mood })
+      setDiaryEntries(prev => prev.map(e => e.id === entry.id ? { ...e, reflection: result } : e))
+    } finally {
+      setReflectionLoadingId(prev => (prev === entry.id ? null : prev))
+    }
+  }, [])
+
   const addDiaryEntry = useCallback(() => {
     if (!diaryContent.trim()) return
     if (editingDiary) {
       setDiaryEntries(prev => prev.map(e => e.id === editingDiary.id ? { ...e, title: diaryTitle.trim(), content: diaryContent.trim(), mood: diaryMood } : e))
       showToast('Diary updated! 📓')
     } else {
-      setDiaryEntries(prev => [{ id: Date.now(), title: diaryTitle.trim(), content: diaryContent.trim(), mood: diaryMood, date: new Date().toISOString() }, ...prev])
+      const entry = { id: Date.now(), title: diaryTitle.trim(), content: diaryContent.trim(), mood: diaryMood, date: new Date().toISOString() }
+      setDiaryEntries(prev => [entry, ...prev])
       showToast('Diary entry saved! 📓')
+      generateDiaryReflection(entry)
     }
-    setDiaryTitle(''); setDiaryContent(''); setDiaryMood('😊'); setEditingDiary(null)
-  }, [diaryTitle, diaryContent, diaryMood, editingDiary, showToast])
+    setDiaryTitle(''); setDiaryContent(''); setDiaryMood('\uD83D\uDE0A'); setEditingDiary(null)
+  }, [diaryTitle, diaryContent, diaryMood, editingDiary, showToast, generateDiaryReflection])
 
   const editDiaryEntry = useCallback((entry) => {
     setEditingDiary(entry); setDiaryTitle(entry.title); setDiaryContent(entry.content); setDiaryMood(entry.mood)
@@ -521,10 +615,12 @@ export default function App() {
     })
   }, [showToast])
 
+  const chatHistoryRef = useRef(chatHistory)
+  useEffect(() => { chatHistoryRef.current = chatHistory }, [chatHistory])
+
   const sendChat = useCallback(async () => {
     const msg = chatMsg.trim()
     if (!msg || chatLoading) return
-    if (!isPremium) { setShowAuth(true); return }
 
     const userEntry = { role: 'user', content: msg }
     setChatHistory(prev => [...prev, userEntry])
@@ -533,6 +629,7 @@ export default function App() {
     const taskContext = tasks.length ? `The user's current tasks are: ${tasks.map(t => t.text).join(', ')}` : ''
 
     try {
+      const currentHistory = [...chatHistoryRef.current, userEntry]
       const token = localStorage.getItem('bf_token')
       const res = await fetch(`/api/chat`, {
         method: 'POST',
@@ -541,7 +638,7 @@ export default function App() {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
-          messages: [...chatHistory.slice(-6), userEntry],
+          messages: currentHistory.slice(-6),
           taskContext,
         })
       })
@@ -551,7 +648,7 @@ export default function App() {
     } catch {
       setChatHistory(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting. Please check your connection and try again." }])
     } finally { setChatLoading(false) }
-  }, [chatMsg, chatLoading, chatHistory, tasks, isPremium, showToast])
+  }, [chatMsg, chatLoading, tasks])
 
   const swapNavItems = useCallback((from, to) => {
     setNavOrder(prev => {
@@ -621,9 +718,21 @@ export default function App() {
 
   const apiPost = useCallback(async (path, body) => {
     try {
+      let token = localStorage.getItem('bf_token')
+      if (token && isTokenExpired(token)) {
+        const newToken = await refreshAccessToken()
+        if (newToken) token = newToken
+        else {
+          showToast('Session expired. Please log in again.', 'warning')
+          return null
+        }
+      }
       const res = await fetch(path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -642,33 +751,70 @@ export default function App() {
     setExplanationLoading(false)
   }, [apiPost, bibleVersion, isPremium])
 
-  const getCommentary = useCallback(async () => {
+  const getCommentary = useCallback(async (sourceId) => {
     if (!isPremium) { setShowAuth(true); return }
     if (!bibleText) return
+    const src = sourceId || commentarySourceId
     setCommentaryLoading(true); setCommentary(null); setBibleStudyTab('commentary')
-    const verses = (bibleText.verses || []).map(v => ({ verse: v.verse, text: v.text }))
-    const data = await apiPost('/api/bible/commentary', { book: bibleBook, chapter: bibleChapter, verses })
-    if (data) setCommentary(data)
+
+    if (commentarySources.length === 0) {
+      try {
+        let token = localStorage.getItem('bf_token')
+        if (token && isTokenExpired(token)) token = (await refreshAccessToken()) || token
+        const res = await fetch('/api/bible/commentary/sources', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        })
+        if (res.ok) {
+          const d = await res.json()
+          if (d && d.sources) {
+            setCommentarySources(d.sources)
+            const current = d.sources.find(s => s.id === src)
+            if (current) setCommentarySourceId(current.id)
+          }
+        }
+      } catch { /* sources optional */ }
+    }
+
+    const data = await apiPost('/api/bible/commentary', { book: bibleBook, chapter: bibleChapter, source: src })
+    if (data && data.available !== false) setCommentary(data)
+    else if (data) setCommentary(data) // includes available:false + note
+    else setCommentary({ book: bibleBook, chapter: bibleChapter, source: null, available: false, entries: [], note: 'Commentary could not be loaded. Please try again.' })
     setCommentaryLoading(false)
-  }, [apiPost, bibleText, bibleBook, bibleChapter, isPremium])
+  }, [apiPost, bibleText, bibleBook, bibleChapter, isPremium, commentarySourceId, commentarySources.length])
 
   const searchConcordance = useCallback(async () => {
     const q = concordanceQuery.trim()
     if (!q) return
     if (!isPremium) { setShowAuth(true); return }
-    setConcordanceLoading(true); setConcordanceResults(null); setBibleStudyTab('concordance')
+    setConcordanceLoading(true); setConcordanceResults(null); setConcordanceError(null); setBibleStudyTab('concordance')
     const data = await apiPost('/api/bible/concordance', { query: q, version: bibleVersion })
     if (data) setConcordanceResults(data)
+    else setConcordanceError('Concordance search failed. Please try again.')
     setConcordanceLoading(false)
   }, [apiPost, concordanceQuery, bibleVersion, isPremium])
+
+  const searchDictionary = useCallback(async () => {
+    const term = dictionaryTerm.trim()
+    if (!term) return
+    if (!isPremium) { setShowAuth(true); return }
+    setDictionaryLoading(true); setDictionaryMatches(null)
+    const data = await apiPost('/api/bible/dictionary', { term, expand: false })
+    if (data) setDictionaryMatches(data)
+    setDictionaryLoading(false)
+  }, [apiPost, dictionaryTerm, isPremium])
+
+  const assistNote = useCallback(async (noteText, reference) => {
+    if (!isPremium) { setShowAuth(true); return null }
+    return await apiPost('/api/bible/notes-assist', { note_text: noteText, reference: reference || '' })
+  }, [apiPost, isPremium])
 
   const compareVersions = useCallback(async () => {
     if (!isPremium) { setShowAuth(true); return }
     setComparisonLoading(true); setComparison(null); setBibleStudyTab('compare')
-    const data = await apiPost('/api/bible/compare', { book: bibleBook, chapter: bibleChapter })
+    const data = await apiPost('/api/bible/compare', { book: bibleBook, chapter: bibleChapter, version: bibleVersion })
     if (data) setComparison(data)
     setComparisonLoading(false)
-  }, [apiPost, bibleBook, bibleChapter, isPremium])
+  }, [apiPost, bibleBook, bibleChapter, bibleVersion, isPremium])
 
   const getInterlinear = useCallback(async () => {
     if (!isPremium) { setShowAuth(true); return }
@@ -699,9 +845,8 @@ export default function App() {
   }, [])
 
   const closeHymn = useCallback(() => {
-    if (hymnPlaying) { stopHymn(); setHymnPlaying(false) }
     setSelectedHymn(null)
-  }, [hymnPlaying])
+  }, [])
 
   const toggleHymnFavorite = useCallback((id) => {
     setHymnFavorites(prev => {
@@ -711,29 +856,21 @@ export default function App() {
     })
   }, [showToast])
 
-  const toggleHymnPlay = useCallback(async (hymnId) => {
-    if (hymnPlaying) {
-      stopHymn()
-      setHymnPlaying(false)
-    } else {
-      setHymnPlaying(true)
-      await playHymn(hymnId, () => setHymnPlaying(false))
-    }
-  }, [hymnPlaying])
-
   const nextDevotional = useCallback(() => {
-    setDevotionalDay(prev => (prev + 1) % 365)
+    setDevotionalDay(prev => prev + 1)
   }, [])
 
   const prevDevotional = useCallback(() => {
-    setDevotionalDay(prev => (prev - 1 + 365) % 365)
+    setDevotionalDay(prev => prev - 1)
   }, [])
 
   const goToTodaysDevotional = useCallback(() => {
-    const today = getDayOfYear() - 1
-    setDevotionalDay(Math.max(0, today % 365))
+    setDevotionalDay(0)
     showToast("Today's devotional")
   }, [showToast])
+
+  const todayDevotionalIndex = Math.min(getDayOfYear() - 1, 364)
+  const currentDevotionalIndex = ((todayDevotionalIndex + devotionalDay) % 365 + 365) % 365
 
   const updateSetting = useCallback((key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }))
@@ -789,6 +926,7 @@ export default function App() {
       setTasks([]); setPrayerLogs([]); setStudyPlan({ book: '', chapter: '' })
       setDiaryEntries([]); setChatHistory([]); setRecentReads([])
       setSettings(DEFAULT_SETTINGS); setCustomColors(DEFAULT_CUSTOM_COLORS)
+      setAuthUser(null)
       showToast('All data reset')
     }
   }, [showToast])
@@ -810,9 +948,7 @@ export default function App() {
   const navLabels = {
     tasks: 'Tasks', spiritual: 'Faith', diary: 'Diary', bible: 'Bible',
     music: 'Music', devotional: 'Daily', settings: 'Settings',
-    groups: 'Groups', church: 'Church', events: 'Events',
-    sermons: 'Sermons', forum: 'Forum', analytics: 'Analytics',
-    feed: 'Feed', prayer: 'Prayer', testimonies: 'Testimonies'
+    assistant: 'AI Assistant', guide: 'AI Guide'
   }
 
   const navIcons = {
@@ -824,25 +960,30 @@ export default function App() {
     music: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
     devotional: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 18a5 5 0 00-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/></svg>,
     settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
-    groups: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
-    church: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2H6a2 2 0 00-2 2v16l8-4 8 4V4a2 2 0 00-2-2z"/><line x1="12" y1="6" x2="12" y2="10"/></svg>,
-    events: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-    sermons: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-    forum: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
-    analytics: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-    feed: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11a9 9 0 019 9"/><path d="M4 4a16 16 0 0116 16"/><circle cx="5" cy="19" r="1"/></svg>,
-    prayer: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
-    testimonies: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+    assistant: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1"/><circle cx="15" cy="16" r="1"/><path d="M12 11V7a4 4 0 00-4-4H8"/><path d="M12 11V7a4 4 0 014-4h0"/></svg>,
+    guide: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
   }
 
-  const primaryNav = ['bible', 'devotional', 'tasks', 'spiritual', 'diary', 'music']
-  const secondaryNav = ['feed', 'prayer', 'testimonies', 'groups', 'church', 'events', 'sermons', 'forum', 'analytics']
+  const primaryNav = ['tasks', 'spiritual', 'diary', 'bible', 'devotional', 'music', 'assistant', 'guide']
+  const MAIN_NAV_KEYS = ['tasks', 'spiritual', 'diary', 'bible', 'devotional', 'music', 'assistant', 'guide', 'settings']
+
+  const shortNavLabels = {
+    ...navLabels,
+    assistant: 'Assistant',
+    guide: 'Guide',
+  }
+
+  const openView = useCallback((view) => {
+    if (view === 'assistant') { setChatOpen(true); return }
+    if (view === 'guide') { setShowGuide(true); return }
+    setCurrentView(view)
+  }, [])
 
   const renderNavButton = (view) => (
     <button
       key={view}
       className={`sidebar-nav-item${currentView === view ? ' active' : ''}`}
-      onClick={() => setCurrentView(view)}
+      onClick={() => openView(view)}
       aria-label={navLabels[view] || view}
       aria-current={currentView === view ? 'page' : undefined}
     >
@@ -855,12 +996,12 @@ export default function App() {
     <button
       key={view}
       className={`bottom-nav-item${currentView === view ? ' active' : ''}`}
-      onClick={() => setCurrentView(view)}
+      onClick={() => openView(view)}
       aria-label={navLabels[view] || view}
       aria-current={currentView === view ? 'page' : undefined}
     >
       <span className="bottom-nav-icon">{navIcons[view]}</span>
-      <span className="bottom-nav-label">{navLabels[view] || view}</span>
+      <span className="bottom-nav-label">{shortNavLabels[view] || navLabels[view] || view}</span>
     </button>
   )
 
@@ -882,6 +1023,18 @@ export default function App() {
         </div>
       )}
 
+      {alarmBanner && (
+        <div className="alarm-banner" role="alert" aria-live="assertive">
+          <div className="alarm-banner-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:24,height:24}}><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg></div>
+          <div className="alarm-banner-body">
+            <span className="alarm-banner-title">Task Reminder</span>
+            <span className="alarm-banner-text">&ldquo;{alarmBanner.title}&rdquo; is due now.</span>
+          </div>
+          <button className="alarm-banner-btn" onClick={() => { toggleTask(alarmBanner.taskId); setAlarmBanner(null) }}>Mark done</button>
+          <button className="alarm-banner-btn dismiss" onClick={() => setAlarmBanner(null)}>Dismiss</button>
+        </div>
+      )}
+
       <div className={`app-layout view-switcher-app-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
         <aside className="app-sidebar" aria-label="Sidebar navigation">
           <div className="sidebar-logo">
@@ -890,18 +1043,13 @@ export default function App() {
           </div>
           <nav className="sidebar-nav">
             <div className="sidebar-section-label">{sidebarCollapsed ? '' : 'Primary'}</div>
-            {primaryNav.filter(v => ['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings'].includes(v) || isPremium).map(renderNavButton)}
-            {isPremium && <div className="sidebar-section-label">{sidebarCollapsed ? '' : 'Community'}</div>}
-            {secondaryNav.filter(v => ['groups', 'church', 'events', 'sermons', 'forum', 'analytics'].includes(v) && isPremium).map(renderNavButton)}
+            {primaryNav.map(renderNavButton)}
             <div className="sidebar-section-label">{sidebarCollapsed ? '' : 'Account'}</div>
             {renderNavButton('settings')}
           </nav>
           <div className="sidebar-footer">
             <ErrorBoundary>
               <GamificationBadge isPremium={isPremium} compact />
-            </ErrorBoundary>
-            <ErrorBoundary>
-              <NotificationBell isPremium={isPremium} onNavigate={(target) => { if (target?.type && target?.id) setCurrentView(target.type) }} />
             </ErrorBoundary>
             <button className="sidebar-collapse-toggle" onClick={() => setSidebarCollapsed(c => !c)}
               aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
@@ -935,12 +1083,7 @@ export default function App() {
               <button className="hamburger-btn" onClick={() => setMobileDrawerOpen(true)} aria-label="Open navigation menu">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
               </button>
-              <div className="header-brand">
-                <span className="logo-cross"><img src="/logo.png" alt="BelieversFlow" width="28" height="28" className="logo-svg" /></span>
-                <span className="header-brand-text">Believers Flow</span>
-              </div>
               <div className="header-mobile-actions">
-                <NotificationBell isPremium={isPremium} onNavigate={(target) => { if (target?.type && target?.id) setCurrentView(target.type) }} />
                 <div className="header-mode-toggle-mobile">
                   <button className={`header-mode-btn${settings.mode === 'dark' ? ' active' : ''}`}
                     onClick={() => updateSetting('mode', 'dark')} aria-label="Dark mode">
@@ -954,10 +1097,6 @@ export default function App() {
               </div>
             </div>
             <div className="header-top-row">
-              <div className="logo">
-                <span className="logo-cross"><img src="/logo.png" alt="BelieversFlow" width="36" height="36" className="logo-svg" /></span>
-                <span>Believers Flow</span>
-              </div>
               <div className="header-actions">
                 <div className="header-mode-toggle">
                   <button className={`header-mode-btn${settings.mode === 'dark' ? ' active' : ''}`}
@@ -980,7 +1119,7 @@ export default function App() {
                 )}
               </div>
             </div>
-            <div className="greeting">{greeting.icon} {greeting.msg} <span className="live-clock-badge"><span className="clock-date">{formatDateShort()}</span><span className="clock-sep">·</span><span className="clock-time">{formatTimeShort()}</span><span className="clock-sep">·</span><span className="clock-tz">{getUserTimezoneAbbr()}</span></span></div>
+            <div className="greeting">{greeting.msg} <span className="live-clock-badge"><span className="clock-date">{formatDateShort()}</span><span className="clock-sep">·</span><span className="clock-time">{formatTimeShort()}</span><span className="clock-sep">·</span><span className="clock-tz">{getUserTimezoneAbbr()}</span></span></div>
             <div className="verse-container" onClick={nextVerse} role="button" tabIndex={0}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nextVerse() } }}
               aria-label="Tap to see next verse">
@@ -1001,10 +1140,7 @@ export default function App() {
 
           <nav id="main-nav" ref={navRef} aria-label="Main navigation"
             onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-            {navOrder.filter(v => {
-              if (['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings'].includes(v)) return true
-              return isPremium
-            }).map(view => (
+            {[...navOrder.filter(v => MAIN_NAV_KEYS.includes(v)), ...MAIN_NAV_KEYS.filter(v => !navOrder.includes(v))].map(view => (
               <div key={view} data-view={view}
                 className={`nav-item-wrap${draggedItem === view ? ' dragging' : ''}${dragTarget === view ? ' drag-target' : ''}${!draggedItem ? ' drag-hint' : ''}`}
                 draggable
@@ -1013,7 +1149,7 @@ export default function App() {
                 onDrop={e => handleDrop(e, view)}
                 onDragEnd={handleDragEnd}
                 onTouchStart={e => handleTouchStart(e, view)}>
-                <button className={`nav-item${currentView === view ? ' active' : ''}`} onClick={() => setCurrentView(view)}
+                <button className={`nav-item${currentView === view ? ' active' : ''}`} onClick={() => openView(view)}
                    aria-label={navLabels[view] || view}
                   aria-current={currentView === view ? 'page' : undefined}>
                   {navLabels[view] || view}
@@ -1024,172 +1160,116 @@ export default function App() {
 
           <main id="view-container">
         {currentView === 'tasks' && (
-          <TasksView
-            tasks={tasks} filteredTasks={filteredTasks} currentFilter={currentFilter} setCurrentFilter={setCurrentFilter}
-            taskText={taskText} setTaskText={setTaskText} taskTime={taskTime} setTaskTime={setTaskTime}
-            taskCategory={taskCategory} setTaskCategory={setTaskCategory}
-            addTask={addTask} toggleTask={toggleTask} deleteTask={deleteTask}
-            completionPercent={completionPercent} totalTasks={totalTasks} completedTasks={completedTasks}
-            prayedToday={prayedToday}
-          />
+          <ErrorBoundary>
+            <TasksView
+              tasks={tasks} filteredTasks={filteredTasks} currentFilter={currentFilter} setCurrentFilter={setCurrentFilter}
+              taskText={taskText} setTaskText={setTaskText}
+              taskTime={taskTime} setTaskTime={setTaskTime}
+              taskDate={taskDate} setTaskDate={setTaskDate} taskDescription={taskDescription} setTaskDescription={setTaskDescription}
+              taskCategory={taskCategory} setTaskCategory={setTaskCategory} taskReminder={taskReminder} setTaskReminder={setTaskReminder}
+              editingTask={editingTask} editTask={editTask} editTaskInit={editTaskInit} cancelEditTask={cancelEditTask}
+              addTask={addTask} toggleTask={toggleTask} deleteTask={deleteTask}
+              completionPercent={completionPercent} totalTasks={totalTasks} completedTasks={completedTasks}
+              prayedToday={prayedToday}
+            />
+          </ErrorBoundary>
         )}
 
         {currentView === 'spiritual' && (
-          <SpiritualView
-            prayerLogs={prayerLogs} streak={streak} prayedToday={prayedToday}
-            prayerMinutes={prayerMinutes} setPrayerMinutes={setPrayerMinutes} logPrayer={logPrayer}
-            bibleVersion={bibleVersion} setBibleVersion={setBibleVersion}
-            studyBook={studyBook} setStudyBook={setStudyBook} studyChapter={studyChapter} setStudyChapter={setStudyChapter}
-            saveStudyPlan={saveStudyPlan} goToBibleChapter={goToBibleChapter} studyPlan={studyPlan}
-            spiritualPercent={spiritualPercent} secularPercent={secularPercent} totalTasks={totalTasks}
-          />
+          <ErrorBoundary>
+            <SpiritualView
+              prayerLogs={prayerLogs} streak={streak} prayedToday={prayedToday}
+              prayerMinutes={prayerMinutes} setPrayerMinutes={setPrayerMinutes} logPrayer={logPrayer}
+              bibleVersion={bibleVersion} setBibleVersion={setBibleVersion}
+              studyBook={studyBook} setStudyBook={setStudyBook} studyChapter={studyChapter} setStudyChapter={setStudyChapter}
+              saveStudyPlan={saveStudyPlan} goToBibleChapter={goToBibleChapter} studyPlan={studyPlan}
+              spiritualPercent={spiritualPercent} secularPercent={secularPercent} totalTasks={totalTasks}
+              diaryEntries={diaryEntries} tasks={tasks} recentReads={recentReads}
+            />
+          </ErrorBoundary>
         )}
 
         {currentView === 'diary' && (
-          <DiaryView
-            diaryEntries={diaryEntries} diaryTitle={diaryTitle} setDiaryTitle={setDiaryTitle}
-            diaryContent={diaryContent} setDiaryContent={setDiaryContent}
-            diaryMood={diaryMood} setDiaryMood={setDiaryMood}
-            editingDiary={editingDiary} setEditingDiary={setEditingDiary}
-            addDiaryEntry={addDiaryEntry} editDiaryEntry={editDiaryEntry} deleteDiaryEntry={deleteDiaryEntry}
-          />
+          <ErrorBoundary>
+            <DiaryView
+              diaryEntries={diaryEntries} diaryTitle={diaryTitle} setDiaryTitle={setDiaryTitle}
+              diaryContent={diaryContent} setDiaryContent={setDiaryContent}
+              diaryMood={diaryMood} setDiaryMood={setDiaryMood}
+              editingDiary={editingDiary} setEditingDiary={setEditingDiary}
+              addDiaryEntry={addDiaryEntry} editDiaryEntry={editDiaryEntry} deleteDiaryEntry={deleteDiaryEntry}
+              generateDiaryReflection={generateDiaryReflection} reflectionLoadingId={reflectionLoadingId}
+            />
+          </ErrorBoundary>
         )}
 
         {currentView === 'bible' && (
-          <BibleView
-            bibleBook={bibleBook} setBibleBook={setBibleBook}
-            bibleChapter={bibleChapter} setBibleChapter={setBibleChapter}
-            bibleVersion={bibleVersion} setBibleVersion={setBibleVersion}
-            bibleText={bibleText} bibleLoading={bibleLoading} bibleError={bibleError}
-            bibleTestament={bibleTestament} setBibleTestament={setBibleTestament}
-            bibleStudyTab={bibleStudyTab} setBibleStudyTab={setBibleStudyTab}
-            recentReads={recentReads} fetchChapter={fetchChapter} goToBibleChapter={goToBibleChapter}
-            explanation={explanation} explanationLoading={explanationLoading}
-            commentary={commentary} commentaryLoading={commentaryLoading}
-            concordanceQuery={concordanceQuery} setConcordanceQuery={setConcordanceQuery}
-            concordanceResults={concordanceResults} concordanceLoading={concordanceLoading}
-            comparison={comparison} comparisonLoading={comparisonLoading}
-            explainVerse={explainVerse} getCommentary={getCommentary}
-            searchConcordance={searchConcordance} compareVersions={compareVersions}
-            interlinear={interlinear} interlinearLoading={interlinearLoading} getInterlinear={getInterlinear}
-            isPremium={isPremium} setShowAuth={setShowAuth}
-            showToast={showToast}
-          />
+          <ErrorBoundary>
+            <BibleView
+              bibleBook={bibleBook} setBibleBook={setBibleBook}
+              bibleChapter={bibleChapter} setBibleChapter={setBibleChapter}
+              bibleVersion={bibleVersion} setBibleVersion={setBibleVersion}
+              bibleText={bibleText} bibleLoading={bibleLoading} bibleError={bibleError}
+              bibleTestament={bibleTestament} setBibleTestament={setBibleTestament}
+              bibleStudyTab={bibleStudyTab} setBibleStudyTab={setBibleStudyTab}
+              recentReads={recentReads} fetchChapter={fetchChapter} goToBibleChapter={goToBibleChapter}
+              explanation={explanation} explanationLoading={explanationLoading}
+              commentary={commentary} commentaryLoading={commentaryLoading}
+              commentarySources={commentarySources} commentarySourceId={commentarySourceId} setCommentarySourceId={setCommentarySourceId}
+              concordanceQuery={concordanceQuery} setConcordanceQuery={setConcordanceQuery}
+              concordanceResults={concordanceResults} concordanceLoading={concordanceLoading} concordanceError={concordanceError}
+              dictionaryTerm={dictionaryTerm} setDictionaryTerm={setDictionaryTerm}
+              dictionaryMatches={dictionaryMatches} dictionaryLoading={dictionaryLoading}
+              comparison={comparison} comparisonLoading={comparisonLoading}
+              explainVerse={explainVerse} getCommentary={getCommentary}
+              searchConcordance={searchConcordance} searchDictionary={searchDictionary} compareVersions={compareVersions}
+              interlinear={interlinear} interlinearLoading={interlinearLoading} getInterlinear={getInterlinear}
+              isPremium={isPremium} setShowAuth={setShowAuth}
+              showToast={showToast} notesAssist={assistNote}
+            />
+          </ErrorBoundary>
         )}
 
         {currentView === 'music' && (
-          <MusicView
-            hymnSearch={hymnSearch} setHymnSearch={setHymnSearch}
-            hymnSort={hymnSort} setHymnSort={setHymnSort}
-            hymnCategory={hymnCategory} setHymnCategory={setHymnCategory}
-            hymnFavorites={hymnFavorites} hymnRecentlyViewed={hymnRecentlyViewed}
-            selectedHymn={selectedHymn} hymnPlaying={hymnPlaying}
-            openHymn={openHymn} closeHymn={closeHymn}
-            toggleHymnFavorite={toggleHymnFavorite} toggleHymnPlay={toggleHymnPlay}
-            showToast={showToast}
-            isPremium={isPremium}
-            setShowAuth={setShowAuth}
-          />
+          <ErrorBoundary>
+            <MusicView
+              hymnSearch={hymnSearch} setHymnSearch={setHymnSearch}
+              hymnSort={hymnSort} setHymnSort={setHymnSort}
+              hymnCategory={hymnCategory} setHymnCategory={setHymnCategory}
+              hymnFavorites={hymnFavorites} hymnRecentlyViewed={hymnRecentlyViewed}
+              selectedHymn={selectedHymn}
+              openHymn={openHymn} closeHymn={closeHymn}
+              toggleHymnFavorite={toggleHymnFavorite}
+              showToast={showToast}
+              isPremium={isPremium}
+              setShowAuth={setShowAuth}
+            />
+          </ErrorBoundary>
         )}
 
         {currentView === 'devotional' && (
-          <DevotionalView
-            devotionalDay={devotionalDay} setDevotionalDay={setDevotionalDay}
-            devotionalFontSize={devotionalFontSize} setDevotionalFontSize={setDevotionalFontSize}
-            selectedChurch={selectedChurch} setSelectedChurch={setSelectedChurch}
-            churchDevotionalDay={churchDevotionalDay} setChurchDevotionalDay={setChurchDevotionalDay}
-            nextDevotional={nextDevotional} prevDevotional={prevDevotional}
-            goToTodaysDevotional={goToTodaysDevotional}
-          />
+          <ErrorBoundary>
+            <DevotionalView
+              devotionalDay={currentDevotionalIndex} setDevotionalDay={setDevotionalDay}
+              devotionalFontSize={devotionalFontSize} setDevotionalFontSize={setDevotionalFontSize}
+              selectedChurch={selectedChurch} setSelectedChurch={setSelectedChurch}
+              churchDevotionalDay={churchDevotionalDay} setChurchDevotionalDay={setChurchDevotionalDay}
+              nextDevotional={nextDevotional} prevDevotional={prevDevotional}
+              goToTodaysDevotional={goToTodaysDevotional}
+            />
+          </ErrorBoundary>
         )}
 
         {currentView === 'settings' && (
-          <SettingsView
-            settings={settings} updateSetting={updateSetting} updateNotification={updateNotification}
-            customColors={customColors} updateCustomColor={updateCustomColor}
-            isPremium={isPremium} authUser={authUser} setShowAuth={setShowAuth} handleLogout={handleLogout}
-            exportData={exportData} importData={importData} resetAllData={resetAllData}
-            openLegalSettings={openLegalSettings} showToast={showToast}
-            settingsAuthMode={settingsAuthMode} setSettingsAuthMode={setSettingsAuthMode}
-          />
-        )}
-
-        {currentView === 'feed' && (
           <ErrorBoundary>
-            <CommunityFeedView
-              showToast={showToast}
-              isPremium={isPremium}
-              setShowAuth={setShowAuth}
+            <SettingsView
+              settings={settings} updateSetting={updateSetting} updateNotification={updateNotification}
+              customColors={customColors} updateCustomColor={updateCustomColor}
+              isPremium={isPremium} authUser={authUser} setShowAuth={setShowAuth} handleLogout={handleLogout}
+              exportData={exportData} importData={importData} resetAllData={resetAllData}
+              openLegalSettings={openLegalSettings} showToast={showToast}
+              settingsAuthMode={settingsAuthMode} setSettingsAuthMode={setSettingsAuthMode}
             />
           </ErrorBoundary>
-        )}
-
-        {currentView === 'prayer' && (
-          <ErrorBoundary>
-            <PrayerFeedView
-              showToast={showToast}
-              isPremium={isPremium}
-              setShowAuth={setShowAuth}
-            />
-          </ErrorBoundary>
-        )}
-
-        {currentView === 'testimonies' && (
-          <ErrorBoundary>
-            <TestimonyView
-              showToast={showToast}
-              isPremium={isPremium}
-              setShowAuth={setShowAuth}
-            />
-          </ErrorBoundary>
-        )}
-
-        {currentView === 'groups' && (
-          <GroupsView
-            showToast={showToast}
-            isPremium={isPremium}
-            setShowAuth={setShowAuth}
-          />
-        )}
-
-        {currentView === 'church' && (
-          <ChurchView
-            showToast={showToast}
-            isPremium={isPremium}
-            setShowAuth={setShowAuth}
-          />
-        )}
-
-        {currentView === 'events' && (
-          <EventsView
-            showToast={showToast}
-            isPremium={isPremium}
-            setShowAuth={setShowAuth}
-          />
-        )}
-
-        {currentView === 'sermons' && (
-          <SermonView
-            showToast={showToast}
-            isPremium={isPremium}
-            setShowAuth={setShowAuth}
-          />
-        )}
-
-        {currentView === 'forum' && (
-          <ForumView
-            showToast={showToast}
-            isPremium={isPremium}
-            setShowAuth={setShowAuth}
-          />
-        )}
-
-        {currentView === 'analytics' && (
-          <PrayerAnalyticsView
-            showToast={showToast}
-            isPremium={isPremium}
-            setShowAuth={setShowAuth}
-          />
         )}
           </main>
 
@@ -1200,7 +1280,7 @@ export default function App() {
       </div>
 
       <nav className="bottom-nav" aria-label="Mobile navigation">
-        {primaryNav.filter(v => ['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings'].includes(v) || isPremium).map(renderBottomNavButton)}
+        {[...primaryNav, 'settings'].map(renderBottomNavButton)}
         <button className={`bottom-nav-item${!primaryNav.includes(currentView) ? ' active' : ''}`}
           onClick={() => setMobileDrawerOpen(true)}
           aria-label="More navigation options">
@@ -1223,18 +1303,9 @@ export default function App() {
             </div>
             <nav className="mobile-drawer-nav">
               <div className="mobile-drawer-section-label">Primary</div>
-              {primaryNav.filter(v => ['tasks', 'spiritual', 'diary', 'bible', 'music', 'devotional', 'settings'].includes(v) || isPremium).map(view => (
+              {primaryNav.map(view => (
                 <button key={view} className={`mobile-drawer-item${currentView === view ? ' active' : ''}`}
-                  onClick={() => { setCurrentView(view); setMobileDrawerOpen(false) }}>
-                  <span className="mobile-drawer-item-icon">{navIcons[view]}</span>
-                  <span className="mobile-drawer-item-label">{navLabels[view]}</span>
-                  {currentView === view && <span className="mobile-drawer-active-dot" />}
-                </button>
-              ))}
-              {isPremium && <div className="mobile-drawer-section-label">Community</div>}
-              {secondaryNav.filter(v => ['groups', 'church', 'events', 'sermons', 'forum', 'analytics'].includes(v) && isPremium).map(view => (
-                <button key={view} className={`mobile-drawer-item${currentView === view ? ' active' : ''}`}
-                  onClick={() => { setCurrentView(view); setMobileDrawerOpen(false) }}>
+                  onClick={() => { openView(view); setMobileDrawerOpen(false) }}>
                   <span className="mobile-drawer-item-icon">{navIcons[view]}</span>
                   <span className="mobile-drawer-item-label">{navLabels[view]}</span>
                   {currentView === view && <span className="mobile-drawer-active-dot" />}
@@ -1268,21 +1339,6 @@ export default function App() {
         </div>
       )}
 
-      {!mobileDrawerOpen && (
-      <div className="fab-group">
-        {AI_READY && (
-          <button className="fab-guide" onClick={() => setShowGuide(true)} title="AI Guide" aria-label="AI Guide">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </button>
-        )}
-        {AI_READY && (
-          <button className={`chat-fab ${chatOpen ? ' open' : ''}`} onClick={() => setChatOpen(o => !o)} aria-label={chatOpen ? 'Close chat assistant' : 'Open chat assistant'}>
-            {chatOpen ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>}
-          </button>
-        )}
-      </div>
-      )}
-
       {showGuide && (
         <div className="guide-overlay" onClick={() => setShowGuide(false)}>
           <div className="guide-panel" onClick={e => e.stopPropagation()}>
@@ -1309,12 +1365,6 @@ export default function App() {
                 <h4>Privacy and Data Handling</h4>
                 <p>Your conversations are stored locally within the app. No personal chats are shared externally, except for generating AI responses. The AI operates securely and privately, respecting your data at all times.</p>
               </div>
-              {!isPremium && (
-                <div className="guide-section guide-signup">
-                  <p>Sign up to unlock AI-powered features and cloud sync.</p>
-                  <button className="guide-signup-btn" onClick={() => setShowAuth(true)}>Get Started Free</button>
-                </div>
-              )}
           </div>
         </div>
       </div>
@@ -1333,7 +1383,7 @@ export default function App() {
                 </div>
                 <div className="chat-header-info">
                   <span className="chat-title">Faith Assistant</span>
-                  <span className="chat-status">{isPremium ? 'Online' : 'Sign in to chat'}</span>
+                  <span className="chat-status">Online</span>
                 </div>
               </div>
               <button className="chat-close" onClick={() => setChatOpen(false)} aria-label="Close chat">
@@ -1352,9 +1402,6 @@ export default function App() {
                   </div>
                   <h3 className="chat-welcome-title">How can I help you today?</h3>
                   <p className="chat-welcome-desc">I'm here to help with scripture, prayer, life advice, and more.</p>
-                  {!isPremium && (
-                    <button className="chat-auth-prompt" onClick={() => setShowAuth(true)}>Sign in to start chatting</button>
-                  )}
                   <div className="chat-suggestions">
                     {["Give me a Bible verse for today", "How can I improve my prayer life?", "What does the Bible say about patience?", "Encourage me based on my tasks"].map((s, i) => (
                       <button key={i} className="chat-suggestion-chip" onClick={() => { setChatMsg(s); setTimeout(() => chatInput.current?.focus(), 50) }}>
@@ -1395,9 +1442,9 @@ export default function App() {
             </div>
             <div className="chat-input-area">
               <div className="chat-input-wrap">
-                <input ref={chatInput} type="text" placeholder={isPremium ? "Type your message..." : "Sign in to send messages..."} aria-label="Type your message" value={chatMsg}
-                  onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChat()} disabled={!isPremium} />
-                <button className="chat-send-btn" onClick={sendChat} disabled={chatLoading || !chatMsg.trim() || !isPremium} aria-label="Send message">
+                <input ref={chatInput} type="text" placeholder="Type your message..." aria-label="Type your message" value={chatMsg}
+                  onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChat()} />
+                <button className="chat-send-btn" onClick={sendChat} disabled={chatLoading || !chatMsg.trim()} aria-label="Send message">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}>
                     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                   </svg>
@@ -1485,9 +1532,6 @@ export default function App() {
         />
       )}
 
-      <ErrorBoundary>
-        <CommunityAssistant isPremium={isPremium} />
-      </ErrorBoundary>
     </div>
   )
 }

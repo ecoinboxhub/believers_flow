@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const MFM_DEVOTIONALS = {
   name: "Mountain of Fire and Miracles Ministries",
   pastor: "Dr. D.K. Olukoya",

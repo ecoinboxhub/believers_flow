@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const WINNERS_DEVOTIONALS = {
   name: "Living Faith Church (Winners Chapel)",
   pastor: "Bishop David Oyedepo",

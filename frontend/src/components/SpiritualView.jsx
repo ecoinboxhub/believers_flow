@@ -1,7 +1,6 @@
 import { memo } from 'react'
-import { BIBLE_VERSIONS } from '../constants'
-import { getDayOfYear } from '../dateUtils'
 import VersionSelector from './VersionSelector.jsx'
+import FaithSummaryCard from './FaithSummaryCard.jsx'
 
 const STUDY_SUGGESTIONS = [
   { book: 'Psalm', chapter: 23, title: 'The Lord is My Shepherd' },
@@ -25,12 +24,15 @@ const SpiritualView = memo(function SpiritualView({
   prayerLogs, streak, prayedToday, prayerMinutes, setPrayerMinutes, logPrayer,
   bibleVersion, setBibleVersion, studyBook, setStudyBook, studyChapter, setStudyChapter,
   saveStudyPlan, goToBibleChapter, studyPlan, spiritualPercent, secularPercent, totalTasks,
+  diaryEntries, tasks, recentReads,
 }) {
   const today = new Date()
   const todayPrayer = DAILY_PRAYERS[today.getDate() % DAILY_PRAYERS.length]
   const todaySuggestion = STUDY_SUGGESTIONS[today.getDate() % STUDY_SUGGESTIONS.length]
 
-  const useSuggestion = (s) => {
+  const faithData = { prayerLogs, diaryEntries, tasks, recentReads, studyPlan }
+
+  const handleSuggestion = (s) => {
     setStudyBook(s.book)
     setStudyChapter(String(s.chapter))
     goToBibleChapter(s.book, s.chapter)
@@ -45,6 +47,9 @@ const SpiritualView = memo(function SpiritualView({
           <p>&ldquo;{todayPrayer}&rdquo;</p>
         </div>
       </div>
+
+      <FaithSummaryCard type="week" data={faithData} />
+      <FaithSummaryCard type="month" data={faithData} />
 
       <div className="card hover-lift slide-up">
         <div className="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:24,height:24}}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
@@ -96,7 +101,7 @@ const SpiritualView = memo(function SpiritualView({
         </div>
         <div className="study-actions">
           <button onClick={saveStudyPlan}>Save Plan</button>
-          <button className="btn-outline" onClick={() => useSuggestion(todaySuggestion)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:14,height:14,verticalAlign:'middle',marginRight:4}}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> Use Suggestion</button>
+          <button className="btn-outline" onClick={() => handleSuggestion(todaySuggestion)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:14,height:14,verticalAlign:'middle',marginRight:4}}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> Use Suggestion</button>
         </div>
         {studyPlan.book && (
           <div className="study-current"><span className="study-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16,verticalAlign:'middle'}}><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></span><span>Studying: {studyPlan.book} {studyPlan.chapter} <span className="bv-badge">{bibleVersion}</span></span></div>
@@ -129,7 +134,7 @@ const SpiritualView = memo(function SpiritualView({
           <span className="suggestion-title">&ldquo;{todaySuggestion.title}&rdquo;</span>
           <div className="suggestion-footer">
             <span className="bv-badge">{bibleVersion}</span>
-            <button className="btn-sm" onClick={() => useSuggestion(todaySuggestion)}>Study This</button>
+            <button className="btn-sm" onClick={() => handleSuggestion(todaySuggestion)}>Study This</button>
           </div>
         </div>
       </div>

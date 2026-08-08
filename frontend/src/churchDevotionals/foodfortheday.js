@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const FOODFORTHEDAY_DEVOTIONALS = {
   name: "Food for the Day",
   pastor: "Various Authors",

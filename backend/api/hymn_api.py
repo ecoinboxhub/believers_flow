@@ -4,9 +4,12 @@ Provides search, metadata, matching, and suggestion endpoints.
 """
 import os
 import json
+import logging
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 from api.hymn_service import (
     search_hymns,
@@ -33,7 +36,7 @@ class HymnMatchRequest(BaseModel):
 
 def _load_hymns() -> List[dict]:
     """Load hymns from bundled data. This reads the frontend hymns.js file."""
-    hymns_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'hymns.js')
+    hymns_path = os.path.join(os.path.dirname(__file__), '..', '..', 'frontend', 'src', 'hymns.js')
     try:
         with open(hymns_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -70,8 +73,13 @@ def _load_hymns() -> List[dict]:
         # Strip trailing commas before ] or } (valid JS but invalid JSON)
         js_array = re.sub(r',(\s*[}\]])', r'\1', js_array)
         hymns = json.loads(js_array)
+        logger.info(f"Hymn data loaded successfully: {len(hymns)} hymns from {hymns_path}")
         return hymns
-    except Exception:
+    except FileNotFoundError:
+        logger.error(f"Hymn data file not found: {hymns_path}")
+        return []
+    except Exception as e:
+        logger.error(f"Failed to load hymn data from {hymns_path}: {type(e).__name__}: {e}")
         return []
 
 
@@ -81,9 +89,12 @@ _HYMNS_CACHE = None
 
 def _get_hymns() -> List[dict]:
     global _HYMNS_CACHE
-    if _HYMNS_CACHE is None:
-        _HYMNS_CACHE = _load_hymns()
-    return _HYMNS_CACHE
+    if _HYMNS_CACHE is not None:
+        return _HYMNS_CACHE
+    hymns = _load_hymns()
+    if hymns:
+        _HYMNS_CACHE = hymns
+    return hymns
 
 
 @router.get("/search")

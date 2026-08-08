@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const CAC_DEVOTIONALS = {
   name: "Christ Apostolic Church",
   pastor: "Various Pastors",

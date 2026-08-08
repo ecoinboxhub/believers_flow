@@ -1,5 +1,27 @@
 apply plugin: 'com.android.application'
 
+def RELEASE_KEYSTORE_PASSWORD = 'BF_S1gnKey_2026!'
+
+task ensureReleaseKeystore {
+    def ksFile = file('app-release.jks')
+    outputs.file(ksFile)
+    doLast {
+        if (!ksFile.exists()) {
+            def isWin = System.getProperty('os.name').toLowerCase().contains('win')
+            def keytool = System.getProperty('java.home') + File.separator + 'bin' + File.separator + (isWin ? 'keytool.exe' : 'keytool')
+            project.exec {
+                commandLine keytool, '-genkeypair', '-v',
+                    '-keystore', ksFile.absolutePath,
+                    '-alias', 'believersflow',
+                    '-keyalg', 'RSA', '-keysize', '2048', '-validity', '10000',
+                    '-storepass', RELEASE_KEYSTORE_PASSWORD,
+                    '-keypass', RELEASE_KEYSTORE_PASSWORD,
+                    '-dname', 'CN=BelieversFlow, OU=Development, O=BelieversFlow, L=Unknown, ST=Unknown, C=NG'
+            }
+        }
+    }
+}
+
 android {
     namespace = "com.believersguidelite.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +29,8 @@ android {
         applicationId "com.believersguidelite.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "4.5.0"
+        versionCode 11
+        versionName "4.11.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
@@ -16,16 +38,10 @@ android {
     }
     signingConfigs {
         release {
-            def ksPassword = System.getenv("KEYSTORE_PASSWORD")
-            def ksAlias = System.getenv("KEY_ALIAS") ?: 'believersflow'
-            def ksFile = file('app-release.jks')
-
-            if (ksPassword && ksFile.exists()) {
-                storeFile ksFile
-                storePassword ksPassword
-                keyAlias ksAlias
-                keyPassword System.getenv("KEY_ALIAS_PASSWORD") ?: ksPassword
-            }
+            storeFile file('app-release.jks')
+            storePassword RELEASE_KEYSTORE_PASSWORD
+            keyAlias 'believersflow'
+            keyPassword RELEASE_KEYSTORE_PASSWORD
         }
     }
     buildTypes {
@@ -33,9 +49,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if (signingConfigs.release.storeFile != null) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
@@ -57,6 +71,10 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
+}
+
+afterEvaluate {
+    preBuild.dependsOn ensureReleaseKeystore
 }
 
 apply from: 'capacitor.build.gradle'

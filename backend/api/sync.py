@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from api.database import get_connection
 
 DATA_TYPES = ["tasks", "prayerLogs", "diary", "studyPlan", "chat", "settings", "customColors",
-              "bibleVersion", "recentReads", "hymnFavorites", "recentHymns", "navOrder"]
+              "bibleVersion", "recentReads", "hymnFavorites", "recentHymns", "navOrder", "bibleNotes", "verseMarks"]
 
 
 class SyncItem(BaseModel):

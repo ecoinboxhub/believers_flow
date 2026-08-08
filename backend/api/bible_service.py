@@ -39,7 +39,7 @@ class BibleVersion:
 
 VERSIONS: List[BibleVersion] = [
     # === English Versions ===
-    BibleVersion(id="KJV", name="King James Version", year=1611, public_domain=True, description="The authorized King James Version, the most widely recognized English Bible translation.", provider="bible-api"),
+    BibleVersion(id="KJV", name="King James Version", year=1611, public_domain=True, description="The authorized King James Version, the most widely recognized English Bible translation.", provider="local"),
     BibleVersion(id="NKJV", name="New King James Version", year=1982, licensed=True, description="A modern update preserving the KJV's literary style."),
     BibleVersion(id="NIV", name="New International Version", year=2011, licensed=True, description="A balanced modern translation widely used in evangelical churches.", requires_key=True),
     BibleVersion(id="ESV", name="English Standard Version", year=2001, licensed=True, description="A word-for-word translation valued for its accuracy.", requires_key=True),

@@ -1,0 +1,75 @@
+# =============================================================
+# BelieversFlow backend .dockerignore
+# Prevents secrets and build artifacts from being baked into the
+# image via `COPY . .` in the Dockerfile (OWASP ASVS / secret mgmt).
+# =============================================================
+
+# ---- Environment & Secrets (NEVER ship these into an image) ----
+.env
+.env.*
+*.env
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+signing.properties
+client_secret*.json
+credentials*.json
+service-account*.json
+*-service-account*.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+env/
+ENV/
+*.egg-info/
+*.egg
+.eggs/
+sdist/
+wheels/
+.python-version
+
+# ---- Test / coverage ----
+tests/
+test_results.json
+security_scalability_results.json
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+.pytype/
+
+# ---- VCS ----
+.git/
+.gitignore
+.gitattributes
+.github/
+.dockerignore
+
+# ---- Logs & PID ----
+*.log
+*.pid
+*.pid.lock
+
+# ---- Local dev / editors / OS ----
+uvicorn.out.log
+uvicorn.err.log
+uvicorn.pid
+*.pyc
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+# ==== END backend/.dockerignore ====

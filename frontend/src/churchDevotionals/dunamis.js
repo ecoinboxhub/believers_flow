@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const DUNAMIS_DEVOTIONALS = {
   name: "Dunamis Gospel Church",
   pastor: "Pastor Paul Enenche",

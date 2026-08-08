@@ -245,7 +245,7 @@ test("POST /api/bible/explain", "POST", "/api/bible/explain",
 test("POST /api/bible/commentary", "POST", "/api/bible/commentary",
      headers=auth_headers(),
      json_data={"book": "genesis", "chapter": 1},
-     expected_status=200, check_field="commentary")
+     expected_status=200, check_field="entries")
 
 # Bible concordance
 test("POST /api/bible/concordance", "POST", "/api/bible/concordance",
@@ -257,7 +257,7 @@ test("POST /api/bible/concordance", "POST", "/api/bible/concordance",
 test("POST /api/bible/compare", "POST", "/api/bible/compare",
      headers=auth_headers(),
      json_data={"book": "genesis", "chapter": 1},
-     expected_status=200, check_field="comparison")
+     expected_status=200, check_field="translations")
 
 # Hymn explain
 test("POST /api/hymns/explain", "POST", "/api/hymns/explain",

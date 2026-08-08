@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const FCS_DEVOTIONALS = {
   name: "Fellowship of Christian Students",
   pastor: "FCS Leadership",

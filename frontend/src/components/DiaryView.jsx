@@ -1,5 +1,6 @@
 import { MOODS } from '../constants'
 import { useMemo } from 'react'
+import DiaryReflectionCard from './DiaryReflectionCard.jsx'
 
 const ENCOURAGEMENTS = {
   '\uD83D\uDE0A': {
@@ -76,6 +77,7 @@ export default function DiaryView({
   diaryEntries, diaryTitle, setDiaryTitle, diaryContent, setDiaryContent,
   diaryMood, setDiaryMood, editingDiary, setEditingDiary,
   addDiaryEntry, editDiaryEntry, deleteDiaryEntry,
+  generateDiaryReflection, reflectionLoadingId,
 }) {
   const showEncouragement = useMemo(() => {
     return ENCOURAGEMENTS[diaryMood] ? diaryMood : null
@@ -128,6 +130,16 @@ export default function DiaryView({
               </div>
             </div>
             <p className="diary-entry-content">{entry.content}</p>
+            <div className="diary-reflection-area">
+              {entry.reflection ? (
+                <DiaryReflectionCard reflection={entry.reflection} loading={reflectionLoadingId === entry.id} onRegenerate={() => generateDiaryReflection(entry)} />
+              ) : (
+                <button className="diary-reflection-btn" onClick={() => generateDiaryReflection(entry)} disabled={reflectionLoadingId === entry.id}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, verticalAlign: 'middle', marginRight: 5 }}><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></svg>
+                  {reflectionLoadingId === entry.id ? 'Preparing reflection…' : 'Get AI Reflection & Scriptures'}
+                </button>
+              )}
+            </div>
             <div className="diary-entry-actions">
               <button className="diary-edit-btn" onClick={() => editDiaryEntry(entry)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:14,height:14,verticalAlign:'middle',marginRight:4}}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit</button>
               <button className="diary-delete-btn" onClick={() => deleteDiaryEntry(entry.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:14,height:14,verticalAlign:'middle',marginRight:4}}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Delete</button>

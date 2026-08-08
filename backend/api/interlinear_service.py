@@ -123,6 +123,20 @@ def _get_curated_interlinear(book: str, chapter: int, verse: int, language: str)
                 {"word": "ἐσκήνωσεν", "transliteration": "eskēnōsen", "strong": "G4637", "meaning": "dwelt, tabernacled among", "parsing": "Verb, Aorist Active Indicative 3rd Singular"},
                 {"word": "δόξαν", "transliteration": "doxan", "strong": "G1391", "meaning": "glory, splendor", "parsing": "Noun, Accusative Feminine Singular"},
             ],
+            (3, 16): [
+                {"word": "Οὕτως", "transliteration": "Houtōs", "strong": "G3779", "meaning": "so, thus, in this way", "parsing": "Adverb"},
+                {"word": "ἠγάπησεν", "transliteration": "ēgapēsen", "strong": "G25", "meaning": "loved", "parsing": "Verb, Aorist Active Indicative 3rd Singular"},
+                {"word": "ὁ", "transliteration": "ho", "strong": "G3588", "meaning": "the", "parsing": "Article, Nominative Masculine Singular"},
+                {"word": "θεὸς", "transliteration": "theos", "strong": "G2316", "meaning": "God", "parsing": "Noun, Nominative Masculine Singular"},
+                {"word": "τὸν", "transliteration": "ton", "strong": "G3588", "meaning": "the", "parsing": "Article, Accusative Masculine Singular"},
+                {"word": "κόσμον", "transliteration": "kosmon", "strong": "G2889", "meaning": "world", "parsing": "Noun, Accusative Masculine Singular"},
+                {"word": "υἱὸν", "transliteration": "huion", "strong": "G5207", "meaning": "son", "parsing": "Noun, Accusative Masculine Singular"},
+                {"word": "μονογενῆ", "transliteration": "monogenē", "strong": "G3439", "meaning": "only begotten, unique", "parsing": "Adjective, Accusative Masculine Singular"},
+                {"word": "πιστεύων", "transliteration": "pisteuōn", "strong": "G4100", "meaning": "believing, who believes", "parsing": "Verb, Present Active Participle Nominative Masculine Singular"},
+                {"word": "ἀπόληται", "transliteration": "apolētai", "strong": "G622", "meaning": "perish, be destroyed", "parsing": "Verb, Aorist Middle Subjunctive 3rd Singular"},
+                {"word": "αἰώνιον", "transliteration": "aiōnion", "strong": "G166", "meaning": "eternal, everlasting", "parsing": "Adjective, Accusative Feminine Singular"},
+                {"word": "ζωήν", "transliteration": "zōēn", "strong": "G2222", "meaning": "life", "parsing": "Noun, Accusative Feminine Singular"},
+            ],
         },
         "romans": {
             (8, 28): [
@@ -131,6 +145,28 @@ def _get_curated_interlinear(book: str, chapter: int, verse: int, language: str)
                 {"word": "συνεργεῖ", "transliteration": "synergei", "strong": "G4903", "meaning": "works together", "parsing": "Verb, Present Active Indicative 3rd Singular"},
                 {"word": "εἰς", "transliteration": "eis", "strong": "G1519", "meaning": "to, for, unto", "parsing": "Preposition"},
                 {"word": "ἀγαθόν", "transliteration": "agathon", "strong": "G18", "meaning": "good", "parsing": "Adjective, Accusative Neuter Singular"},
+            ],
+            (3, 23): [
+                {"word": "πάντες", "transliteration": "pantes", "strong": "G3956", "meaning": "all", "parsing": "Adjective, Nominative Masculine Plural"},
+                {"word": "ἥμαρτον", "transliteration": "hēmarton", "strong": "G264", "meaning": "sinned", "parsing": "Verb, Aorist Active Indicative 3rd Plural"},
+                {"word": "ὑστεροῦνται", "transliteration": "hysterountai", "strong": "G5302", "meaning": "fall short, lack", "parsing": "Verb, Present Passive Indicative 3rd Plural"},
+                {"word": "δόξης", "transliteration": "doxēs", "strong": "G1391", "meaning": "glory", "parsing": "Noun, Genitive Feminine Singular"},
+            ],
+        },
+        "matthew": {
+            (6, 9): [
+                {"word": "Πάτερ", "transliteration": "Pater", "strong": "G3962", "meaning": "Father", "parsing": "Noun, Vocative Masculine Singular"},
+                {"word": "ἡμῶν", "transliteration": "hēmōn", "strong": "G2257", "meaning": "our", "parsing": "Pronoun, Genitive 1st Plural"},
+                {"word": "οὐρανοῖς", "transliteration": "ouranois", "strong": "G3772", "meaning": "heavens", "parsing": "Noun, Dative Masculine Plural"},
+                {"word": "ἁγιασθήτω", "transliteration": "hagiasthetō", "strong": "G37", "meaning": "hallowed be, sanctified", "parsing": "Verb, Aorist Passive Imperative 3rd Singular"},
+                {"word": "ὄνομά", "transliteration": "onoma", "strong": "G3686", "meaning": "name", "parsing": "Noun, Nominative Neuter Singular"},
+            ],
+        },
+        "philippians": {
+            (4, 13): [
+                {"word": "ἰσχύω", "transliteration": "ischyō", "strong": "G2480", "meaning": "I can, I have strength", "parsing": "Verb, Present Active Indicative 1st Singular"},
+                {"word": "ἐνδυναμοῦντί", "transliteration": "endynamounti", "strong": "G1743", "meaning": "strengthening, who strengthens", "parsing": "Verb, Present Active Participle Dative Masculine Singular"},
+                {"word": "Χριστῷ", "transliteration": "Christō", "strong": "G5547", "meaning": "Christ", "parsing": "Noun, Dative Masculine Singular"},
             ],
         },
     }
@@ -143,6 +179,27 @@ def _get_curated_interlinear(book: str, chapter: int, verse: int, language: str)
                 {"word": "אֱלֹהִים", "transliteration": "elohim", "strong": "H430", "meaning": "God", "parsing": "Noun, Masculine Plural"},
                 {"word": "הַשָּׁמַיִם", "transliteration": "hashamayim", "strong": "H8064", "meaning": "the heavens", "parsing": "Article + Noun, Masculine Plural"},
                 {"word": "הָאָרֶץ", "transliteration": "haaretz", "strong": "H776", "meaning": "the earth", "parsing": "Article + Noun, Feminine Singular"},
+            ],
+            (1, 26): [
+                {"word": "נַעֲשֶׂה", "transliteration": "na'aseh", "strong": "H6213", "meaning": "let us make", "parsing": "Verb, Qal Cohortative 1st Common Plural"},
+                {"word": "אָדָם", "transliteration": "adam", "strong": "H120", "meaning": "man, mankind", "parsing": "Noun, Masculine Singular"},
+                {"word": "צַלְמֵנוּ", "transliteration": "tsalmenu", "strong": "H6754", "meaning": "our image", "parsing": "Noun + Suffix"},
+                {"word": "דְּמוּתֵנוּ", "transliteration": "demuthenu", "strong": "H1823", "meaning": "our likeness", "parsing": "Noun + Suffix"},
+            ],
+        },
+        "exodus": {
+            (3, 14): [
+                {"word": "אֶהְיֶה", "transliteration": "ehyeh", "strong": "H1961", "meaning": "I AM, I will be", "parsing": "Verb, Qal Imperfect 1st Common Singular"},
+                {"word": "אֲשֶׁר", "transliteration": "asher", "strong": "H834", "meaning": "who, which, that", "parsing": "Relative Pronoun"},
+                {"word": "מֹשֶׁה", "transliteration": "mosheh", "strong": "H4872", "meaning": "Moses", "parsing": "Noun, Proper Masculine Singular"},
+            ],
+        },
+        "psalms": {
+            (23, 1): [
+                {"word": "יְהוָה", "transliteration": "YHWH", "strong": "H3068", "meaning": "LORD", "parsing": "Noun, Proper Masculine Singular"},
+                {"word": "רֹעִי", "transliteration": "ro'i", "strong": "H7462", "meaning": "my shepherd", "parsing": "Noun + Suffix"},
+                {"word": "לֹא", "transliteration": "lo", "strong": "H3808", "meaning": "not", "parsing": "Adverb"},
+                {"word": "אֶחְסָר", "transliteration": "echsar", "strong": "H2637", "meaning": "I shall lack, want", "parsing": "Verb, Qal Imperfect 1st Common Singular"},
             ],
         },
     }

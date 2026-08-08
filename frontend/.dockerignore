@@ -1,0 +1,68 @@
+# =============================================================
+# BelieversFlow frontend .dockerignore
+# Keeps secrets and build artifacts out of the Docker build
+# context (frontend Dockerfile runs `COPY . .` in the builder).
+# =============================================================
+
+# ---- Environment & Secrets ----
+.env
+.env.*
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+signing.properties
+client_secret*.json
+credentials*.json
+
+# ---- Node.js ----
+node_modules/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Build output ----
+dist/
+dist-ssr/
+build/
+*.local
+
+# ---- Test / coverage ----
+test-results/
+playwright-report/
+playwright/.cache/
+coverage/
+coverage.xml
+
+# ---- VCS ----
+.git/
+.gitignore
+.github/
+.dockerignore
+
+# ---- Android / Capacitor signing ----
+mobile/
+android/
+capacitor-cordova-android-plugins/
+*.apk
+*.aab
+*.ap_
+
+# ---- Logs / PID ----
+*.log
+*.pid
+*.pid.lock
+
+# ---- Editor / OS ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+# ==== END frontend/.dockerignore ====

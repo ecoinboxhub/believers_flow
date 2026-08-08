@@ -23,7 +23,7 @@ def test_health_endpoint():
     asyncio.get_event_loop().run_until_complete(_test())
 
 
-def test_dbtest_endpoint():
+def test_dbtest_endpoint_requires_auth():
     from api.index import app
     from httpx import AsyncClient, ASGITransport
     import asyncio
@@ -32,9 +32,47 @@ def test_dbtest_endpoint():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get("/api/dbtest")
-            assert resp.status_code == 200
-            data = resp.json()
-            assert "db" in data
+            assert resp.status_code == 401
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_dbtest_pinetest_require_admin():
+    from api.index import app
+    from api.auth import create_token
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+    import os
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        admin_token = create_token(1, "admin@example.com")
+        user_token = create_token(2, "user@example.com")
+        original = os.environ.get("ADMIN_EMAILS", "")
+        os.environ["ADMIN_EMAILS"] = "admin@example.com"
+        try:
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                # Non-admin authenticated user -> 403 on both endpoints
+                headers = {"Authorization": f"Bearer {user_token}"}
+                r_db = await client.get("/api/dbtest", headers=headers)
+                assert r_db.status_code == 403
+                r_pi = await client.get("/api/pinetest", headers=headers)
+                assert r_pi.status_code == 403
+                # No token -> 401 (auth dependency runs before admin check)
+                r = await client.get("/api/pinetest")
+                assert r.status_code == 401
+                # Admin -> 200 with generic body (no internals)
+                headers_admin = {"Authorization": f"Bearer {admin_token}"}
+                r_ok = await client.get("/api/dbtest", headers=headers_admin)
+                assert r_ok.status_code == 200
+                data = r_ok.json()
+                assert data.get("status") in ("ok", "error")
+                assert "result" not in data and "message" not in data and "type" not in data
+        finally:
+            if original:
+                os.environ["ADMIN_EMAILS"] = original
+            else:
+                os.environ.pop("ADMIN_EMAILS", None)
 
     asyncio.get_event_loop().run_until_complete(_test())
 
@@ -217,10 +255,16 @@ def test_logout_with_invalid_token():
     asyncio.get_event_loop().run_until_complete(_test())
 
 
-def test_unauthorized_chat():
+def test_chat_allows_guests(monkeypatch):
     from api.index import app
     from httpx import AsyncClient, ASGITransport
     import asyncio
+
+    async def fake_llm(*args, **kwargs):
+        return "Hello from test"
+
+    import api.index as index_module
+    monkeypatch.setattr(index_module, "call_llm_multi", fake_llm)
 
     async def _test():
         transport = ASGITransport(app=app)
@@ -228,7 +272,64 @@ def test_unauthorized_chat():
             resp = await client.post("/api/chat", json={
                 "messages": [{"role": "user", "content": "hello"}]
             })
-            assert resp.status_code in [401, 403]
+            # Guest access is allowed; the request must reach the LLM and succeed.
+            assert resp.status_code == 200
+            assert resp.json().get("message") == "Hello from test"
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_diary_reflection_short_content_returns_graceful_without_llm(monkeypatch):
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio, api.index as index_module
+
+    def failing_llm(*args, **kwargs):
+        raise AssertionError("LLM should not be called for very short content")
+
+    monkeypatch.setattr(index_module, "call_llm", failing_llm)
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/diary/reflection", json={"title": "Hi", "content": "ok"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data.get("needs_more") is True
+            assert data.get("message")
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_diary_reflection_parses_structured_response(monkeypatch):
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio, json as json_mod, api.index as index_module
+
+    async def fake_llm(*args, **kwargs):
+        return json_mod.dumps({
+            "reflection": "You are being brave today.",
+            "verses": [
+                {"reference": "Psalm 34:18", "text": "The LORD is nigh unto them that are of a broken heart.", "explanation": "God is near to you."}
+            ],
+            "encouragement": "Keep going.",
+        })
+
+    monkeypatch.setattr(index_module, "call_llm", fake_llm)
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/diary/reflection", json={
+                "title": "Heavy heart",
+                "content": "I have been carrying a heavy burden of worry for my family this week.",
+                "mood": "😢",
+            })
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data.get("reflection") == "You are being brave today."
+            assert data.get("verses")[0]["reference"] == "Psalm 34:18"
+            assert data.get("encouragement") == "Keep going."
 
     asyncio.get_event_loop().run_until_complete(_test())
 
@@ -627,3 +728,397 @@ def test_config_validation_missing_required():
             os.environ["DATABASE_URL"] = original_db
         if original_jwt:
             os.environ["JWT_SECRET_KEY"] = original_jwt
+
+
+def _auth_headers():
+    from api.auth import create_token
+    token = create_token(1, "test@example.com")
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _patch_db(monkeypatch):
+    """Let require_db() pass without a live database in tests."""
+    import api.index as index_module
+    monkeypatch.setattr(index_module, "check_db_health", lambda: True)
+
+
+def test_bible_concordance_returns_grounded_kjv_matches(monkeypatch):
+    _patch_db(monkeypatch)
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/bible/concordance",
+                json={"query": "grace", "version": "KJV"},
+                headers=_auth_headers(),
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["total"] > 0
+            assert data["groups"], "expected grouped results"
+            assert "public domain" in data["search_source"].lower()
+            assert all("reference" in r and "text" in r for r in data["results"])
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_concordance_empty_query_rejected(monkeypatch):
+    _patch_db(monkeypatch)
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/bible/concordance", json={"query": "  "}, headers=_auth_headers()
+            )
+            assert resp.status_code in [401, 403, 422]
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_dictionary_public_no_auth():
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/bible/dictionary", json={"term": "Jerusalem"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["matches"], "expected Easton entries"
+            assert "Easton" in data["source"]
+            assert all("term" in m and "definition" in m for m in data["matches"])
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_dictionary_unknown_term_returns_note():
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/bible/dictionary", json={"term": "zzzqnotaword"})
+            assert resp.status_code == 200
+            assert resp.json()["matches"] == []
+            assert "note" in resp.json()
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_commentary_sources_public():
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/bible/commentary/sources")
+            assert resp.status_code == 200
+            sources = resp.json()["sources"]
+            ids = {s["id"] for s in sources}
+            assert "matthew-henry" in ids
+            assert "jamieson-fausset-brown" in ids
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_commentary_bundled_source_returns_entries(monkeypatch):
+    _patch_db(monkeypatch)
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/bible/commentary",
+                json={"book": "John", "chapter": 3, "source": "matthew-henry", "ai_summary": False},
+                headers=_auth_headers(),
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["available"] is True
+            assert data["entries"], "expected bundled commentary entries"
+            assert all("reference" in e and "text" in e for e in data["entries"])
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_notes_assist_grounded(monkeypatch):
+    _patch_db(monkeypatch)
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio, api.index as index_module
+
+    async def fake_llm(*args, **kwargs):
+        return "1. Meditate on this promise.\n2. Compare it with another gospel.\n3. Pray it back."
+
+    monkeypatch.setattr(index_module, "call_llm", fake_llm)
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/bible/notes-assist",
+                json={"note_text": "God so loved the world that he gave his only begotten Son.", "reference": "John 3:16"},
+                headers=_auth_headers(),
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert len(data["suggestions"]) >= 1
+            assert data["related_verses"], "expected grounded related verses"
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_notes_assist_degrades_without_llm(monkeypatch):
+    _patch_db(monkeypatch)
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio, api.index as index_module
+
+    def failing_llm(*args, **kwargs):
+        raise RuntimeError("no AI")
+
+    monkeypatch.setattr(index_module, "call_llm", failing_llm)
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/bible/notes-assist",
+                json={"note_text": "Love is patient."},
+                headers=_auth_headers(),
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["suggestions"] == []
+            assert data["related_verses"], "grounded verses must survive AI failure"
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_compare_returns_aligned_verses(monkeypatch):
+    _patch_db(monkeypatch)
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio, api.index as index_module
+
+    async def fake_fetch(version_id, book, chapter):
+        return {
+            "version": version_id,
+            "book": book,
+            "chapter": chapter,
+            "verses": [{"verse": 1, "text": f"Test text ({version_id})"}],
+        }
+
+    monkeypatch.setattr(index_module, "fetch_chapter", fake_fetch)
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/bible/compare",
+                json={"book": "John", "chapter": 3, "translations": ["KJV", "WEB"], "insights": False},
+                headers=_auth_headers(),
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["reference"] == "John 3"
+            assert len(data["verses"]) == 1
+            row = data["verses"][0]
+            assert row.get("KJV") and row.get("WEB")
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_explain_grounded_fallback_without_llm(monkeypatch):
+    _patch_db(monkeypatch)
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio, api.index as index_module
+
+    def failing_llm(*args, **kwargs):
+        raise RuntimeError("no AI")
+
+    monkeypatch.setattr(index_module, "call_llm", failing_llm)
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/bible/explain",
+                json={"reference": "John 3:16", "text": "For God so loved the world...", "version": "KJV"},
+                headers=_auth_headers(),
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["explanation"], "grounded fallback explanation expected"
+            assert data["limited"], "limited flag must be set when AI unavailable"
+            assert "public domain" in " ".join(data["sources"]).lower()
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_dictionary_ai_expansion(monkeypatch):
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio, api.index as index_module
+
+    async def fake_llm(*args, **kwargs):
+        return "Jerusalem was the central city of Israel and site of the temple."
+
+    monkeypatch.setattr(index_module, "call_llm", fake_llm)
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/bible/dictionary", json={"term": "Jerusalem", "expand": True}
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "ai_expansion" in data
+            assert "Jerusalem" in data["ai_expansion"]
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_bible_get_singular_book_psalm():
+    """Frontend sends 'Psalm' (singular); API must accept it and serve local KJV."""
+    from api.index import _normalize_book_key
+    assert _normalize_book_key("Psalm") == "psalms"
+    assert _normalize_book_key("Psalms") == "psalms"
+    assert _normalize_book_key("John") == "john"
+
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/bible", params={"book": "Psalm", "chapter": 23, "version": "KJV"})
+            assert resp.status_code == 200, resp.text
+            data = resp.json()
+            assert data["reference"] == "Psalm 23"
+            assert len(data.get("verses", [])) > 0
+            assert all("verse" in v and "text" in v for v in data["verses"])
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+def test_devotional_study_overview_grounded():
+    """Devotional study (no question) returns grounded local KJV + commentary context."""
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    devotion = {
+        "title": "The Shepherd's Care",
+        "verse": "Psalm 23:1-3",
+        "verse_text": "The Lord is my shepherd, I lack nothing.",
+        "text": "David's psalm paints a picture of trust.\n\nThe Lord is my shepherd.\n\nRest in His provision.",
+        "prayer": "Good Shepherd, thank You. Amen.",
+    }
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/devotional/study", json={"devotion": devotion})
+            assert resp.status_code == 200, resp.text
+            data = resp.json()
+            ctx = data["context"]
+            assert ctx["reference"] == "Psalm 23:1-3"
+            assert ctx["passage"], "expected retrieved KJV passage"
+            assert "my shepherd" in ctx["passage"].lower()
+            assert ctx["commentary"], "expected public-domain commentary"
+            assert ctx["sources"]
+            assert data["ai"] is False
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_devotional_study_answer_uses_llm(monkeypatch):
+    """With a question, the study companion answers grounded in retrieved material."""
+    import api.llm_provider as llm
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def fake_llm(*args, **kwargs):
+        return "The shepherd imagery shows God's faithful care. Quoted: 'The Lord is my shepherd.'"
+
+    monkeypatch.setattr(llm, "call_llm", fake_llm)
+
+    devotion = {
+        "title": "The Shepherd's Care",
+        "verse": "Psalm 23:1-3",
+        "verse_text": "The Lord is my shepherd, I lack nothing.",
+        "text": "Trust the Shepherd.\n\nHe leads you.",
+        "prayer": "Amen.",
+    }
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/devotional/study",
+                json={"devotion": devotion, "question": "What does the shepherd mean?"},
+            )
+            assert resp.status_code == 200, resp.text
+            data = resp.json()
+            assert data["ai"] is True
+            assert data["answer"]
+            assert data["references"], "expected grounded scripture references"
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_devotional_study_degrades_without_llm(monkeypatch):
+    """When the LLM is unavailable the companion still returns grounded material."""
+    import api.llm_provider as llm
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    def failing_llm(*args, **kwargs):
+        raise RuntimeError("no AI")
+
+    monkeypatch.setattr(llm, "call_llm", failing_llm)
+
+    devotion = {
+        "title": "The Shepherd's Care",
+        "verse": "Psalm 23:1-3",
+        "verse_text": "The Lord is my shepherd, I lack nothing.",
+        "text": "Trust the Shepherd.\n\nHe leads you.",
+        "prayer": "Amen.",
+    }
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/devotional/study",
+                json={"devotion": devotion, "question": "Explain this verse."},
+            )
+            assert resp.status_code == 200, resp.text
+            data = resp.json()
+            assert data["ai"] is False
+            assert data["answer"], "expected grounded fallback answer"
+            assert "my shepherd" in data["answer"].lower()
+
+    asyncio.get_event_loop().run_until_complete(_test())

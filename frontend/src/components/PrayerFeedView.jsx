@@ -97,7 +97,7 @@ export default function PrayerFeedView({ showToast, isPremium, setShowAuth }) {
         const data = await res.json()
         setMyPrayers(data.prayers || [])
       }
-    } catch {}
+    } catch { console.warn('Failed to fetch my prayers') }
   }, [isPremium])
 
   const fetchAnalytics = useCallback(async () => {
@@ -110,7 +110,7 @@ export default function PrayerFeedView({ showToast, isPremium, setShowAuth }) {
         const data = await res.json()
         setAnalytics(data)
       }
-    } catch {}
+    } catch { console.warn('Failed to fetch prayer analytics') }
   }, [isPremium])
 
   const fetchGroups = useCallback(async () => {
@@ -123,16 +123,22 @@ export default function PrayerFeedView({ showToast, isPremium, setShowAuth }) {
         const data = await res.json()
         setUserGroups(data.groups || [])
       }
-    } catch {}
+    } catch { console.warn('Failed to fetch groups') }
   }, [isPremium])
 
   useEffect(() => {
-    if (isPremium) {
-      fetchPrayers(true)
-      fetchMyPrayers()
-      fetchAnalytics()
-      fetchGroups()
-    }
+    let cancelled = false
+    ;(async () => {
+      if (!isPremium) return
+      await Promise.all([
+        fetchPrayers(true),
+        fetchMyPrayers(),
+        fetchAnalytics(),
+        fetchGroups(),
+      ])
+      if (cancelled) return
+    })()
+    return () => { cancelled = true }
   }, [isPremium, filter, category, fetchPrayers, fetchMyPrayers, fetchAnalytics, fetchGroups])
 
   const submitPrayer = useCallback(async () => {

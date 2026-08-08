@@ -300,7 +300,7 @@ function EmptyState({ filter }) {
   )
 }
 
-function NotificationCenter({ isPremium, onNavigate }) {
+function NotificationCenter({ onNavigate }) {
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -332,7 +332,13 @@ function NotificationCenter({ isPremium, onNavigate }) {
   }, [filter])
 
   useEffect(() => {
-    if (isOpen) fetchNotifications()
+    let cancelled = false
+    ;(async () => {
+      await Promise.resolve()
+      if (cancelled) return
+      if (isOpen) fetchNotifications()
+    })()
+    return () => { cancelled = true }
   }, [isOpen, fetchNotifications])
 
   useEffect(() => {
@@ -416,7 +422,7 @@ function NotificationCenter({ isPremium, onNavigate }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 8px', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
             <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Notifications</span>
             {unreadCount > 0 && (
-              <button type="button" className="btn-sm" onClick={markAllRead} style={{ background: 'none', border: 'none', color: '#7c3aed', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}>
+              <button type="button" className="btn-sm" onClick={markAllRead} style={{ background: 'none', border: 'none', color: 'var(--purple-primary)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}>
                 Mark all read
               </button>
             )}
@@ -472,7 +478,7 @@ function NotificationCenter({ isPremium, onNavigate }) {
                   background: 'none',
                   border: 'none',
                   borderTop: '1px solid var(--border, #e5e7eb)',
-                  color: '#7c3aed',
+                  color: 'var(--purple-primary)',
                   fontWeight: 600,
                   fontSize: '0.8rem',
                   cursor: loading ? 'wait' : 'pointer',

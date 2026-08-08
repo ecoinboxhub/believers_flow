@@ -1,9 +1,18 @@
 from dotenv import load_dotenv
-load_dotenv(override=True)
+# Production-safe env loading:
+# - override=False (default) means platform/container env vars ALWAYS win;
+#   a baked-in or co-located .env can never overwrite secrets injected at
+#   runtime (docker-compose, K8s, CI). This prevents accidental secret
+#   rotation/hijacking (OWASP ASVS V6 & V10).
+# - In production images .env is excluded via .dockerignore anyway; this
+#   line simply guarantees a .env present on disk is treated as fallback
+#   defaults, never as the source of truth.
+load_dotenv(override=False)
 
 import os
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
@@ -21,7 +30,7 @@ IS_PRODUCTION = APP_ENV == "production"
 from api.auth import (
     RegisterRequest, LoginRequest, GoogleAuthRequest, LegalAcceptRequest,
     PasswordResetRequest, PasswordResetConfirm, ChangePasswordRequest, DeleteAccountRequest,
-    get_current_user, register, login, google_auth, accept_legal, get_legal_acceptance,
+    get_current_user, optional_user, register, login, google_auth, accept_legal, get_legal_acceptance,
     request_password_reset, reset_password, change_password,
     request_email_verification, verify_email, delete_account,
     refresh_access_token, revoke_refresh_token,
@@ -29,7 +38,7 @@ from api.auth import (
 )
 from api.sync import SyncPushRequest, pull_user_data, push_user_data
 from api.rag import RAGSearchRequest, RAGIngestRequest, rag_search, rag_ingest
-from api.database import init_db, close_pool
+from api.database import init_db, close_pool, get_db_status, check_db_health
 from api.redis_client import close_redis, cache_get, cache_set
 from api.llm_provider import (
     call_llm, call_llm_multi, get_embedding,
@@ -49,10 +58,52 @@ from api.prayer_analytics_api import router as prayer_analytics_router
 from api.forum_api import router as forum_router
 from api.devotional_api import router as devotional_router
 from api.community_api import router as community_router
+from api.analytics_api import router as analytics_router
 from api.bible_service import get_versions, get_version, fetch_chapter, get_languages, get_categories
+from api.bible_kb import (
+    search_concordance, dictionary_search, get_chapter, get_verse, chapter_text,
+    retrieve_passage_context, retrieve_term_context,
+)
+from api.commentary_service import get_commentary_for_chapter, get_sources as get_commentary_sources
 
 setup_logging()
 logger = logging.getLogger("beliversflow")
+
+
+async def require_db():
+    """FastAPI dependency: returns 503 immediately if DB is unavailable."""
+    if not check_db_health():
+        raise HTTPException(
+            status_code=503,
+            detail="Database temporarily unavailable. Please try again later.",
+        )
+
+
+def _admin_emails() -> set:
+    """Comma-separated admin email allowlist from env (lowercased)."""
+    raw = os.environ.get("ADMIN_EMAILS", "")
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
+async def require_admin(user: dict = Depends(get_current_user)):
+    """FastAPI dependency: require an authenticated administrator.
+
+    Diagnostic endpoints are disabled in production. In other environments
+    they require a valid token whose email is in the ADMIN_EMAILS allowlist.
+    Unauthenticated callers receive 401; authenticated non-admins receive 403.
+    """
+    if IS_PRODUCTION:
+        raise HTTPException(
+            status_code=403,
+            detail="This endpoint is not available.",
+        )
+    email = (user.get("email") or "").lower()
+    if not _admin_emails() or email not in _admin_emails():
+        raise HTTPException(
+            status_code=403,
+            detail="Administrator access required.",
+        )
+    return user
 
 
 def _safe_error(operation: str, e: Exception) -> str:
@@ -83,7 +134,9 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error(f"DB init failed: {e}")
+        logger.error(f"DB init failed (app continues with degraded mode): {e}")
+    db_status = get_db_status()
+    logger.info(f"DB status at startup: available={db_status['available']}, failures={db_status['consecutive_failures']}")
     yield
     await close_http_client()
     await close_redis()
@@ -103,6 +156,7 @@ app.include_router(prayer_analytics_router)
 app.include_router(forum_router)
 app.include_router(devotional_router)
 app.include_router(community_router)
+app.include_router(analytics_router)
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60")))
@@ -128,12 +182,37 @@ class CommentaryRequest(BaseModel):
     book: str
     chapter: int
     verses: Optional[List[dict]] = None
+    version: Optional[str] = "KJV"
     provider: str = "groq"
+    source: str = "matthew-henry"
+    ai_summary: bool = False
 
 class ConcordanceRequest(BaseModel):
     query: str
     version: str = "KJV"
     provider: str = "groq"
+
+class DictionaryRequest(BaseModel):
+    term: str
+    provider: str = "groq"
+    expand: bool = False
+
+class CompareRequest(BaseModel):
+    book: str
+    chapter: int
+    version: str = "KJV"
+    translations: Optional[List[str]] = None
+    provider: str = "groq"
+    insights: bool = False
+
+class NotesAssistRequest(BaseModel):
+    note_text: str
+    reference: str = ""
+    context: Optional[List[dict]] = None
+    provider: str = "groq"
+
+class CommentarySourceRequest(BaseModel):
+    source: str = "matthew-henry"
 
 class HymnRequest(BaseModel):
     title: str
@@ -146,6 +225,12 @@ class DevotionalRequest(BaseModel):
     topic: str = ""
     verse: str = ""
     theme: str = "faith"
+    provider: str = "groq"
+
+class DiaryReflectionRequest(BaseModel):
+    title: str = ""
+    content: str = ""
+    mood: str = ""
     provider: str = "groq"
 
 
@@ -163,36 +248,39 @@ async def health():
         "status": "ok",
         "version": "4.2.0",
         "providers": get_available_providers(),
+        "db_status": get_db_status(),
     }
 
 
-@app.get("/api/dbtest")
+@app.get("/api/dbtest", dependencies=[Depends(require_admin)])
 async def dbtest():
     try:
         from api.database import get_pool
         pool = await get_pool()
         async with pool.acquire() as conn:
-            result = await conn.fetchval("SELECT 1")
-            return {"db": "ok", "result": result}
+            await conn.fetchval("SELECT 1")
+        return {"status": "ok"}
     except Exception as e:
-        return {"db": "error", "type": type(e).__name__, "message": str(e)}
+        logger.warning("dbtest failed: %s", type(e).__name__)
+        return {"status": "error"}
 
 
-@app.get("/api/pinetest")
+@app.get("/api/pinetest", dependencies=[Depends(require_admin)])
 async def pinetest():
     try:
-        from api.rag import get_index, PINECONE_API_KEY, PINECONE_INDEX
+        from api.rag import get_index
         index = get_index()
         if not index:
-            return {"pinecone": "error", "detail": "index is None", "api_key_set": bool(PINECONE_API_KEY), "index_name": PINECONE_INDEX}
-        stats = index.describe_index_stats()
-        return {"pinecone": "ok", "vectors": stats.get("total_vector_count", 0), "namespaces": list(stats.get("namespaces", {}).keys())}
+            return {"status": "error"}
+        await index.describe_index_stats()
+        return {"status": "ok"}
     except Exception as e:
-        return {"pinecone": "error", "type": type(e).__name__, "message": str(e)}
+        logger.warning("pinetest failed: %s", type(e).__name__)
+        return {"status": "error"}
 
 
 @app.post("/api/auth/register")
-async def auth_register(req: RegisterRequest):
+async def auth_register(req: RegisterRequest, _db=Depends(require_db)):
     if not await _check_auth_rate_limit(f"register:{req.email}", max_attempts=3, window=300):
         raise HTTPException(status_code=429, detail="Too many registration attempts. Try again later.")
     try:
@@ -205,7 +293,7 @@ async def auth_register(req: RegisterRequest):
 
 
 @app.post("/api/auth/login")
-async def auth_login(req: LoginRequest):
+async def auth_login(req: LoginRequest, _db=Depends(require_db)):
     try:
         return await login(req)
     except HTTPException:
@@ -216,12 +304,12 @@ async def auth_login(req: LoginRequest):
 
 
 @app.post("/api/auth/google")
-async def auth_google(req: GoogleAuthRequest):
+async def auth_google(req: GoogleAuthRequest, _db=Depends(require_db)):
     return await google_auth(req)
 
 
 @app.post("/api/auth/legal-accept")
-async def auth_legal_accept(req: LegalAcceptRequest, user=Depends(get_current_user)):
+async def auth_legal_accept(req: LegalAcceptRequest, user=Depends(get_current_user), _db=Depends(require_db)):
     try:
         return await accept_legal(user["id"], req)
     except Exception as e:
@@ -230,7 +318,7 @@ async def auth_legal_accept(req: LegalAcceptRequest, user=Depends(get_current_us
 
 
 @app.get("/api/auth/legal-status")
-async def auth_legal_status(user=Depends(get_current_user)):
+async def auth_legal_status(user=Depends(get_current_user), _db=Depends(require_db)):
     try:
         return await get_legal_acceptance(user["id"])
     except Exception as e:
@@ -239,7 +327,7 @@ async def auth_legal_status(user=Depends(get_current_user)):
 
 
 @app.post("/api/auth/forgot-password")
-async def auth_forgot_password(req: PasswordResetRequest):
+async def auth_forgot_password(req: PasswordResetRequest, _db=Depends(require_db)):
     if not await _check_auth_rate_limit(f"reset:{req.email}", max_attempts=3, window=300):
         raise HTTPException(status_code=429, detail="Too many password reset attempts. Try again later.")
     try:
@@ -252,7 +340,7 @@ async def auth_forgot_password(req: PasswordResetRequest):
 
 
 @app.post("/api/auth/reset-password")
-async def auth_reset_password(req: PasswordResetConfirm):
+async def auth_reset_password(req: PasswordResetConfirm, _db=Depends(require_db)):
     try:
         return await reset_password(req)
     except HTTPException:
@@ -263,7 +351,9 @@ async def auth_reset_password(req: PasswordResetConfirm):
 
 
 @app.post("/api/auth/change-password")
-async def auth_change_password(req: ChangePasswordRequest, credentials=Depends(security)):
+async def auth_change_password(req: ChangePasswordRequest, credentials=Depends(security), _db=Depends(require_db)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication required")
     try:
         payload = decode_token(credentials.credentials)
         jti = payload.get("jti", "")
@@ -277,7 +367,7 @@ async def auth_change_password(req: ChangePasswordRequest, credentials=Depends(s
 
 
 @app.post("/api/auth/verify-email")
-async def auth_verify_email(token: str, user=Depends(get_current_user)):
+async def auth_verify_email(token: str, user=Depends(get_current_user), _db=Depends(require_db)):
     try:
         return await verify_email(user["id"], token)
     except HTTPException:
@@ -288,7 +378,7 @@ async def auth_verify_email(token: str, user=Depends(get_current_user)):
 
 
 @app.post("/api/auth/send-verification")
-async def auth_send_verification(user=Depends(get_current_user)):
+async def auth_send_verification(user=Depends(get_current_user), _db=Depends(require_db)):
     try:
         return await request_email_verification(user["id"], user["email"])
     except Exception as e:
@@ -297,7 +387,7 @@ async def auth_send_verification(user=Depends(get_current_user)):
 
 
 @app.post("/api/auth/delete-account")
-async def auth_delete_account(req: DeleteAccountRequest, user=Depends(get_current_user)):
+async def auth_delete_account(req: DeleteAccountRequest, user=Depends(get_current_user), _db=Depends(require_db)):
     try:
         return await delete_account(user["id"], req)
     except HTTPException:
@@ -308,7 +398,7 @@ async def auth_delete_account(req: DeleteAccountRequest, user=Depends(get_curren
 
 
 @app.post("/api/auth/refresh")
-async def auth_refresh(req: RefreshRequest):
+async def auth_refresh(req: RefreshRequest, _db=Depends(require_db)):
     try:
         return await refresh_access_token(req.refresh_token)
     except HTTPException:
@@ -319,7 +409,7 @@ async def auth_refresh(req: RefreshRequest):
 
 
 @app.post("/api/auth/logout")
-async def auth_logout(req: LogoutRequest, credentials=Depends(security)):
+async def auth_logout(req: LogoutRequest, credentials=Depends(security), _db=Depends(require_db)):
     try:
         # Blocklist the current access token
         if credentials and credentials.credentials:
@@ -339,27 +429,27 @@ async def auth_logout(req: LogoutRequest, credentials=Depends(security)):
 
 
 @app.get("/api/sync/pull")
-async def sync_pull(user=Depends(get_current_user)):
+async def sync_pull(user=Depends(get_current_user), _db=Depends(require_db)):
     return await pull_user_data(user["id"])
 
 
 @app.post("/api/sync/push")
-async def sync_push(req: SyncPushRequest, user=Depends(get_current_user)):
+async def sync_push(req: SyncPushRequest, user=Depends(get_current_user), _db=Depends(require_db)):
     return await push_user_data(user["id"], req)
 
 
 @app.post("/api/rag/search")
-async def rag_search_endpoint(req: RAGSearchRequest, user=Depends(get_current_user)):
+async def rag_search_endpoint(req: RAGSearchRequest, user=Depends(get_current_user), _db=Depends(require_db)):
     return await rag_search(req)
 
 
 @app.post("/api/rag/ingest")
-async def rag_ingest_endpoint(req: RAGIngestRequest, user=Depends(get_current_user)):
+async def rag_ingest_endpoint(req: RAGIngestRequest, user=Depends(get_current_user), _db=Depends(require_db)):
     return await rag_ingest(req)
 
 
 @app.post("/api/llm/chat")
-async def llm_chat(req: LLMRequest, user=Depends(get_current_user)):
+async def llm_chat(req: LLMRequest, user=Depends(get_current_user), _db=Depends(require_db)):
     if not req.messages:
         raise HTTPException(status_code=400, detail="Messages required")
     return {"response": await call_llm_multi(req.messages, provider=req.provider, temperature=req.temperature)}
@@ -395,11 +485,32 @@ BIBLE_BOOKS = {
     "hebrews", "james", "1 peter", "2 peter", "1 john", "2 john", "3 john", "jude", "revelation",
 }
 
+BIBLE_CHAPTER_COUNTS = {
+    "genesis": 50, "exodus": 40, "leviticus": 27, "numbers": 36, "deuteronomy": 34,
+    "joshua": 24, "judges": 21, "ruth": 4, "1 samuel": 31, "2 samuel": 24, "1 kings": 22,
+    "2 kings": 25, "1 chronicles": 29, "2 chronicles": 36, "ezra": 10, "nehemiah": 13,
+    "esther": 10, "job": 42, "psalms": 150, "psalm": 150, "proverbs": 31, "ecclesiastes": 12,
+    "song of solomon": 8, "isaiah": 66, "jeremiah": 52, "lamentations": 5, "ezekiel": 48,
+    "daniel": 12, "hosea": 14, "joel": 3, "amos": 9, "obadiah": 1, "jonah": 4, "micah": 7,
+    "nahum": 3, "habakkuk": 3, "zephaniah": 3, "haggai": 2, "zechariah": 14, "malachi": 4,
+    "matthew": 28, "mark": 16, "luke": 24, "john": 21, "acts": 28, "romans": 16,
+    "1 corinthians": 16, "2 corinthians": 13, "galatians": 6, "ephesians": 6, "philippians": 4,
+    "colossians": 4, "1 thessalonians": 5, "2 thessalonians": 3, "1 timothy": 6, "2 timothy": 4,
+    "titus": 3, "philemon": 1, "hebrews": 13, "james": 5, "1 peter": 5, "2 peter": 3,
+    "1 john": 5, "2 john": 1, "3 john": 1, "jude": 1, "revelation": 22,
+}
+
+
+def _normalize_book_key(book: str) -> str:
+    """Map the frontend's singular 'Psalm' to the backend's 'psalms' key."""
+    b = book.strip().lower()
+    return "psalms" if b == "psalm" else b
+
 
 async def fetch_bible_kjv(book: str, chapter: int) -> dict:
     import httpx
     from urllib.parse import quote
-    book_lower = book.lower().strip()
+    book_lower = _normalize_book_key(book)
     if book_lower not in BIBLE_BOOKS:
         raise HTTPException(status_code=400, detail=f"Invalid Bible book: {book}")
 
@@ -413,8 +524,9 @@ async def fetch_bible_kjv(book: str, chapter: int) -> dict:
     except Exception:
         pass
 
-    # Validate chapter is positive integer
-    if chapter < 1 or chapter > 150:
+    # Validate chapter is within per-book limit
+    max_chapter = BIBLE_CHAPTER_COUNTS.get(book_lower, 150)
+    if chapter < 1 or chapter > max_chapter:
         raise HTTPException(status_code=400, detail="Invalid chapter number")
 
     # Use URL encoding for book name to prevent SSRF
@@ -475,10 +587,11 @@ async def fetch_bible_ai(book: str, chapter: int, version: str, provider: str = 
 @app.get("/api/bible")
 async def get_bible(book: str = Query(...), chapter: int = Query(...), version: str = Query("KJV"), provider: str = Query("groq")):
     try:
-        book_lower = book.lower().strip()
+        book_lower = _normalize_book_key(book)
         if book_lower not in BIBLE_BOOKS:
             raise HTTPException(status_code=400, detail=f"Invalid Bible book: {book}")
-        if chapter < 1 or chapter > 150:
+        max_chapter = BIBLE_CHAPTER_COUNTS.get(book_lower, 150)
+        if chapter < 1 or chapter > max_chapter:
             raise HTTPException(status_code=400, detail="Invalid chapter number")
 
         # Try bible_service providers first (bible-api, local)
@@ -503,7 +616,7 @@ async def get_bible(book: str = Query(...), chapter: int = Query(...), version: 
 
 
 @app.post("/api/chat")
-async def chat(req: ChatRequest, user=Depends(get_current_user)):
+async def chat(req: ChatRequest, user=Depends(optional_user)):
     system = (
         "You are a compassionate Christian mentor and life coach. "
         "Respond with warmth, scripture wisdom, and practical advice. "
@@ -527,78 +640,353 @@ async def chat(req: ChatRequest, user=Depends(get_current_user)):
     return {"message": reply}
 
 
-@app.post("/api/bible/explain")
-async def explain_verse(req: ExplainVerseRequest, user=Depends(get_current_user)):
+def _parse_reflection_json(raw: str):
+    raw = (raw or "").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+        raw = raw.rsplit("```", 1)[0].strip()
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(data, dict) or not data.get("reflection"):
+        return None
+    verses = data.get("verses")
+    data["verses"] = [v for v in verses if isinstance(v, dict) and v.get("reference")] if isinstance(verses, list) else []
+    data["encouragement"] = data.get("encouragement", "") or ""
+    return data
+
+
+_REFLECTION_FALLBACK = {
+    "reflection": (
+        "Thank you for taking time to pour out your heart. God sees your honesty, "
+        "and He is near to you in every feeling you carry."
+    ),
+    "verses": [
+        {
+            "reference": "Psalm 34:18",
+            "text": "The LORD is nigh unto them that are of a broken heart; and saveth such as be of a contrite spirit.",
+            "explanation": "God is close to you in this moment, and He does not turn away from honest hearts.",
+        }
+    ],
+    "encouragement": "Be gentle with yourself — you are held, known, and loved.",
+}
+
+
+@app.post("/api/diary/reflection")
+async def diary_reflection(req: DiaryReflectionRequest, user=Depends(optional_user)):
+    content = (req.content or "").strip()
+    if len(content) < 12:
+        return {
+            "needs_more": True,
+            "message": "Write a few sentences about your day so we can offer a meaningful reflection and scriptures.",
+        }
     system = (
-        "You are a Bible scholar and teacher. Explain the given verse in simple, clear language. "
-        "Write in plain natural language. Use only punctuation marks for formatting. "
-        "Do not use emojis, asterisks, hash symbols, tildes, or any special characters. "
-        "Do not use markdown formatting. Use plain paragraphs and sentences. "
-        "Where appropriate, use bullet points introduced with a dash."
+        "You are a compassionate Christian journaling companion. Create ONE structured written "
+        "reflection for the user's diary entry. You are NOT a chatbot: never ask questions, never "
+        "invite a reply, never continue a conversation, and never roleplay as an assistant. "
+        "Write a single devotional-style response in plain natural language. "
+        "Do not use emojis, asterisks, hash symbols, tildes, or markdown. "
+        "Be warm, empathetic, non-judgmental, and encouraging. "
+        "Output ONLY valid JSON with this exact shape, and nothing else:\n"
+        '{"reflection": "<2-4 sentences acknowledging the thoughts and emotions shared, offering hope and comfort>", '
+        '"verses": [{"reference": "<Book Chapter:Verse>", "text": "<accurate short verse text>", "explanation": "<1-2 sentences on how it relates to the reflection>"}], '
+        '"encouragement": "<1-2 short sentences of positive, faith-filled encouragement>"}\n'
+        "Select 2 to 3 Bible verses whose references and text are accurate and that genuinely relate "
+        "to the emotions and themes in the entry."
     )
+    prompt = (
+        f"Diary entry - Title: {req.title or '(no title)'}\n"
+        f"Journal content: {content[:4000]}\n"
+        f"Selected mood: {req.mood or 'not specified'}\n\n"
+        "Please write a supportive reflection, choose relevant Bible verses, and close with encouragement."
+    )
+    raw = await call_llm(system, prompt, provider=req.provider, temperature=0.7, max_tokens=700)
+    return _parse_reflection_json(raw) or _REFLECTION_FALLBACK
+
+
+_REFERENCE_RE = re.compile(r"^(?P<book>.+?)\s+(?P<chapter>\d{1,3})(?::(?P<verse>\d{1,3}))?$")
+
+
+def _parse_reference(reference: str) -> dict:
+    """Parse e.g. 'John 3:16', 'Genesis 1:1', 'Romans 8' -> book/chapter/verse."""
+    m = _REFERENCE_RE.match((reference or "").strip())
+    if not m:
+        return {}
+    g = m.groupdict()
+    return {
+        "book": g["book"],
+        "chapter": int(g["chapter"]),
+        "verse": int(g["verse"]) if g.get("verse") else None,
+    }
+
+
+def _parse_explain_json(raw: str) -> Optional[dict]:
+    raw = (raw or "").strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+        raw = raw.rsplit("```", 1)[0].strip()
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(data, dict) or not data.get("explanation"):
+        return None
+    return data
+
+
+@app.post("/api/bible/explain")
+async def explain_verse(req: ExplainVerseRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+    ref = _parse_reference(req.reference)
+    context = {}
+    if ref.get("book"):
+        context = retrieve_passage_context(ref["book"], ref.get("chapter", 1), ref.get("verse"))
+        # Add a short, clearly-attributed commentary excerpt when available (Matthew Henry).
+        commentary = None
+        try:
+            from api.commentary_service import get_commentary_for_chapter, _SOURCES_BY_ID
+        except Exception:
+            commentary = None
+        if ref.get("chapter"):
+            try:
+                got = await get_commentary_for_chapter("matthew-henry", ref["book"], ref["chapter"])
+                if got and got.get("entries"):
+                    commentary = got["entries"][0]
+            except Exception:
+                commentary = None
+        context["commentary_excerpt"] = (
+            {"source": "Matthew Henry's Commentary (public domain)", "text": commentary["text"][:1200]}
+            if commentary else None
+        )
+
+    system = (
+        "You are a careful Bible teacher. Explain the given verse in clear, plain language. "
+        "GROUND every statement in the exact passage and the retrieved source material you are given. "
+        "Never invent, elaborate, or fabricate historical facts, theological claims, or verses that are "
+        "not present in the provided context. If a detail is not found in the context, say it is not "
+        "clear or is beyond the passage instead of guessing. "
+        "Write in plain natural language. Do not use emojis, asterisks, hash symbols, tildes, or markdown. "
+        "Use only punctuation. Keep the whole explanation informative yet concise (about 180-260 words). "
+        "Return ONLY valid JSON with exactly this shape and nothing else:\n"
+        '{"explanation": "<2-4 plain paragraphs covering simple meaning, historical context, and practical relevance, grounded in the context>", '
+        '"key_terms": [{"term": "<word or phrase>", "note": "<1-2 sentences, grounded in the dictionary entry if available, else the passage>", "source": "<dictionary source or "passage">"}], '
+        '"cross_references": ["<Book Chapter:Verse>", "<...>"]}\n'
+        "Key terms must come from the provided context or passage; do not fabricate them."
+    )
+    ground_passage = context.get("passage_text", req.text)[:1600]
+    excerpt = ""
+    if context.get("commentary_excerpt"):
+        c = context["commentary_excerpt"]
+        excerpt = f"\n\nReference commentary ({c['source']}):\n{c['text'][:1000]}"
+    dict_terms = context.get("dictionary_terms") or []
+    dictionary_ground = "\n".join(
+        f"- {t['term']}: {t['definition'][:300]}" for t in dict_terms[:4]
+    ) if dict_terms else "(none retrieved)"
+
     prompt = (
         f"Explain this verse ({req.reference}, {req.version}):\n"
         f"'{req.text}'\n\n"
-        f"Provide:\n"
-        f"- Simple meaning: What this verse means in plain language\n"
-        f"- Historical context: The background and cultural setting\n"
-        f"- Key lessons: What we can learn from this verse\n"
-        f"- Practical application: How to apply this today\n"
-        f"Format with clear section headings. Keep each section to 2-3 sentences."
+        f"Passage context:\n{ground_passage}\n\n"
+        f"Retrieved dictionary grounding:\n{dictionary_ground}\n"
+        f"{excerpt}\n\n"
+        "Write the explanation grounded in the above source material only. "
+        "Respond ONLY with the JSON object."
     )
-    explanation = await call_llm(system, prompt, provider=req.provider, temperature=0.5)
-    return {"reference": req.reference, "version": req.version, "explanation": explanation}
+
+    limited = False
+    explanation_data = None
+    try:
+        raw = await call_llm(system, prompt, provider=req.provider, temperature=0.3, max_tokens=900)
+        explanation_data = _parse_explain_json(raw)
+    except Exception as e:
+        logger.warning(f"Explain AI failed ({type(e).__name__}): grounding returned instead")
+
+    if explanation_data is None:
+        # Graceful, grounded fallback assembled from retrieved material (no fabrication).
+        g = context.get("passage_text") or req.text
+        terms = [
+            {"term": t["term"], "note": t["definition"][:200], "source": t["source"]}
+            for t in dict_terms[:4]
+        ]
+        excerpt = context.get("commentary_excerpt")
+        explanation_data = {
+            "explanation": (
+                f"This verse reads: \"{g[:500]}\". An in-depth AI explanation is "
+                "temporarily unavailable, but the verse and its Biblical context are grounded in the "
+                "public-domain King James Version text above, along with the key terms listed below."
+            ),
+            "key_terms": terms,
+            "cross_references": (excerpt.get("cross_references", []) or [])[:6] if excerpt else [],
+        }
+        limited = "AI explanation service was unavailable; showing grounded verse + terms instead."
+
+    return {
+        "reference": req.reference,
+        "version": req.version,
+        "explanation": explanation_data.get("explanation") or "",
+        "key_terms": (explanation_data.get("key_terms") or [])[:6],
+        "cross_references": (explanation_data.get("cross_references") or [])[:8],
+        "sources": [
+            "King James Version (public domain)",
+            "Easton's Bible Dictionary (public domain)",
+        ],
+        "limited": limited,
+    }
+
+
+@app.get("/api/bible/commentary/sources")
+async def commentary_sources():
+    return {"sources": get_commentary_sources()}
 
 
 @app.post("/api/bible/commentary")
-async def get_commentary(req: CommentaryRequest, user=Depends(get_current_user)):
-    verses_text = ""
-    if req.verses:
-        verses_text = "\n".join([f"Verse {v.get('verse', '?')}: {v.get('text', '')}" for v in req.verses[:30]])
-    system = (
-        "You are a Bible commentary writer. Provide insightful, faithful commentary. "
-        "Write in plain natural language. Use only punctuation marks for formatting. "
-        "Do not use emojis, asterisks, hash symbols, tildes, or any special characters. "
-        "Do not use markdown formatting. Use plain paragraphs with clear section headings."
-    )
-    prompt = (
-        f"Provide a Bible commentary on {req.book} Chapter {req.chapter}:\n\n"
-        f"{verses_text}\n\n"
-        f"Include:\n"
-        f"- Chapter overview: The main theme and structure of this chapter\n"
-        f"- Key themes: Major theological themes present\n"
-        f"- Verse-by-verse insights: Important observations on key verses\n"
-        f"- Cross-references: Related passages elsewhere in Scripture\n"
-        f"- Practical application: How this chapter applies to daily Christian living\n"
-        f"Make it accessible for everyday readers."
-    )
-    commentary = await call_llm(system, prompt, provider=req.provider, temperature=0.4)
-    return {"book": req.book, "chapter": req.chapter, "commentary": commentary}
+async def get_commentary(req: CommentaryRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+    result = await get_commentary_for_chapter(req.source, req.book, req.chapter)
+    source_meta = next((s for s in get_commentary_sources() if s["id"] == req.source), None)
+    if not result:
+        return {
+            "book": req.book,
+            "chapter": req.chapter,
+            "source": source_meta,
+            "available": False,
+            "entries": [],
+            "note": (
+                f"Commentary from this source is not available for {req.book} {req.chapter}. "
+                "A clearly-labeled AI study note can be generated in its place below."
+            ),
+        }
+
+    entry_text = " ".join(e["text"] for e in result["entries"] if e["text"])
+    ai_summary = None
+    if req.ai_summary and entry_text:
+        summary_system = (
+            "You are a precise summarizer. Summarize the provided Bible commentary in 3-5 plain sentences "
+            "covering the main points. Ground all statements only in the commentary text given. "
+            "Do not add any information that is not in the text. Use plain natural language without "
+            "markdown, emojis, or special characters."
+        )
+        try:
+            ai_summary = await call_llm(summary_system, entry_text[:6000], provider=req.provider, temperature=0.3, max_tokens=400)
+        except Exception as e:
+            logger.warning(f"Commentary AI summary failed ({type(e).__name__})")
+
+    return {
+        "book": req.book,
+        "chapter": req.chapter,
+        "source": source_meta,
+        "available": True,
+        "entries": [e for e in result["entries"]],
+        "ai_summary": ai_summary,
+    }
 
 
 @app.post("/api/bible/concordance")
-async def search_concordance(req: ConcordanceRequest, user=Depends(get_current_user)):
+async def search_concordance_endpoint(req: ConcordanceRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+    q = req.query.strip()
+    if not q:
+        raise HTTPException(status_code=422, detail="A search term is required")
+
+    results = search_concordance(q, limit=40)
+    groups = {}
+    for r in results:
+        groups.setdefault(r["book"], []).append(r)
+
+    term_ctx = retrieve_term_context(q)
+    term_guide = None
+    if term_ctx.get("dictionary_terms"):
+        t = term_ctx["dictionary_terms"][0]
+        term_guide = {
+            "term": t["term"],
+            "definition": t["definition"][:700],
+            "scripture_references": t["scripture_references"][:6],
+            "source": t["source"],
+        }
+
+    return {
+        "query": q,
+        "version": req.version,
+        "results": results,
+        "total": len(results),
+        "groups": [{"book": b, "count": len(c), "first": c[0]["reference"]} for b, c in groups.items()],
+        "term_guide": term_guide,
+        "search_source": "King James Version (public domain) concordance index",
+    }
+
+
+@app.post("/api/bible/dictionary")
+async def bible_dictionary(req: DictionaryRequest, user=Depends(optional_user)):
+    term = req.term.strip()
+    if not term:
+        raise HTTPException(status_code=422, detail="A dictionary term is required")
+    matches = dictionary_search(term, limit=5)
+    if not matches:
+        return {"query": term, "matches": [], "note": "No entry found in Easton's Bible Dictionary."}
+
+    resp = {"query": term, "matches": matches, "source": "Easton's Bible Dictionary (public domain)"}
+    if req.expand:
+        top = matches[0]
+        system = (
+            "You are a careful Bible reference assistant. Write a short, factual clarification "
+            "(2-4 sentences) of the given dictionary term, grounded ONLY in the definition and "
+            "passage references provided. Do not invent facts. Plain natural language, no markdown "
+            "or emojis."
+        )
+        refs = " ".join(top.get("scripture_references", []))
+        try:
+            resp["ai_expansion"] = await call_llm(
+                system,
+                f"Term: {top['term']}\nDefinition: {top['definition'][:1500]}\nKey references: {refs}",
+                provider=req.provider, temperature=0.3, max_tokens=300,
+            )
+        except Exception as e:
+            logger.warning(f"Dictionary AI expansion failed ({type(e).__name__})")
+    return resp
+
+
+@app.post("/api/bible/notes-assist")
+async def bible_notes_assist(req: NotesAssistRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+    note = req.note_text.strip()
+    if not note:
+        raise HTTPException(status_code=422, detail="Write some note text first")
+
+    term_ctx = retrieve_term_context(note)
+    key_terms = term_ctx.get("dictionary_terms", [])
+    search_terms = " ".join(t["term"] for t in key_terms[:2]) or note
+    related_verses = search_concordance(search_terms, limit=5)
+    related_verses = [
+        {"reference": v["reference"], "text": v["text"]}
+        for v in related_verses
+    ]
+
+    suggestions = []
     system = (
-        "You are a Bible concordance expert. Find relevant Bible passages for any topic or word. "
-        "Write in plain natural language. Use only punctuation marks for formatting. "
-        "Do not use emojis, asterisks, hash symbols, tildes, or any special characters. "
-        f"{f'Use the {req.version} translation for all verses.' if req.version else ''}"
+        "You are a Bible study writing assistant. Based on the user's notes and the retrieved "
+        "verse passages, produce 3 short study suggestions that help the user understand Scripture "
+        "and organize their thoughts. Ground each suggestion in the provided verses. Clearly these "
+        "are suggestions, not the user's own words. Use plain natural language without markdown "
+        "or emojis. Number the suggestions."
     )
-    prompt = (
-        f"Search the Bible for the topic or word: '{req.query}'\n\n"
-        f"Provide:\n"
-        f"- Key verses: List 8-10 significant Bible verses related to this topic, with full verse text\n"
-        f"- Old Testament references: Key OT passages\n"
-        f"- New Testament references: Key NT passages\n"
-        f"- Major themes connected to this topic\n"
-        f"Format each verse as: BOOK CHAPTER:VERSE - TEXT"
-    )
-    results = await call_llm(system, prompt, provider=req.provider, temperature=0.3)
-    return {"query": req.query, "version": req.version, "results": results}
+    try:
+        prompt = (
+            f"User's notes: {note[:2000]}\n\n"
+            f"Related passages (public-domain KJV):\n"
+            + "\n".join(f"- {v['reference']}: {v['text']}" for v in related_verses)
+        )
+        suggestions = (await call_llm(system, prompt, provider=req.provider, temperature=0.4, max_tokens=400)).split("\n")
+        suggestions = [s.strip("-• ").strip() for s in suggestions if s.strip()]
+    except Exception as e:
+        logger.warning(f"Notes assist AI failed ({type(e).__name__}); returning grounded material only")
+
+    return {
+        "suggestions": suggestions[:5],
+        "dictionary_terms": [{"term": t["term"], "definition": t["definition"][:300], "source": t["source"]} for t in term_ctx.get("dictionary_terms", [])[:4]],
+        "related_verses": [{"reference": v["reference"], "text": v["text"]} for v in related_verses[:5]],
+        "label": "AI study suggestions (clearly distinct from your own notes)",
+    }
 
 
 @app.post("/api/hymns/explain")
-async def explain_hymn(req: HymnRequest, user=Depends(get_current_user)):
+async def explain_hymn(req: HymnRequest, user=Depends(get_current_user), _db=Depends(require_db)):
     system = (
         "You are a hymn historian and worship expert. Explain the meaning, history, and significance "
         "of the given hymn. Write in plain natural language. Do not use emojis, asterisks, "
@@ -621,7 +1009,7 @@ async def explain_hymn(req: HymnRequest, user=Depends(get_current_user)):
 
 
 @app.post("/api/devotional/generate")
-async def generate_devotional(req: DevotionalRequest, user=Depends(get_current_user)):
+async def generate_devotional(req: DevotionalRequest, user=Depends(get_current_user), _db=Depends(require_db)):
     system = (
         "You are a Christian devotional writer. Generate a short, encouraging devotional "
         "based on the given topic, verse, or theme. Write in plain natural language. "
@@ -653,24 +1041,82 @@ async def get_hymn_tune(hymn_id: int):
         raise HTTPException(status_code=500, detail=f"Tune data not available: {str(e)}")
 
 
+_COMPARE_TRANSLATION_NAMES = {
+    "KJV": "King James Version", "WEB": "World English Bible", "ASV": "American Standard Version",
+    "BBE": "Bible in Basic English", "YLT": "Young's Literal Translation",
+    "DBY": "Darby Bible", "DRB": "Douay-Rheims Bible", "WBT": "Webster Bible", "RV": "Revised Version",
+}
+
+_COMPARE_DEFAULT = ["KJV", "WEB", "ASV", "BBE", "YLT"]
+
+
 @app.post("/api/bible/compare")
-async def compare_versions(req: CommentaryRequest, user=Depends(get_current_user)):
-    system = (
-        "You are a Bible translation expert. Compare translations of the same passage. "
-        "Write in plain natural language. Use only punctuation marks for formatting. "
-        "Do not use emojis, asterisks, hash symbols, tildes, or any special characters. "
-        "Do not use markdown formatting."
-    )
-    prompt = (
-        f"Provide a verse-by-verse comparison for {req.book} Chapter {req.chapter}:\n\n"
-        f"For each verse, show the text in key translations (KJV, NIV, ESV, NLT) "
-        f"and explain notable differences in translation choices.\n\n"
-        f"Focus on:\n"
-        f"- Key differences: Where translations diverge significantly\n"
-        f"- Translation philosophy: How formal vs dynamic equivalence affects meaning\n"
-        f"- Original language: What the Hebrew or Greek actually says\n"
-        f"- Which is most accurate: Guidance on which translation captures the original best\n\n"
-        f"Keep each verse comparison to 2-3 sentences. Focus on the most interesting verses."
-    )
-    comparison = await call_llm(system, prompt, provider=req.provider, temperature=0.4)
-    return {"book": req.book, "chapter": req.chapter, "comparison": comparison}
+async def compare_versions(req: CompareRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+    tids = [t for t in (req.translations or _COMPARE_DEFAULT)]
+    tids = tids[:6]
+
+    seen = set()
+    fetched = {}
+    for tid in tids:
+        try:
+            from api.redis_client import cache_get, cache_set
+            ckey = f"cmp:{tid.lower()}:{req.book.lower()}:{req.chapter}"
+            data = None
+            try:
+                cached = await cache_get("bible", ckey)
+                if cached:
+                    data = json.loads(cached)
+            except Exception:
+                pass
+            if not data:
+                data = await fetch_chapter(tid, req.book, req.chapter)
+                if data and data.get("verses"):
+                    try:
+                        await cache_set("bible", ckey, json.dumps(data), ttl=86400)
+                    except Exception:
+                        pass
+            if data and data.get("verses"):
+                fetched[tid] = {v["verse"]: v["text"] for v in data["verses"]}
+                seen.add(tid)
+        except Exception as e:
+            logger.warning(f"Compare fetch failed for {tid}: {e}")
+
+    if not fetched:
+        raise HTTPException(status_code=502, detail="No translations could be loaded. Please try again.")
+
+    verse_nums = sorted(set().union(*(set(d.keys()) for d in fetched.values())))
+    verses = []
+    for num in verse_nums:
+        row = {"verse": num}
+        for tid, d in fetched.items():
+            row[tid] = d.get(num, "")
+        verses.append(row)
+
+    resp = {
+        "book": req.book,
+        "chapter": req.chapter,
+        "reference": f"{req.book} {req.chapter}",
+        "translations": [
+            {"id": tid, "name": _COMPARE_TRANSLATION_NAMES.get(tid, tid)} for tid in fetched.keys()
+        ],
+        "verses": verses,
+    }
+
+    if req.insights:
+        combined = ""
+        for num in verse_nums[:6]:
+            line = f"Verse {num}:"
+            for tid in fetched.keys():
+                line += f" [{tid}] {fetched[tid].get(num, '')} "
+            combined += line + "\n"
+        system = (
+            "You are a Bible translation expert. Compare the translations of the same passage above. "
+            "Write 3-5 plain sentences noting the most significant differences in wording or emphasis. "
+            "Ground every observation in the passages shown. Do not speculate beyond them. "
+            "No markdown, emojis, or special characters."
+        )
+        try:
+            resp["ai_insight"] = await call_llm(system, combined[:6000], provider=req.provider, temperature=0.3, max_tokens=350)
+        except Exception as e:
+            logger.warning(f"Compare AI insight failed ({type(e).__name__})")
+    return resp

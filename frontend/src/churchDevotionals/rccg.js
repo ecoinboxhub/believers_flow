@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const RCCG_DEVOTIONALS = {
   name: "Redeemed Christian Church of God",
   pastor: "Pastor E.A. Adeboye",

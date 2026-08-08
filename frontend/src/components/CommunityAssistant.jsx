@@ -54,7 +54,7 @@ function ActionCard({ card, onDismiss }) {
   )
 }
 
-export default function CommunityAssistant({ showToast, isPremium }) {
+export default function CommunityAssistant({ isPremium }) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([
     { role: 'assistant', content: "Hello! I'm your community assistant. How can I help you grow in faith today?" },

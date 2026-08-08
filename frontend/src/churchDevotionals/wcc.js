@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const WCC_DEVOTIONALS = {
   name: "Winners Chapel International",
   pastor: "Bishop David Oyedepo",

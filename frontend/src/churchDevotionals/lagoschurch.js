@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const LAGOSCHURCH_DEVOTIONALS = {
   name: "The Lord\'s Chosen Charismatic Revival Movement",
   pastor: "Pastor Lazarus Muoka",

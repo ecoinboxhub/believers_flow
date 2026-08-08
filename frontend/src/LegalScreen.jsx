@@ -1437,6 +1437,7 @@ export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', 
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function hasAcceptedLegal() {
   try {
     const stored = localStorage.getItem('bf_legal_accepted')
@@ -1448,6 +1449,7 @@ export function hasAcceptedLegal() {
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function getLegalAcceptance() {
   try {
     const stored = localStorage.getItem('bf_legal_accepted')

@@ -99,16 +99,22 @@ export default function CommunityFeedView({ showToast, isPremium, setShowAuth })
         const data = await res.json()
         setEncouragement(data)
       }
-    } catch {}
+    } catch { console.warn('Failed to fetch encouragement') }
   }, [isPremium, filter])
 
   useEffect(() => {
-    setItems([])
-    setCursor(null)
-    setHasMore(true)
-    setLoading(true)
-    fetchFeed(true)
-    fetchEncouragement()
+    let cancelled = false
+    ;(async () => {
+      await Promise.resolve()
+      if (cancelled) return
+      setItems([])
+      setCursor(null)
+      setHasMore(true)
+      setLoading(true)
+      await Promise.all([fetchFeed(true), fetchEncouragement()])
+      if (cancelled) return
+    })()
+    return () => { cancelled = true }
   }, [filter, fetchFeed, fetchEncouragement])
 
   useEffect(() => {

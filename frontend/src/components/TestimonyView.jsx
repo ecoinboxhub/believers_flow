@@ -66,7 +66,7 @@ function SkeletonCard() {
   )
 }
 
-export default function TestimonyView({ showToast, isPremium, setShowAuth }) {
+export default function TestimonyView({ showToast, setShowAuth }) {
   const [testimonies, setTestimonies] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -103,7 +103,7 @@ export default function TestimonyView({ showToast, isPremium, setShowAuth }) {
       setTestimonies(prev => (reset ? items : [...prev, ...items]))
       setCursor(data.next_cursor || null)
       setHasMore(!!data.next_cursor)
-    } catch (err) {
+    } catch {
       showToast?.('Failed to load testimonies', 'error')
     } finally {
       setLoading(false)
@@ -120,13 +120,25 @@ export default function TestimonyView({ showToast, isPremium, setShowAuth }) {
   }, [headers])
 
   useEffect(() => {
-    setTestimonies([])
-    setCursor(null)
-    setHasMore(true)
-    fetchTestimonies(true)
-  }, [filter, category])
+    let cancelled = false
+    ;(async () => {
+      setTestimonies([])
+      setCursor(null)
+      setHasMore(true)
+      await fetchTestimonies(true)
+      if (cancelled) return
+    })()
+    return () => { cancelled = true }
+  }, [filter, category, fetchTestimonies])
 
-  useEffect(() => { fetchTrending() }, [fetchTrending])
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      await fetchTrending()
+      if (cancelled) return
+    })()
+    return () => { cancelled = true }
+  }, [fetchTrending])
 
   const handleReact = async (id, reactionKey) => {
     if (!authenticated) { setShowAuth?.(); return }
@@ -168,11 +180,6 @@ export default function TestimonyView({ showToast, isPremium, setShowAuth }) {
   }
 
   const toggleExpand = (id) => setExpandedId(prev => prev === id ? null : id)
-
-  const totalReactions = (r) => {
-    if (!r) return 0
-    return Object.values(r).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0)
-  }
 
   const filterButtons = [
     { key: 'all', label: 'All' },

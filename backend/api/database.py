@@ -12,6 +12,14 @@ if not DATABASE_URL:
 
 _pool: Optional[asyncpg.Pool] = None
 
+# DB availability tracking
+_pool_state = {
+    "available": False,
+    "last_check": 0.0,
+    "last_error": None,
+    "consecutive_failures": 0,
+}
+
 # Production-grade pool settings
 POOL_MIN = int(os.environ.get("DB_POOL_MIN", "5"))
 POOL_MAX = int(os.environ.get("DB_POOL_MAX", "50"))
@@ -21,9 +29,26 @@ MAX_RETRIES = 3
 RETRY_DELAY = 2
 
 
+def check_db_health() -> bool:
+    """Check if DB pool is available for queries."""
+    return _pool_state["available"] and _pool is not None and not _pool._closed
+
+
+def get_db_status() -> dict:
+    """Get detailed DB pool status for health endpoint."""
+    return {
+        "available": _pool_state["available"],
+        "pool_exists": _pool is not None and not _pool._closed,
+        "last_check": _pool_state["last_check"],
+        "last_error": _pool_state["last_error"],
+        "consecutive_failures": _pool_state["consecutive_failures"],
+    }
+
+
 async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is not None and not _pool._closed:
+        _pool_state["available"] = True
         return _pool
 
     for attempt in range(MAX_RETRIES):
@@ -35,14 +60,23 @@ async def get_pool() -> asyncpg.Pool:
                 max_size=POOL_MAX,
                 command_timeout=POOL_COMMAND_TIMEOUT,
                 max_inactive_connection_lifetime=POOL_MAX_INACTIVE,
+                timeout=10,
             )
             logger.info(f"[DB] Pool created OK (min={POOL_MIN}, max={POOL_MAX})")
+            _pool_state["available"] = True
+            _pool_state["last_check"] = time.time()
+            _pool_state["consecutive_failures"] = 0
+            _pool_state["last_error"] = None
             return _pool
         except Exception as e:
             logger.error(f"[DB] Pool creation failed (attempt {attempt + 1}): {type(e).__name__}: {e}")
+            _pool_state["last_error"] = str(e)
+            _pool_state["consecutive_failures"] += 1
             if attempt < MAX_RETRIES - 1:
                 time.sleep(RETRY_DELAY * (attempt + 1))
             else:
+                _pool_state["available"] = False
+                _pool_state["last_check"] = time.time()
                 raise
 
 
@@ -60,18 +94,19 @@ async def get_connection() -> asyncpg.Connection:
 
 
 async def init_db():
-    pool = await get_pool()
-    async with pool.acquire() as conn:
+    try:
+        pool = await get_pool()
+        conn = await pool.acquire()
         await conn.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                name VARCHAR(255) NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                plan VARCHAR(20) DEFAULT 'free',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-            )
-        """)
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    plan VARCHAR(20) DEFAULT 'free',
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            """)
         await conn.execute("""
             DO $$ BEGIN
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(20) DEFAULT 'free';
@@ -496,9 +531,23 @@ async def init_db():
         """)
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_prayer_logs_user_date ON prayer_logs(user_id, date)")
 
+        logger.info("[DB] Schema initialization complete")
+        _pool_state["available"] = True
+        _pool_state["last_check"] = time.time()
+        _pool_state["consecutive_failures"] = 0
+        await pool.release(conn)
+    except Exception as e:
+        logger.error(f"[DB] Schema init failed: {type(e).__name__}: {e}")
+        _pool_state["available"] = False
+        _pool_state["last_error"] = str(e)
+        _pool_state["last_check"] = time.time()
+        raise
+
 
 async def close_pool():
     global _pool
     if _pool:
         await _pool.close()
         _pool = None
+    _pool_state["available"] = False
+    logger.info("[DB] Pool closed")

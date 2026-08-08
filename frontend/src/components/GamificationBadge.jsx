@@ -132,7 +132,13 @@ export default function GamificationBadge({ isPremium = false, compact = false }
   }, [])
 
   useEffect(() => {
-    fetchStats()
+    let cancelled = false
+    ;(async () => {
+      await Promise.resolve()
+      if (cancelled) return
+      fetchStats()
+    })()
+    return () => { cancelled = true }
   }, [fetchStats])
 
   if (loading) {
