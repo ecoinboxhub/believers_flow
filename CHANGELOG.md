@@ -21,6 +21,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened reminder time/date validation (rejects out-of-range hours, minutes, seconds, months, and days).
 - Unit and source-contract tests for reminder scheduling and native integration (`taskReminders.test.js`).
 
+## [4.14.0] - 2026-08-08
+
+### Fixed
+
+- **Music playback honesty**: no app-side timer ever caps playback. Live Praise radio streams play continuously; Boom song results play the actual Apple Music preview sample with a timeline matching the real sample length. "Full" shows the complete track length; nothing artificially cuts a track short.
+- **Time display toggle**: track progress now shows elapsed or remaining time (toggle button, render-only — never restarts or seeks playback). Live streams show a `LIVE` badge with a live elapsed indicator instead of a fake duration.
+- **AI mobile chat error states**: the Faith Assistant now reports typed errors (session expired, assistant busy, service unavailable, network) instead of a single generic message.
+- **Embedded player fallback**: Boom station player timeout increased, and the fallback message honestly states when a provider does not permit embedded playback from the location.
+
+### Added
+
+- `stopActiveAudio()` module helper so switching music tabs (or leaving the Music view) pauses any active stream/preview and prevents overlapping players.
+- Unit tests for the time toggle, live indicator, honest preview/full labeling, and tab-switch playback protection.
+
+## [4.13.0] - 2026-08-08
+
+### Fixed
+
+- **`/api/chat` connectivity**: the Faith Assistant and diary reflection requests now target `VITE_API_URL` (absolute URL), matching how the rest of the app reaches the backend inside the Capacitor app.
+- **AI explain/reflection parsing**: tolerant JSON extraction (`_extract_json_object`) handles markdown fences and incidental prose; diary reflection and Bible explain now request JSON output from the LLM and parse it robustly.
+- **OpenRouter model**: replaced the removed `:free` slug with the working `meta-llama/llama-3.3-70b-instruct` model.
+- **Music progress**: live radio streams no longer show a misleading full-duration timeline; embedded players gained a retry fallback.
+- **Guest AI**: backend endpoints use optional auth so guests can chat and get verse explanations without signing in.
+
 ## [Unreleased]
 
 ### Added
