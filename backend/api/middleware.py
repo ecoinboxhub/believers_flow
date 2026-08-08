@@ -18,6 +18,18 @@ ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()] if _
 RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60"))
 IS_PRODUCTION = os.environ.get("APP_ENV", "development") == "production"
 
+# The app's own page origins that must always be allowed. The packaged mobile
+# app (Capacitor WebView) serves from https://localhost on both Android and
+# iOS, and the deployed web app is served from the Vercel frontend origin.
+# These are first-party origins for this application and are safe to allow.
+_APP_ORIGINS = {
+    "https://localhost",
+    "http://localhost",
+    "capacitor://localhost",
+    "ionic://localhost",
+    "https://believers-flow-frontend.vercel.app",
+}
+
 
 def _is_dev_origin(origin: str) -> bool:
     """Allow localhost/127.0.0.1 origins in development mode."""
@@ -33,8 +45,10 @@ def _is_dev_origin(origin: str) -> bool:
 
 
 def _is_allowed_origin(origin: str) -> bool:
-    """Check if origin is allowed via explicit list or dev-mode localhost."""
+    """Check if origin is allowed via explicit list, app origins, or dev-mode localhost."""
     if origin in ALLOWED_ORIGINS:
+        return True
+    if origin in _APP_ORIGINS:
         return True
     if not ALLOWED_ORIGINS and _is_dev_origin(origin):
         return True
