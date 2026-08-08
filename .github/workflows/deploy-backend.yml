@@ -1,4 +1,4 @@
-name: Deploy Backend to Railway
+name: Backend CI
 
 on:
   push:
@@ -10,6 +10,20 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d test_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -22,16 +36,5 @@ jobs:
         working-directory: backend
         run: python -m pytest tests/ -q
         env:
-          DATABASE_URL: postgres://localhost/test
+          DATABASE_URL: postgres://test:test@localhost:5432/test_db
           JWT_SECRET_KEY: test-key-for-ci-only-32chars-minimum!
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: believersflow-api
