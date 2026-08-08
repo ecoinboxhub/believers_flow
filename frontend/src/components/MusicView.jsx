@@ -293,6 +293,65 @@ function PlayerControls({ playing, buffering, onPlay, onPause, onStop, volume, m
   )
 }
 
+function formatTime(sec) {
+  if (!Number.isFinite(sec) || sec < 0) return '0:00'
+  const s = Math.floor(sec)
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+function AudioProgress({ audioRef, disabled }) {
+  const [current, setCurrent] = useState(0)
+  const [duration, setDuration] = useState(0)
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onTime = () => setCurrent(audio.currentTime || 0)
+    const onDur = () => setDuration(Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0)
+    const onReset = () => { setCurrent(0); setDuration(0) }
+    audio.addEventListener('timeupdate', onTime)
+    audio.addEventListener('loadedmetadata', onDur)
+    audio.addEventListener('durationchange', onDur)
+    audio.addEventListener('ended', onReset)
+    audio.addEventListener('emptied', onReset)
+    return () => {
+      audio.removeEventListener('timeupdate', onTime)
+      audio.removeEventListener('loadedmetadata', onDur)
+      audio.removeEventListener('durationchange', onDur)
+      audio.removeEventListener('ended', onReset)
+      audio.removeEventListener('emptied', onReset)
+    }
+  }, [audioRef])
+
+  const seek = (e) => {
+    const audio = audioRef.current
+    if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return
+    const val = Number(e.target.value)
+    audio.currentTime = val
+    setCurrent(val)
+  }
+
+  const max = duration > 0 ? Math.floor(duration) : 0
+
+  return (
+    <div className="music-progress">
+      <span className="music-progress-time">{formatTime(current)}</span>
+      <input
+        type="range"
+        className="music-progress-range"
+        min="0"
+        max={max || 1}
+        step="1"
+        value={Math.min(current, max || 0)}
+        onChange={seek}
+        disabled={disabled || !max}
+        aria-label="Playback position"
+      />
+      <span className="music-progress-time">{max ? formatTime(max) : ''}</span>
+    </div>
+  )
+}
+
 function AudioStreamCard({ stream }) {
   const [playing, setPlaying] = useState(false)
   const [buffering, setBuffering] = useState(false)
@@ -373,21 +432,20 @@ function AudioStreamCard({ stream }) {
 
 function EmbeddedFrame({ frame }) {
   const [status, setStatus] = useState('loading')
+  const [attempt, setAttempt] = useState(0)
   const timerRef = useRef(null)
 
   useEffect(() => {
     timerRef.current = setTimeout(() => {
       setStatus(s => (s === 'loading' ? 'timeout' : s))
-    }, 12000)
+    }, 25000)
     return () => clearTimeout(timerRef.current)
-  }, [frame.url])
+  }, [frame.url, attempt])
 
   const retry = () => {
     clearTimeout(timerRef.current)
     setStatus('loading')
-    timerRef.current = setTimeout(() => {
-      setStatus(s => (s === 'loading' ? 'timeout' : s))
-    }, 12000)
+    setAttempt(n => n + 1)
   }
 
   return (
@@ -407,6 +465,7 @@ function EmbeddedFrame({ frame }) {
           </div>
         )}
         <iframe
+          key={attempt}
           className="music-embed-frame"
           src={frame.url}
           title={frame.title}
@@ -417,7 +476,8 @@ function EmbeddedFrame({ frame }) {
         />
         {(status === 'timeout' || status === 'error') && (
           <div className="music-frame-fallback">
-            <p>The player could not be loaded in this view. It may be unavailable from your location.</p>
+            <p>This station's player could not be reached from your location. It may be temporarily
+              unavailable or the provider may not permit embedded playback here.</p>
             <button className="music-frame-retry" onClick={retry}>Retry</button>
           </div>
         )}
@@ -603,6 +663,7 @@ function BoomResultCard({ track }) {
         disabled={!track.previewUrl}
         className="music-result-play"
       />
+      <AudioProgress audioRef={audioRef} disabled={!track.previewUrl} />
     </div>
   )
 }

@@ -640,16 +640,36 @@ async def chat(req: ChatRequest, user=Depends(optional_user)):
     return {"message": reply}
 
 
-def _parse_reflection_json(raw: str):
+def _extract_json_object(raw: str) -> Optional[dict]:
+    """Tolerantly extract the first JSON object from an LLM response.
+
+    Handles markdown fences, code blocks, and incidental prose around the JSON.
+    """
     raw = (raw or "").strip()
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[-1]
         raw = raw.rsplit("```", 1)[0].strip()
+    if not raw:
+        return None
     try:
         data = json.loads(raw)
+        return data if isinstance(data, dict) else None
+    except (json.JSONDecodeError, TypeError):
+        pass
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    try:
+        data = json.loads(raw[start:end + 1])
+        return data if isinstance(data, dict) else None
     except (json.JSONDecodeError, TypeError):
         return None
-    if not isinstance(data, dict) or not data.get("reflection"):
+
+
+def _parse_reflection_json(raw: str):
+    data = _extract_json_object(raw)
+    if not data or not data.get("reflection"):
         return None
     verses = data.get("verses")
     data["verses"] = [v for v in verses if isinstance(v, dict) and v.get("reference")] if isinstance(verses, list) else []
@@ -701,7 +721,7 @@ async def diary_reflection(req: DiaryReflectionRequest, user=Depends(optional_us
         f"Selected mood: {req.mood or 'not specified'}\n\n"
         "Please write a supportive reflection, choose relevant Bible verses, and close with encouragement."
     )
-    raw = await call_llm(system, prompt, provider=req.provider, temperature=0.7, max_tokens=700)
+    raw = await call_llm(system, prompt, provider=req.provider, temperature=0.7, max_tokens=900, response_format={"type": "json_object"})
     return _parse_reflection_json(raw) or _REFLECTION_FALLBACK
 
 
@@ -722,14 +742,7 @@ def _parse_reference(reference: str) -> dict:
 
 
 def _parse_explain_json(raw: str) -> Optional[dict]:
-    raw = (raw or "").strip()
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[-1]
-        raw = raw.rsplit("```", 1)[0].strip()
-    try:
-        data = json.loads(raw)
-    except (json.JSONDecodeError, TypeError):
-        return None
+    data = _extract_json_object(raw)
     if not isinstance(data, dict) or not data.get("explanation"):
         return None
     return data
@@ -796,7 +809,7 @@ async def explain_verse(req: ExplainVerseRequest, user=Depends(optional_user), _
     limited = False
     explanation_data = None
     try:
-        raw = await call_llm(system, prompt, provider=req.provider, temperature=0.3, max_tokens=900)
+        raw = await call_llm(system, prompt, provider=req.provider, temperature=0.3, max_tokens=1100, response_format={"type": "json_object"})
         explanation_data = _parse_explain_json(raw)
     except Exception as e:
         logger.warning(f"Explain AI failed ({type(e).__name__}): grounding returned instead")

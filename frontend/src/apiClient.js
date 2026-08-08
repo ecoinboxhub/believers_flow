@@ -43,7 +43,7 @@ async function attemptTokenRefresh() {
   }
 
   try {
-    const res = await fetch(`/api/auth/refresh`, {
+    const res = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -99,6 +99,7 @@ class APIError extends Error {
 
 async function request(endpoint, options = {}) {
   const { timeout = 30000, retries = 1, retryDelay = 1000, signal, ...fetchOptions } = options
+  const url = endpoint && endpoint.startsWith('/') ? `${API_URL}${endpoint}` : endpoint
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
   const combinedSignal = signal
@@ -111,7 +112,7 @@ async function request(endpoint, options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const headers = buildHeaders(fetchOptions)
-      const res = await fetch(endpoint, {
+      const res = await fetch(url, {
         ...fetchOptions,
         headers,
         signal: combinedSignal,

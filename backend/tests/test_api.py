@@ -346,7 +346,8 @@ def test_unauthorized_bible_explain():
                 "reference": "John 3:16",
                 "text": "For God so loved the world"
             })
-            assert resp.status_code in [401, 403]
+            # Guests may use Bible Explain (optional auth) - it must NOT be blocked by 401/403.
+            assert resp.status_code not in [401, 403], f"guest explain should not require auth, got {resp.status_code}"
 
     asyncio.get_event_loop().run_until_complete(_test())
 

@@ -639,10 +639,12 @@ const generateDiaryReflection = useCallback(async (entry) => {
 
     const taskContext = tasks.length ? `The user's current tasks are: ${tasks.map(t => t.text).join(', ')}` : ''
 
+    const pushError = (content) => setChatHistory(prev => [...prev, { role: 'assistant', content }])
+
     try {
       const currentHistory = [...chatHistoryRef.current, userEntry]
       const token = localStorage.getItem('bf_token')
-      const res = await fetch(`/api/chat`, {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -651,13 +653,33 @@ const generateDiaryReflection = useCallback(async (entry) => {
         body: JSON.stringify({
           messages: currentHistory.slice(-6),
           taskContext,
+          provider: 'groq'
         })
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        const detail = data && data.detail ? String(data.detail) : ''
+        if (res.status === 401 || res.status === 403) {
+          pushError("Your session could not reach the assistant. Please sign in again and retry.")
+        } else if (res.status === 429) {
+          pushError("The assistant is busy right now. Please wait a moment and try again.")
+        } else if (res.status >= 500) {
+          pushError(detail || "The assistant service is temporarily unavailable. Please try again.")
+        } else {
+          pushError(detail || `Request failed (${res.status}). Please try again.`)
+        }
+        return
+      }
+      if (!data || typeof data.message !== 'string') {
+        pushError("The assistant returned an empty response. Please try again.")
+        return
+      }
       setChatHistory(prev => [...prev, { role: 'assistant', content: data.message }])
-    } catch {
-      setChatHistory(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting. Please check your connection and try again." }])
+    } catch (err) {
+      const isNetwork = !err || err.name === 'TypeError' || err.message === 'Failed to fetch'
+      pushError(isNetwork
+        ? "Network error — please check your connection and try again."
+        : `Something went wrong (${err.message}). Please try again.`)
     } finally { setChatLoading(false) }
   }, [chatMsg, chatLoading, tasks])
 

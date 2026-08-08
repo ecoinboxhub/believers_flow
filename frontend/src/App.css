@@ -4112,6 +4112,21 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .music-result-play:disabled { opacity: 0.4; cursor: not-allowed; }
 .music-result-play.playing { background: var(--danger, #c62828); }
 
+/* Track-level playback progress / seek bar */
+.music-progress {
+  display: flex; align-items: center; gap: var(--sp-2);
+  width: 100%; margin-top: var(--sp-2);
+}
+.music-result-card > .music-progress { order: 5; }
+.music-progress-time {
+  font-size: 0.68rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums;
+  min-width: 34px; text-align: center; flex-shrink: 0;
+}
+.music-progress-range {
+  flex: 1; min-width: 0; height: 4px; accent-color: var(--purple-primary); cursor: pointer;
+}
+.music-progress-range:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* Boom result cards: wrap cleanly on narrow screens instead of overflowing.
    Cover + info on the first row, playback controls on their own row below. */
 .music-result-card { flex-wrap: wrap; }

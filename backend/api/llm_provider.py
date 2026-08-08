@@ -53,7 +53,7 @@ PROVIDER_CONFIG = {
     "openrouter": {
         "url": "https://openrouter.ai/api/v1/chat/completions",
         "key_env": "OPENROUTER_API_KEY",
-        "default_model": "meta-llama/llama-3.3-70b-instruct:free",
+        "default_model": "meta-llama/llama-3.3-70b-instruct",
     },
 }
 
@@ -122,6 +122,7 @@ async def call_llm(
     model: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = 2048,
+    response_format: Optional[dict] = None,
 ) -> str:
     config = PROVIDER_CONFIG.get(provider, PROVIDER_CONFIG["groq"])
     api_key = _get_api_key(provider)
@@ -144,6 +145,8 @@ async def call_llm(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    if response_format:
+        payload["response_format"] = response_format
 
     try:
         client = await _get_http_client()
@@ -163,6 +166,7 @@ async def call_llm_multi(
     model: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = 2048,
+    response_format: Optional[dict] = None,
 ) -> str:
     config = PROVIDER_CONFIG.get(provider, PROVIDER_CONFIG["groq"])
     api_key = _get_api_key(provider)
@@ -182,6 +186,8 @@ async def call_llm_multi(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    if response_format:
+        payload["response_format"] = response_format
 
     try:
         client = await _get_http_client()
