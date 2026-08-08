@@ -36,9 +36,6 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
 
       - name: Sync Capacitor
         working-directory: frontend

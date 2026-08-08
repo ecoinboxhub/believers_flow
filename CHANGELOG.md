@@ -5,6 +5,12 @@ All notable changes to BelieversFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.15.1] - 2026-08-08
+
+### Fixed
+
+- **Faith Assistant API URL on Android**: app builds produced by CI (the downloadable `BelieversFlow.apk`) had a blank `VITE_API_URL`, so every API call in the WebView resolved to `https://localhost/api/...` and failed — surfacing as "empty response". Production values are now committed to `frontend/.env.production` and the build no longer overrides them with unset CI secrets. The APK now talks to the real backend (`https://believers-flow.onrender.com`).
+
 ## [4.12.0] - 2026-08-08
 
 ### Fixed
