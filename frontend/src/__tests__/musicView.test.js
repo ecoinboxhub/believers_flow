@@ -113,6 +113,33 @@ describe('MusicView — in-app playback, no external redirects', () => {
     expect(musicSource).toContain('Stop')
     expect(musicSource).toContain('Volume')
   })
+
+  it('offers a time display toggle (elapsed vs remaining) that never restarts playback', () => {
+    expect(musicSource).toContain('music-progress-toggle')
+    expect(musicSource).toContain('Show remaining time')
+    expect(musicSource).toContain('Show elapsed time')
+    expect(musicSource).toContain('formatRemaining')
+    expect(musicSource).toMatch(/formatRemaining\(max - current\)/)
+  })
+
+  it('shows a live elapsed indicator for radio streams instead of a fake duration', () => {
+    expect(musicSource).toContain('LiveStreamProgress')
+    expect(musicSource).toContain('music-live-badge')
+    expect(musicSource).toContain('music-live-progress')
+    expect(musicSource).toMatch(/LIVE/)
+  })
+
+  it('labels preview samples and full track length honestly', () => {
+    expect(musicSource).toContain('music-result-preview')
+    expect(musicSource).toContain('Full ')
+    expect(musicSource).toContain('official preview sample')
+    expect(musicSource).not.toMatch(/fake/)
+  })
+
+  it('prevents overlapping players when switching music tabs', () => {
+    expect(musicSource).toContain('stopActiveAudio')
+    expect(musicSource).toContain('handleTabChange')
+  })
 })
 
 describe('HymnView — clean structured layout, no mismatched audio', () => {

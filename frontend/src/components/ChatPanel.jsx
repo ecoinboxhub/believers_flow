@@ -62,11 +62,26 @@ export default function ChatPanel({ isOpen, onClose, chatHistory, setChatHistory
         headers,
         body: JSON.stringify({ messages: newHistory.map(m => ({ role: m.role, content: m.content })), provider: 'groq' })
       })
-      const data = await resp.json()
-      const reply = data.message || data.detail || 'Sorry, I could not respond.'
-      setChatHistory([...newHistory, { role: 'assistant', content: reply }])
+      const data = await resp.json().catch(() => null)
+      if (!resp.ok) {
+        const detail = data && data.detail ? String(data.detail) : ''
+        let reply
+        if (resp.status === 401 || resp.status === 403) {
+          reply = "Your session could not reach the assistant. Please sign in again and retry."
+        } else if (resp.status === 429) {
+          reply = "The assistant is busy right now. Please wait a moment and try again."
+        } else if (resp.status >= 500) {
+          reply = detail || "The assistant service is temporarily unavailable. Please try again."
+        } else {
+          reply = detail || `Request failed (${resp.status}). Please try again.`
+        }
+        setChatHistory([...newHistory, { role: 'assistant', content: reply }])
+      } else {
+        const reply = (data && data.message) || 'Sorry, I could not respond. Please try again.'
+        setChatHistory([...newHistory, { role: 'assistant', content: reply }])
+      }
     } catch {
-      setChatHistory([...newHistory, { role: 'assistant', content: 'Network error. Please try again.' }])
+      setChatHistory([...newHistory, { role: 'assistant', content: 'Network error — please check your connection and try again.' }])
     }
     setChatLoading(false)
   }

@@ -4103,6 +4103,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--purple-primary);
 }
 .music-result-duration { font-size: 0.68rem; color: var(--text-tertiary); }
+.music-result-preview {
+  padding: 1px 8px; background: rgba(139,195,74,0.12); border-radius: var(--radius-sm);
+  font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #558b2f;
+}
 .music-result-play {
   flex-shrink: 0; padding: 7px 14px; background: var(--purple-primary); color: #fff;
   border: none; border-radius: var(--radius-md); font-size: 0.75rem; font-weight: 700;
@@ -4122,6 +4126,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   font-size: 0.68rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums;
   min-width: 34px; text-align: center; flex-shrink: 0;
 }
+.music-progress-toggle {
+  font-size: 0.68rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums;
+  font-family: 'Hanken Grotesk', sans-serif; background: transparent; border: none;
+  min-width: 40px; text-align: center; flex-shrink: 0; cursor: pointer;
+  padding: 2px 6px; border-radius: var(--radius-sm);
+}
+.music-progress-toggle:hover:not(:disabled) { color: var(--text-primary); background: rgba(0,0,0,0.05); }
+.music-progress-toggle:disabled { opacity: 0.45; cursor: default; }
+.music-live-progress { justify-content: flex-start; margin-top: var(--sp-3); }
+.music-live-badge {
+  flex-shrink: 0; padding: 2px 8px; background: var(--danger, #c62828); color: #fff;
+  border-radius: var(--radius-sm); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em;
+}
+.music-live-progress .music-progress-time { min-width: 44px; }
 .music-progress-range {
   flex: 1; min-width: 0; height: 4px; accent-color: var(--purple-primary); cursor: pointer;
 }

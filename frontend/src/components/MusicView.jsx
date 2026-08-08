@@ -4,6 +4,13 @@ import { searchChristianMusic } from '../music/christianMusic.js'
 
 let activeAudio = null
 
+function stopActiveAudio() {
+  if (activeAudio) {
+    try { activeAudio.pause() } catch { /* already detached */ }
+    activeAudio = null
+  }
+}
+
 const CATEGORIES = [
   { id: 'hymns', label: 'Hymns' },
   { id: 'praise', label: 'Praise & Worship' },
@@ -299,9 +306,16 @@ function formatTime(sec) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
+function formatRemaining(sec) {
+  if (!Number.isFinite(sec) || sec <= 0) return '-0:00'
+  const s = Math.floor(sec)
+  return `-${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
 function AudioProgress({ audioRef, disabled }) {
   const [current, setCurrent] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [showRemaining, setShowRemaining] = useState(false)
 
   useEffect(() => {
     const audio = audioRef.current
@@ -332,6 +346,9 @@ function AudioProgress({ audioRef, disabled }) {
   }
 
   const max = duration > 0 ? Math.floor(duration) : 0
+  const rightLabel = max
+    ? (showRemaining ? formatRemaining(max - current) : formatTime(max))
+    : ''
 
   return (
     <div className="music-progress">
@@ -347,7 +364,37 @@ function AudioProgress({ audioRef, disabled }) {
         disabled={disabled || !max}
         aria-label="Playback position"
       />
-      <span className="music-progress-time">{max ? formatTime(max) : ''}</span>
+      <button
+        type="button"
+        className="music-progress-toggle"
+        onClick={() => setShowRemaining(r => !r)}
+        disabled={disabled || !max}
+        aria-label={showRemaining ? 'Show elapsed time' : 'Show remaining time'}
+        title={showRemaining ? 'Elapsed time' : 'Remaining time'}
+      >
+        {rightLabel}
+      </button>
+    </div>
+  )
+}
+
+function LiveStreamProgress({ playing }) {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!playing) return
+    const start = Date.now()
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - start) / 1000))
+    }, 250)
+    return () => clearInterval(id)
+  }, [playing])
+
+  if (!playing) return null
+  return (
+    <div className="music-progress music-live-progress">
+      <span className="music-live-badge">LIVE</span>
+      <span className="music-progress-time">{formatTime(elapsed)}</span>
     </div>
   )
 }
@@ -421,6 +468,7 @@ function AudioStreamCard({ stream }) {
         onToggleMute={toggleMute}
         disabled={failed}
       />
+      <LiveStreamProgress playing={playing} />
       {failed && (
         <div className="music-player-fallback">
           <p>The stream could not be reached from this device. Check your connection and try again.</p>
@@ -633,7 +681,8 @@ function BoomResultCard({ track }) {
         {track.album && <div className="music-result-album">{track.album}</div>}
         <div className="music-result-meta">
           {track.genre && <span className="music-result-genre">{track.genre}</span>}
-          {fmtDuration(track.durationMs) && <span className="music-result-duration">{fmtDuration(track.durationMs)}</span>}
+          {track.previewUrl && <span className="music-result-preview">Preview</span>}
+          {fmtDuration(track.durationMs) && <span className="music-result-duration">Full {fmtDuration(track.durationMs)}</span>}
         </div>
         {failed && (
           <div className="music-player-fallback">
@@ -760,8 +809,10 @@ function BoomTab() {
             ))}
           </div>
           <p className="music-tab-note">
-            Tracks open as short previews provided by the Apple Music catalogue. Full tracks may require an
-            iTunes or Apple Music purchase or subscription. Playback stays inside this app.
+            Results play an official preview sample from the Apple Music catalogue (about 30 seconds — the
+            sample Apple Music provides for each song). The timeline below shows the actual sample length, and
+            "Full" shows the complete track length. Full tracks play through Apple Music with a membership or
+            purchase. Playback stays inside this app; nothing here artificially cuts a track short.
           </p>
         </div>
       )}
@@ -819,6 +870,13 @@ function YouTubeTab() {
 export default function MusicView(props) {
   const [musicTab, setMusicTab] = useState('hymns')
 
+  const handleTabChange = (id) => {
+    if (id !== musicTab) stopActiveAudio()
+    setMusicTab(id)
+  }
+
+  useEffect(() => stopActiveAudio, [])
+
   return (
     <div className="music-view">
       <nav className="music-sub-nav">
@@ -826,7 +884,7 @@ export default function MusicView(props) {
           <button
             key={cat.id}
             className={`music-sub-tab${musicTab === cat.id ? ' active' : ''}`}
-            onClick={() => setMusicTab(cat.id)}
+            onClick={() => handleTabChange(cat.id)}
           >
             {cat.label}
           </button>
