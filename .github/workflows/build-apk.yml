@@ -58,9 +58,14 @@ jobs:
         run: |
           cp -r frontend/android/capacitor-cordova-android-plugins mobile/capacitor-cordova-android-plugins
           cp frontend/android/capacitor.settings.gradle mobile/capacitor.settings.gradle
+          cp frontend/android/app/capacitor.build.gradle mobile/app/capacitor.build.gradle
+          mkdir -p mobile/app/src/main/assets
+          cp frontend/android/app/src/main/assets/capacitor.plugins.json mobile/app/src/main/assets/capacitor.plugins.json
           mkdir -p mobile/app/src/main/assets/public
           rm -rf mobile/app/src/main/assets/public/*
           cp -r frontend/android/app/src/main/assets/public/* mobile/app/src/main/assets/public/
+          cp -r frontend/android/app/src/main/res/drawable/ic_stat_believersflow.xml mobile/app/src/main/res/drawable/ic_stat_believersflow.xml
+          cp -r frontend/android/app/src/main/res/raw/ mobile/app/src/main/res/raw/
 
       - name: Link node_modules for Gradle
         run: ln -s frontend/node_modules node_modules
@@ -84,6 +89,11 @@ jobs:
             exit 1
           fi
           echo "APK found: $(wc -c < "$APK_PATH") bytes"
+          if ! unzip -l "$APK_PATH" | grep -q "assets/capacitor.plugins.json"; then
+            echo "ERROR: assets/capacitor.plugins.json missing from APK - native plugins will not register"
+            exit 1
+          fi
+          echo "assets/capacitor.plugins.json present in APK"
 
       - name: Prepare release asset
         run: cp mobile/app/build/outputs/apk/release/app-release.apk BelieversFlow.apk
