@@ -72,7 +72,7 @@ jobs:
         working-directory: frontend
         run: npx playwright test --project=desktop --project=tablet --project=mobile
         env:
-          BASE_URL: http://localhost:4173
+          BASE_URL: http://localhost:5173
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
@@ -120,7 +120,7 @@ jobs:
         working-directory: frontend
         run: npx playwright test e2e/visual-regression.spec.js --project=desktop --project=tablet --project=mobile
         env:
-          BASE_URL: http://localhost:4173
+          BASE_URL: http://localhost:5173
 
       - name: Upload visual regression snapshots
         if: ${{ !cancelled() }}
