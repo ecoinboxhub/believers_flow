@@ -466,9 +466,18 @@ def test_email_service_not_configured():
         os.environ["SMTP_PASSWORD"] = ""
         assert is_configured() == False
     finally:
-        os.environ["SMTP_HOST"] = original_host
-        os.environ["SMTP_USER"] = original_user
-        os.environ["SMTP_PASSWORD"] = original_pass
+        if original_host:
+            os.environ["SMTP_HOST"] = original_host
+        else:
+            os.environ.pop("SMTP_HOST", None)
+        if original_user:
+            os.environ["SMTP_USER"] = original_user
+        else:
+            os.environ.pop("SMTP_USER", None)
+        if original_pass:
+            os.environ["SMTP_PASSWORD"] = original_pass
+        else:
+            os.environ.pop("SMTP_PASSWORD", None)
 
 
 def test_auth_register_returns_refresh_token():
