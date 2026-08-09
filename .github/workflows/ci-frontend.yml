@@ -163,7 +163,7 @@ jobs:
 
       - name: Run Lighthouse CI
         working-directory: frontend
-        run: npx lhci autorun
+        run: npx lhci collect && npx lhci upload
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
