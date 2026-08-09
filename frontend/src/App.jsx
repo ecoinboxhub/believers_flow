@@ -784,7 +784,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
   }, [apiPost, bibleVersion])
 
   const getCommentary = useCallback(async (sourceId) => {
-    if (!isPremium) { setShowAuth(true); return }
     if (!bibleText) return
     const src = sourceId || commentarySourceId
     setCommentaryLoading(true); setCommentary(null); setBibleStudyTab('commentary')
@@ -812,44 +811,39 @@ const generateDiaryReflection = useCallback(async (entry) => {
     else if (data) setCommentary(data) // includes available:false + note
     else setCommentary({ book: bibleBook, chapter: bibleChapter, source: null, available: false, entries: [], note: 'Commentary could not be loaded. Please try again.' })
     setCommentaryLoading(false)
-  }, [apiPost, bibleText, bibleBook, bibleChapter, isPremium, commentarySourceId, commentarySources.length])
+  }, [apiPost, bibleText, bibleBook, bibleChapter, commentarySourceId, commentarySources.length])
 
   const searchConcordance = useCallback(async () => {
     const q = concordanceQuery.trim()
     if (!q) return
-    if (!isPremium) { setShowAuth(true); return }
     setConcordanceLoading(true); setConcordanceResults(null); setConcordanceError(null); setBibleStudyTab('concordance')
     const data = await apiPost('/api/bible/concordance', { query: q, version: bibleVersion })
     if (data) setConcordanceResults(data)
     else setConcordanceError('Concordance search failed. Please try again.')
     setConcordanceLoading(false)
-  }, [apiPost, concordanceQuery, bibleVersion, isPremium])
+  }, [apiPost, concordanceQuery, bibleVersion])
 
   const searchDictionary = useCallback(async () => {
     const term = dictionaryTerm.trim()
     if (!term) return
-    if (!isPremium) { setShowAuth(true); return }
     setDictionaryLoading(true); setDictionaryMatches(null)
     const data = await apiPost('/api/bible/dictionary', { term, expand: false })
     if (data) setDictionaryMatches(data)
     setDictionaryLoading(false)
-  }, [apiPost, dictionaryTerm, isPremium])
+  }, [apiPost, dictionaryTerm])
 
   const assistNote = useCallback(async (noteText, reference) => {
-    if (!isPremium) { setShowAuth(true); return null }
     return await apiPost('/api/bible/notes-assist', { note_text: noteText, reference: reference || '' })
-  }, [apiPost, isPremium])
+  }, [apiPost])
 
   const compareVersions = useCallback(async () => {
-    if (!isPremium) { setShowAuth(true); return }
     setComparisonLoading(true); setComparison(null); setBibleStudyTab('compare')
     const data = await apiPost('/api/bible/compare', { book: bibleBook, chapter: bibleChapter, version: bibleVersion })
     if (data) setComparison(data)
     setComparisonLoading(false)
-  }, [apiPost, bibleBook, bibleChapter, bibleVersion, isPremium])
+  }, [apiPost, bibleBook, bibleChapter, bibleVersion])
 
   const getInterlinear = useCallback(async () => {
-    if (!isPremium) { setShowAuth(true); return }
     setInterlinearLoading(true); setInterlinear(null); setBibleStudyTab('interlinear')
     try {
       const token = localStorage.getItem('bf_token')
@@ -865,7 +859,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
     } finally {
       setInterlinearLoading(false)
     }
-  }, [isPremium, setShowAuth, bibleBook, bibleChapter, bibleVersion, showToast])
+  }, [bibleBook, bibleChapter, bibleVersion, showToast])
 
   // Hymns
   const openHymn = useCallback((hymn) => {
@@ -1256,7 +1250,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
               explainVerse={explainVerse} getCommentary={getCommentary}
               searchConcordance={searchConcordance} searchDictionary={searchDictionary} compareVersions={compareVersions}
               interlinear={interlinear} interlinearLoading={interlinearLoading} getInterlinear={getInterlinear}
-              isPremium={isPremium} setShowAuth={setShowAuth}
               showToast={showToast} notesAssist={assistNote}
             />
           </ErrorBoundary>

@@ -20,7 +20,6 @@ export default function BibleView(props) {
     concordanceQuery, setConcordanceQuery, concordanceResults, concordanceLoading, concordanceError,
     searchConcordance, dictionaryTerm, setDictionaryTerm, dictionaryMatches, dictionaryLoading, searchDictionary,
     comparison, comparisonLoading, compareVersions,
-    isPremium, setShowAuth,
     interlinear, interlinearLoading, getInterlinear,
     notesAssist, showToast,
   } = props
@@ -59,7 +58,7 @@ export default function BibleView(props) {
         <ExplainView
           bibleBook={bibleBook} bibleChapter={bibleChapter} bibleText={bibleText}
           explanation={explanation} explanationLoading={explanationLoading}
-          explainVerse={explainVerse} isPremium={isPremium} setShowAuth={setShowAuth}
+          explainVerse={explainVerse}
         />
       )}
 
@@ -68,7 +67,7 @@ export default function BibleView(props) {
           bibleBook={bibleBook} bibleChapter={bibleChapter} bibleText={bibleText}
           commentary={commentary} commentaryLoading={commentaryLoading}
           sources={commentarySources} sourceId={commentarySourceId} setSourceId={setCommentarySourceId}
-          onGetCommentary={getCommentary} isPremium={isPremium} setShowAuth={setShowAuth}
+          onGetCommentary={getCommentary}
         />
       )}
 
@@ -87,7 +86,7 @@ export default function BibleView(props) {
         <CompareView
           bibleBook={bibleBook} bibleChapter={bibleChapter} bibleText={bibleText}
           comparison={comparison} comparisonLoading={comparisonLoading}
-          compareVersions={compareVersions} isPremium={isPremium} setShowAuth={setShowAuth}
+          compareVersions={compareVersions}
         />
       )}
 
@@ -95,7 +94,7 @@ export default function BibleView(props) {
         <InterlinearView
           bibleBook={bibleBook} bibleChapter={bibleChapter} bibleText={bibleText}
           interlinear={interlinear} interlinearLoading={interlinearLoading}
-          getInterlinear={getInterlinear} isPremium={isPremium} setShowAuth={setShowAuth}
+          getInterlinear={getInterlinear}
         />
       )}
 
@@ -104,8 +103,6 @@ export default function BibleView(props) {
           bibleBook={bibleBook}
           bibleChapter={bibleChapter}
           bibleVersion={bibleVersion}
-          isPremium={isPremium}
-          setShowAuth={setShowAuth}
           showToast={showToast}
           notesAssist={notesAssist}
         />

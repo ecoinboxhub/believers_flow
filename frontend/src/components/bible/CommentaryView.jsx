@@ -4,7 +4,7 @@ const ico = { width: '1em', height: '1em', style: { verticalAlign: '-0.125em' } 
 
 export default function CommentaryView({
   bibleBook, bibleText, commentary, commentaryLoading,
-  sources, sourceId, setSourceId, onGetCommentary, isPremium, setShowAuth,
+  sources, sourceId, setSourceId, onGetCommentary,
 }) {
   const loaded = commentary && commentary.available !== false
 
@@ -30,7 +30,6 @@ export default function CommentaryView({
 
       {!commentary && !commentaryLoading && (
         <button className="btn-primary" onClick={() => {
-          if (!isPremium) { setShowAuth(true); return }
           onGetCommentary(sourceId)
         }} disabled={!bibleText}>
           <BooksIcon {...ico} /> Load {bibleBook || 'This Chapter'} Commentary

@@ -4,7 +4,7 @@ const ico = { width: '1em', height: '1em', style: { verticalAlign: '-0.125em' } 
 
 export default function InterlinearView({
   bibleBook, bibleChapter, bibleText, interlinear, interlinearLoading,
-  getInterlinear, isPremium, setShowAuth,
+  getInterlinear,
 }) {
   return (
     <div className="card bs-panel">
@@ -14,7 +14,6 @@ export default function InterlinearView({
 
       {bibleText && !interlinear && !interlinearLoading && (
         <button className="btn-primary" onClick={() => {
-          if (!isPremium) { setShowAuth(true); return }
           getInterlinear()
         }}>
           <TypeIcon {...ico} /> View Interlinear for {bibleBook} {bibleChapter}

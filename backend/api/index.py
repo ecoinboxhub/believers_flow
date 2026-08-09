@@ -853,7 +853,7 @@ async def commentary_sources():
 
 
 @app.post("/api/bible/commentary")
-async def get_commentary(req: CommentaryRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+async def get_commentary(req: CommentaryRequest, user=Depends(optional_user), _db=Depends(require_db)):
     result = await get_commentary_for_chapter(req.source, req.book, req.chapter)
     source_meta = next((s for s in get_commentary_sources() if s["id"] == req.source), None)
     if not result:
@@ -894,7 +894,7 @@ async def get_commentary(req: CommentaryRequest, user=Depends(get_current_user),
 
 
 @app.post("/api/bible/concordance")
-async def search_concordance_endpoint(req: ConcordanceRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+async def search_concordance_endpoint(req: ConcordanceRequest, user=Depends(optional_user), _db=Depends(require_db)):
     q = req.query.strip()
     if not q:
         raise HTTPException(status_code=422, detail="A search term is required")
@@ -957,7 +957,7 @@ async def bible_dictionary(req: DictionaryRequest, user=Depends(optional_user)):
 
 
 @app.post("/api/bible/notes-assist")
-async def bible_notes_assist(req: NotesAssistRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+async def bible_notes_assist(req: NotesAssistRequest, user=Depends(optional_user), _db=Depends(require_db)):
     note = req.note_text.strip()
     if not note:
         raise HTTPException(status_code=422, detail="Write some note text first")
@@ -1064,7 +1064,7 @@ _COMPARE_DEFAULT = ["KJV", "WEB", "ASV", "BBE", "YLT"]
 
 
 @app.post("/api/bible/compare")
-async def compare_versions(req: CompareRequest, user=Depends(get_current_user), _db=Depends(require_db)):
+async def compare_versions(req: CompareRequest, user=Depends(optional_user), _db=Depends(require_db)):
     tids = [t for t in (req.translations or _COMPARE_DEFAULT)]
     tids = tids[:6]
 

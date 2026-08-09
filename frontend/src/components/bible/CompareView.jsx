@@ -4,7 +4,7 @@ const ico = { width: '1em', height: '1em', style: { verticalAlign: '-0.125em' } 
 
 export default function CompareView({
   bibleBook, bibleText, comparison, comparisonLoading,
-  compareVersions, isPremium, setShowAuth,
+  compareVersions,
 }) {
   const hasTable = comparison && (comparison.verses || []).length > 0
   const translations = comparison && comparison.translations ? comparison.translations : []
@@ -17,7 +17,6 @@ export default function CompareView({
 
       {!comparison && !comparisonLoading && (
         <button className="btn-primary" onClick={() => {
-          if (!isPremium) { setShowAuth(true); return }
           compareVersions()
         }} disabled={!bibleText}>
           <ScaleIcon {...ico} /> Compare {bibleBook || 'This Chapter'}

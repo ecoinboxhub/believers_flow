@@ -5,6 +5,23 @@ All notable changes to BelieversFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.16.0] - 2026-08-09
+
+### Added
+
+- **No account required**: the app now works fully without signing up or logging in. Bible study tools that were previously account-locked are free for guests:
+  - **Commentary** (public-domain) - `/api/bible/commentary`
+  - **Concordance** search - `/api/bible/concordance`
+  - **Notes assist** - `/api/bible/notes-assist`
+  - **Interlinear** Hebrew/Greek word-by-word analysis - `/api/interlinear/*`
+  - **Compare** multiple translations - `/api/bible/compare`
+- Sync/backup, push notifications, and payment remain optional account features accessed from Settings for users who want them.
+
+### Changed
+
+- Frontend: removed the six "sign in to unlock" (premium) guards across the Bible study tab so a guest can tap Commentary, Concordance, Dictionary, Compare, Interlinear, and Notes Assist directly.
+- Backend: the five above endpoint families now accept guest (optional) auth instead of requiring a valid token.
+
 ## [4.15.1] - 2026-08-08
 
 ### Fixed

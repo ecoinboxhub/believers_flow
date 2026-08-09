@@ -352,7 +352,7 @@ def test_unauthorized_bible_explain():
     asyncio.get_event_loop().run_until_complete(_test())
 
 
-def test_unauthorized_bible_commentary():
+def test_guest_bible_commentary_allowed():
     from api.index import app
     from httpx import AsyncClient, ASGITransport
     import asyncio
@@ -364,12 +364,13 @@ def test_unauthorized_bible_commentary():
                 "book": "John",
                 "chapter": 3
             })
-            assert resp.status_code in [401, 403]
+            assert resp.status_code not in [401, 403], f"guest commentary should not require auth, got {resp.status_code}"
+            assert resp.status_code == 200
 
     asyncio.get_event_loop().run_until_complete(_test())
 
 
-def test_unauthorized_bible_concordance():
+def test_guest_bible_concordance_allowed():
     from api.index import app
     from httpx import AsyncClient, ASGITransport
     import asyncio
@@ -380,7 +381,25 @@ def test_unauthorized_bible_concordance():
             resp = await client.post("/api/bible/concordance", json={
                 "query": "love"
             })
-            assert resp.status_code in [401, 403]
+            assert resp.status_code not in [401, 403], f"guest concordance should not require auth, got {resp.status_code}"
+            assert resp.status_code == 200
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_guest_bible_notes_assist_allowed():
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/bible/notes-assist", json={
+                "note_text": "I want to trust God with my worries"
+            })
+            assert resp.status_code not in [401, 403], f"guest notes-assist should not require auth, got {resp.status_code}"
+            assert resp.status_code == 200
 
     asyncio.get_event_loop().run_until_complete(_test())
 
@@ -420,7 +439,7 @@ def test_unauthorized_devotional_generate():
     asyncio.get_event_loop().run_until_complete(_test())
 
 
-def test_unauthorized_bible_compare():
+def test_guest_bible_compare_allowed():
     from api.index import app
     from httpx import AsyncClient, ASGITransport
     import asyncio
@@ -432,7 +451,24 @@ def test_unauthorized_bible_compare():
                 "book": "John",
                 "chapter": 3
             })
-            assert resp.status_code in [401, 403]
+            assert resp.status_code not in [401, 403], f"guest compare should not require auth, got {resp.status_code}"
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_guest_interlinear_allowed():
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/interlinear/John/3?version=KJV")
+            assert resp.status_code not in [401, 403], f"guest interlinear should not require auth, got {resp.status_code}"
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "verses" in data, "expected interlinear chapter data"
 
     asyncio.get_event_loop().run_until_complete(_test())
 
