@@ -974,6 +974,17 @@ def test_bible_compare_returns_aligned_verses(monkeypatch):
 
     monkeypatch.setattr(index_module, "fetch_chapter", fake_fetch)
 
+    import api.redis_client as redis_client
+
+    async def fake_cache_get(*a, **k):
+        return None
+
+    async def fake_cache_set(*a, **k):
+        pass
+
+    monkeypatch.setattr(redis_client, "cache_get", fake_cache_get)
+    monkeypatch.setattr(redis_client, "cache_set", fake_cache_set)
+
     async def _test():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
