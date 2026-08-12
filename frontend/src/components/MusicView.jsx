@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import HymnView from './HymnView.jsx'
-import { searchChristianMusic } from '../music/christianMusic.js'
+import { searchChristianMusicViaProxy } from '../music/christianMusic.js'
 
 let activeAudio = null
 
@@ -734,7 +734,7 @@ function BoomTab() {
     setErrorKind('')
     setErrorMessage('')
     try {
-      const found = await searchChristianMusic(trimmed)
+      const found = await searchChristianMusicViaProxy(trimmed)
       if (found.length === 0) {
         setResults([])
         setStatus('empty')

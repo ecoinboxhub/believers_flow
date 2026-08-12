@@ -96,8 +96,13 @@ export default function Auth({ apiUrl, onLogin, onSkip }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ credential: response.credential })
               })
-              const data = await res.json()
-              if (!res.ok) { setError('Google sign-in failed'); return }
+              const data = await res.json().catch(() => ({}))
+              if (!res.ok) {
+                setError(res.status === 503 || res.status === 502
+                  ? 'The server is temporarily unavailable. Please try again in a few minutes.'
+                  : 'Google sign-in failed')
+                return
+              }
               localStorage.setItem('bf_token', data.token)
               if (data.refresh_token) localStorage.setItem('bf_refresh_token', data.refresh_token)
               localStorage.setItem('bf_user', JSON.stringify(data.user))
@@ -189,8 +194,15 @@ export default function Auth({ apiUrl, onLogin, onSkip }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
-      const data = await res.json()
-      if (!res.ok) { setError(data.detail || 'Authentication failed'); return }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        if (res.status === 503 || res.status === 502) {
+          setError('The server is temporarily unavailable. Please try again in a few minutes.')
+        } else {
+          setError(data.detail || 'Authentication failed. Please check your details and try again.')
+        }
+        return
+      }
       localStorage.setItem('bf_token', data.token)
       localStorage.setItem('bf_refresh_token', data.refresh_token)
       localStorage.setItem('bf_user', JSON.stringify(data.user))

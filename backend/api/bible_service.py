@@ -221,7 +221,7 @@ async def fetch_chapter(version_id: str, book: str, chapter: int) -> Optional[Di
 # ---------------------------------------------------------------------------
 
 async def _fetch_from_bible_api(version_id: str, book: str, chapter: int) -> Optional[Dict]:
-    """Fetch from bible-api.com (supports KJV, WEB, etc.)."""
+    """Fetch from bible-api.com (supports KJV, WEB, etc.). Retries once on transient failure."""
     import httpx
     from urllib.parse import quote
 
@@ -229,20 +229,21 @@ async def _fetch_from_bible_api(version_id: str, book: str, chapter: int) -> Opt
     encoded_book = quote(book.replace(' ', '+'))
     url = f"https://bible-api.com/{encoded_book}+{chapter}?translation={api_version}"
 
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            data = resp.json()
-        return {
-            "reference": data.get("reference", f"{book} {chapter}"),
-            "verses": [{"verse": v["verse"], "text": v["text"]} for v in data.get("verses", [])],
-            "version": version_id,
-            "chapter": f"{book} {chapter}",
-        }
-    except Exception as e:
-        logger.warning(f"bible-api.com fetch failed for {version_id} {book} {chapter}: {e}")
-        return None
+    for attempt in (1, 2):
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+                data = resp.json()
+            return {
+                "reference": data.get("reference", f"{book} {chapter}"),
+                "verses": [{"verse": v["verse"], "text": v["text"]} for v in data.get("verses", [])],
+                "version": version_id,
+                "chapter": f"{book} {chapter}",
+            }
+        except Exception as e:
+            logger.warning(f"bible-api.com fetch attempt {attempt} failed for {version_id} {book} {chapter}: {e}")
+    return None
 
 # ---------------------------------------------------------------------------
 # Local public-domain Bible texts
@@ -306,6 +307,17 @@ async def _fetch_local_bible(version_id: str, book: str, chapter: int) -> Option
 # Public API functions
 # ---------------------------------------------------------------------------
 
+def _can_serve(version: BibleVersion) -> bool:
+    """True only if a version can be served right now from a real source."""
+    if version.provider == "bible-api":
+        return True
+    if version.id in BIBLE_API_VERSIONS:
+        return True
+    if version.provider == "local":
+        return _load_local_bible(version.id) is not None
+    return False
+
+
 def get_versions() -> List[Dict]:
     """Return all registered Bible versions as serializable dicts."""
     return [
@@ -325,8 +337,8 @@ def get_versions() -> List[Dict]:
             "year": v.year,
             "description": v.description,
             "region": v.region,
-            "available": v.public_domain or v.provider in ("bible-api", "local"),
-            "provider": v.provider if v.public_domain or v.provider in ("bible-api", "local") else "ai",
+            "available": _can_serve(v),
+            "provider": v.provider if _can_serve(v) else "unavailable",
         }
         for v in VERSIONS
     ]
@@ -345,7 +357,7 @@ def get_version(version_id: str) -> Optional[Dict]:
         "category": v.category,
         "public_domain": v.public_domain,
         "licensed": v.licensed,
-        "available": v.public_domain or v.provider in ("bible-api", "local"),
+        "available": _can_serve(v),
     }
 
 

@@ -310,28 +310,41 @@ const [diaryTitle, setDiaryTitle] = useState('')
     setBibleLoading(true); setBibleError(null)
     try {
       let data
+      let fallbackDetail = ''
       try {
-        const res = await fetch(`${API_URL}/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`)
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const res = await fetch(
+          `${API_URL}/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`,
+          { signal: AbortSignal.timeout(10000) }
+        )
+        if (!res.ok) {
+          const body = await res.json().catch(() => null)
+          fallbackDetail = (body && body.detail) || `HTTP ${res.status}`
+          throw new Error(fallbackDetail)
+        }
         data = await res.json()
-      } catch {
+      } catch (err) {
         if (BIBLE_API_DIRECT[ver]) {
           const translation = BIBLE_API_DIRECT[ver]
           const bookId = BIBLE_BOOK_IDS[book]
           if (translation === 'cuv' && bookId) {
             const url = `https://bible-api.com/data/${translation}/${bookId}/${chapter}`
-            const res = await fetch(url)
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+            if (!res.ok) throw new Error(`HTTP ${res.status}`, { cause: err })
             const raw = await res.json()
             data = { reference: `${book} ${chapter}`, verses: raw.verses || [], version: ver }
           } else {
             const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
-            const res = await fetch(url)
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+            if (!res.ok) throw new Error(`HTTP ${res.status}`, { cause: err })
             data = await res.json()
           }
         } else {
-          throw new Error(`"${ver}" requires a backend server with an API key. Start the backend or select a free translation (KJV, WEB, ASV, BBE, Darby, YLT).`)
+          throw new Error(
+            typeof fallbackDetail === 'string' && fallbackDetail
+              ? fallbackDetail
+              : `"${ver}" is not available. Choose KJV, WEB, ASV, BBE, DBY, or YLT.`,
+            { cause: err }
+          )
         }
       }
       if (!data.verses) data = { reference: `${book} ${chapter}`, verses: [], version: ver }
@@ -849,7 +862,10 @@ const generateDiaryReflection = useCallback(async (entry) => {
       const token = localStorage.getItem('bf_token')
       const res = await fetch(
         `${API_URL}/api/interlinear/${encodeURIComponent(bibleBook)}/${bibleChapter}?version=${bibleVersion}`,
-        { headers: token ? { 'Authorization': `Bearer ${token}` } : {} }
+        {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          signal: AbortSignal.timeout(12000),
+        }
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()

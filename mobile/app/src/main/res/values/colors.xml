@@ -6,4 +6,5 @@
     <color name="colorPrimaryDark">#5a1f6b</color>
     <color name="colorAccent">#F2C94C</color>
     <color name="splash_background">#1a1a2e</color>
+    <color name="status_bar">#fffdf8</color>
 </resources>

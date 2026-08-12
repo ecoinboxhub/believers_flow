@@ -553,37 +553,6 @@ async def fetch_bible_kjv(book: str, chapter: int) -> dict:
     return result
 
 
-async def fetch_bible_ai(book: str, chapter: int, version: str, provider: str = "groq") -> dict:
-    system = (
-        "You are a Bible text provider. Your only job is to output the exact text of the requested "
-        "Bible chapter in the specified translation. Output ONLY valid JSON in this exact format:\n"
-        '{"verses": [{"verse": <number>, "text": "<verse text>"}]}\n'
-        "Do not include any other text, commentary, or formatting outside the JSON."
-    )
-    prompt = f"Provide the text of {book} Chapter {chapter} from the {version} Bible translation. Output ONLY the JSON array of verses with 'verse' number and 'text' fields."
-    raw = await call_llm(system, prompt, provider=provider, temperature=0.1)
-    raw = raw.strip()
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[-1]
-        raw = raw.rsplit("```", 1)[0]
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        lines = raw.strip().split("\n")
-        verses = []
-        for line in lines:
-            parts = line.split(". ", 1)
-            if len(parts) == 2 and parts[0].isdigit():
-                verses.append({"verse": int(parts[0]), "text": parts[1]})
-        data = {"verses": verses} if verses else {"verses": []}
-    return {
-        "reference": f"{book} {chapter}",
-        "verses": data.get("verses", []),
-        "version": version,
-        "chapter": f"{book} {chapter}",
-    }
-
-
 @app.get("/api/bible")
 async def get_bible(book: str = Query(...), chapter: int = Query(...), version: str = Query("KJV"), provider: str = Query("groq")):
     try:
@@ -606,13 +575,41 @@ async def get_bible(book: str = Query(...), chapter: int = Query(...), version: 
                 pass
             return result
 
-        # Fall back to AI generation for licensed versions
-        return await fetch_bible_ai(book, chapter, version, provider=provider)
+        # No AI generation: only translations with a real, reliable source are served.
+        # Returns quickly so the client never hangs waiting on generated text.
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"The {version} translation is not available in this app. "
+                "Please select a translation we can serve reliably: KJV, WEB, ASV, BBE, DBY, or YLT."
+            ),
+        )
     except HTTPException:
         raise
     except Exception as e:
         logger.exception("Bible fetch failed")
         raise HTTPException(status_code=500, detail=_safe_error("Bible fetch", e))
+
+
+@app.get("/api/music/search")
+async def music_search(term: str = Query(...), limit: int = Query(24)):
+    """Server-side proxy to the Apple iTunes Search API so the mobile/web client
+    never hits a CORS or region block. Returns the raw iTunes results."""
+    import httpx
+
+    if limit < 1 or limit > 50:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 50")
+
+    params = {"term": term, "entity": "song", "media": "music", "limit": str(limit), "country": "US"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get("https://itunes.apple.com/search", params=params)
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as e:
+        logger.warning(f"iTunes search failed for {term!r}: {e}")
+        raise HTTPException(status_code=502, detail="The music service could not be reached. Please try again later.")
+    return {"results": data.get("results", [])}
 
 
 @app.post("/api/chat")

@@ -1,5 +1,7 @@
 const APPLE_MUSIC_SEARCH = 'https://itunes.apple.com/search'
 
+const API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || ''
+
 const CHRISTIAN_GENRES = new Set(
   [
     'Christian', 'Christian & Gospel', 'Christian Pop', 'Christian Rock',
@@ -89,5 +91,28 @@ export async function searchChristianMusic(query, limit = 24) {
   console.info('[boom] search response', { status: res.status, rawResults: all.length })
   const christian = all.filter(isChristianResult)
   console.info('[boom] christian results after filtering', { count: christian.length })
+  return christian.map(toMusicResult)
+}
+
+async function searchViaProxy(query, limit) {
+  if (!API_URL) return null
+  try {
+    const res = await fetch(
+      `${API_URL}/api/music/search?term=${encodeURIComponent(query)}&limit=${limit}`,
+      { signal: AbortSignal.timeout(15000) }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    return Array.isArray(data.results) ? data.results : null
+  } catch (e) {
+    console.warn('[boom] proxy search failed', e && e.message ? e.message : e)
+    return null
+  }
+}
+
+export async function searchChristianMusicViaProxy(query, limit = 24) {
+  const raw = await searchViaProxy(query, limit)
+  if (raw === null) throw new BoomSearchError('network', 'Unable to connect to the music service.')
+  const christian = raw.filter(isChristianResult)
   return christian.map(toMusicResult)
 }

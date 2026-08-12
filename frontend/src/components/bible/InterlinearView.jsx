@@ -2,6 +2,12 @@ import { GreekFlagIcon, HebrewFlagIcon, TypeIcon } from './icons.jsx'
 
 const ico = { width: '1em', height: '1em', style: { verticalAlign: '-0.125em' } }
 
+function englishTextFor(bibleText, verseNum) {
+  if (!bibleText || !bibleText.verses) return ''
+  const found = bibleText.verses.find(v => Number(v.verse) === Number(verseNum))
+  return found ? found.text : ''
+}
+
 export default function InterlinearView({
   bibleBook, bibleChapter, bibleText, interlinear, interlinearLoading,
   getInterlinear,
@@ -22,7 +28,7 @@ export default function InterlinearView({
 
       {interlinearLoading && (
         <div className="interlinear-loading">
-          <span>Analyzing original language...</span>
+          <span>Loading word analysis...</span>
         </div>
       )}
 
@@ -34,21 +40,35 @@ export default function InterlinearView({
               {interlinear.language === 'hebrew' ? <><HebrewFlagIcon {...ico} /> Hebrew (OT)</> : <><GreekFlagIcon {...ico} /> Greek (NT)</>}
             </span>
           </div>
-          {(interlinear.verses || []).map((v, i) => (
-            <div key={i} className="interlinear-verse-block">
-              <div className="interlinear-verse-num">Verse {v.verse}</div>
-              <div className="interlinear-words">
-                {(v.words || []).map((w, j) => (
-                  <div key={j} className="interlinear-word" title={w.meaning}>
-                    <span className="interlinear-word-original">{w.word}</span>
-                    <span className="interlinear-word-translit">{w.transliteration}</span>
-                    {w.strong && <span className="interlinear-word-strong">{w.strong}</span>}
+
+          {interlinear.available && (interlinear.verses || []).length > 0 ? (
+            <>
+              {(interlinear.verses || []).map((v, i) => (
+                <div key={i} className="interlinear-verse-block">
+                  <div className="interlinear-verse-num">Verse {v.verse}</div>
+                  <div className="interlinear-words">
+                    {(v.words || []).map((w, j) => (
+                      <div key={j} className="interlinear-word" title={w.meaning}>
+                        <span className="interlinear-word-original">{w.word}</span>
+                        <span className="interlinear-word-translit">{w.transliteration}</span>
+                        {w.strong && <span className="interlinear-word-strong">{w.strong}</span>}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="interlinear-english">{v.text}</div>
+                  <div className="interlinear-english">{englishTextFor(bibleText, v.verse)}</div>
+                </div>
+              ))}
+              {interlinear.note && <p className="interlinear-note">{interlinear.note}</p>}
+            </>
+          ) : (
+            <div className="interlinear-unavailable">
+              <p>
+                Word-by-word analysis is not available for {bibleBook} {bibleChapter} yet.
+              </p>
+              {interlinear.note && <p className="interlinear-note">{interlinear.note}</p>}
+              <p>Try a chapter with a well-known verse, such as John 1, John 3, Genesis 1, or Psalm 23.</p>
             </div>
-          ))}
+          )}
         </div>
       )}
 

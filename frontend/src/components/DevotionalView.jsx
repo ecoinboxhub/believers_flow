@@ -385,13 +385,17 @@ function ChurchGrid({ onSelect }) {
       <h3>Church Devotionals</h3>
       <p>Explore devotionals from various churches and ministries.</p>
       <div className="church-grid">
-        {CHURCH_NAMES.map(church => (
-          <button key={church} className="church-card" onClick={() => onSelect(church)}
-            style={{ borderColor: CHURCH_METADATA[church]?.color }}>
-            <span className="church-name">{CHURCH_METADATA[church]?.name}</span>
-            <span className="church-pastor">{CHURCH_METADATA[church]?.pastor}</span>
-          </button>
-        ))}
+        {CHURCH_NAMES.map(church => {
+          const meta = CHURCH_METADATA[church] || {}
+          return (
+            <button key={church} className={`church-card${meta.available === false ? ' unavailable' : ''}`} onClick={() => onSelect(church)}
+              style={{ borderColor: meta.color }}>
+              <span className="church-name">{meta.name}</span>
+              <span className="church-pastor">{meta.pastor}</span>
+              {meta.available === false && <span className="church-unavailable-tag">Content not available</span>}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -429,8 +433,9 @@ export default function DevotionalView({
   const currentDevotional = devotionals ? devotionals[((devotionalDay % 365) + 365) % 365] : null
 
   const churchInfo = selectedChurch ? CHURCH_METADATA[selectedChurch] : null
-  const churchTotal = (churchData && churchData.devotionals && churchData.devotionals.length) || 365
-  const devo = churchData && churchData.devotionals ? churchData.devotionals[churchDevotionalDay % churchTotal] : null
+  const hasChurchContent = !!churchData && !!churchData.devotionals && churchData.devotionals.length > 0
+  const churchTotal = hasChurchContent ? churchData.devotionals.length : 365
+  const devo = hasChurchContent ? churchData.devotionals[churchDevotionalDay % churchTotal] : null
 
   const devoDate = useMemo(() => {
     if (!devo) return null
@@ -529,26 +534,46 @@ export default function DevotionalView({
             </div>
           </div>
 
-          <div className="devotional-nav">
-            <button className="devotional-nav-btn" onClick={() => setChurchDevotionalDay(Math.max(0, churchDevotionalDay - 1))} disabled={churchDevotionalDay === 0}>Previous</button>
-            <span className="devotional-day-label">Day {devo ? devo.day : '—'} of {churchTotal}</span>
-            <button className="devotional-nav-btn" onClick={() => setChurchDevotionalDay(Math.min(churchTotal - 1, churchDevotionalDay + 1))} disabled={churchDevotionalDay >= churchTotal - 1}>Next</button>
-          </div>
-          <button className="btn-sm devotional-today-btn" onClick={() => setChurchDevotionalDay(clampedToday)}><CalendarIcon /> Today's Devotional</button>
+          {!hasChurchContent && (
+            <div className="card devotional-unavailable">
+              <div className="card-icon"><BookIcon /></div>
+              <h3>Devotionals not available</h3>
+              <p>
+                {churchInfo.name} devotionals are not yet available in this app.
+                We only include content we are authorized to share, and we do not
+                want to show you anything that is not genuine.
+              </p>
+              <p>Please try one of the other churches listed on the Devotionals home screen.</p>
+              <button className="btn-sm devotional-today-btn" onClick={() => setSelectedChurch('')}>
+                <BookIcon /> Back to all devotionals
+              </button>
+            </div>
+          )}
 
-          {devo && (
-            <DevotionalContent
-              key={`${selectedChurch}-${churchDevotionalDay}`}
-              devo={devo}
-              liveData={liveDevotional}
-              liveLoading={liveLoading}
-              liveError={liveError}
-              isLiveCapable={isLiveCapable}
-              fontSize={devotionalFontSize}
-              setFontSize={setDevotionalFontSize}
-              churchName={churchInfo.name}
-              churchColor={churchInfo.color}
-            />
+          {hasChurchContent && (
+            <>
+              <div className="devotional-nav">
+                <button className="devotional-nav-btn" onClick={() => setChurchDevotionalDay(Math.max(0, churchDevotionalDay - 1))} disabled={churchDevotionalDay === 0}>Previous</button>
+                <span className="devotional-day-label">Day {devo ? devo.day : '—'} of {churchTotal}</span>
+                <button className="devotional-nav-btn" onClick={() => setChurchDevotionalDay(Math.min(churchTotal - 1, churchDevotionalDay + 1))} disabled={churchDevotionalDay >= churchTotal - 1}>Next</button>
+              </div>
+              <button className="btn-sm devotional-today-btn" onClick={() => setChurchDevotionalDay(clampedToday)}><CalendarIcon /> Today's Devotional</button>
+
+              {devo && (
+                <DevotionalContent
+                  key={`${selectedChurch}-${churchDevotionalDay}`}
+                  devo={devo}
+                  liveData={liveDevotional}
+                  liveLoading={liveLoading}
+                  liveError={liveError}
+                  isLiveCapable={isLiveCapable}
+                  fontSize={devotionalFontSize}
+                  setFontSize={setDevotionalFontSize}
+                  churchName={churchInfo.name}
+                  churchColor={churchInfo.color}
+                />
+              )}
+            </>
           )}
         </div>
       )}

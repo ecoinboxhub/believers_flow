@@ -111,7 +111,8 @@ a { color: inherit; text-decoration: none; }
 
 /* ---- Header ---- */
 header {
-  padding: var(--sp-5) var(--sp-5) var(--sp-4); text-align: center;
+  padding: calc(var(--sp-5) + env(safe-area-inset-top, 0px)) var(--sp-5) var(--sp-4);
+  text-align: center;
   background: var(--navy-surface);
   border-bottom: 1px solid var(--border-subtle);
   position: relative; overflow: hidden;
@@ -2236,7 +2237,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 @media (max-width: 768px) {
   .chat-overlay { top: 0; bottom: 0; border-radius: 0; }
-  .guide-overlay { top: 0; bottom: 0; border-radius: 0; }
+  .guide-overlay { top: 0; bottom: 0; border-radius: 0; padding: 0; align-items: stretch; }
+  .guide-panel { max-width: 100%; width: 100%; height: 100%; max-height: 100vh; border-radius: 0; border: none; }
+  .guide-body { padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px)); }
   .legal-overlay { top: 0; bottom: 0; border-radius: 0; }
   .app-main { padding-bottom: 80px; }
   .diary-encouragement { padding: var(--sp-2) var(--sp-3); gap: var(--sp-2); }
@@ -3848,6 +3851,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .church-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-3); }
 .church-card { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); background: var(--surface-card); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); cursor: pointer; transition: all var(--duration-fast); }
 .church-card:hover { border-color: var(--purple-primary); }
+.church-card.unavailable { opacity: 0.75; cursor: pointer; }
+.church-unavailable-tag { display: inline-flex; align-self: flex-start; margin-top: 2px; padding: 2px 8px; background: rgba(120,120,120,0.08); border-radius: var(--radius-sm); font-size: 0.62rem; font-weight: 600; color: var(--text-tertiary); }
+.devotional-unavailable { text-align: center; padding: var(--sp-6); }
+.devotional-unavailable .card-icon { justify-content: center; }
 .church-name { font-size: 0.9rem; font-weight: 600; color: rgba(44,36,22,0.85); }
 .church-denom { font-size: 0.7rem; color: var(--text-tertiary); }
 .church-location { font-size: 0.75rem; color: var(--text-secondary); }
@@ -4183,6 +4190,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .interlinear-loading { display: flex; align-items: center; justify-content: center; padding: var(--sp-6); color: var(--text-tertiary); font-size: 0.8rem; }
 .interlinear-lang-badge { display: inline-flex; padding: 2px 8px; background: rgba(184,134,11,0.06); border-radius: var(--radius-sm); font-size: 0.6rem; color: var(--purple-primary); }
 .interlinear-verse-num { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+.interlinear-note { margin: var(--sp-3) 0 0; font-size: 0.75rem; color: var(--text-secondary); }
+.interlinear-unavailable { padding: var(--sp-3) 0; }
+.interlinear-unavailable p { margin: 0 0 var(--sp-2); font-size: 0.85rem; color: var(--text-secondary); }
 
 /* Legal */
 .legal-logo { width: 40px; height: 40px; margin-bottom: var(--sp-3); }
