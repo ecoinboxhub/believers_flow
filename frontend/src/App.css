@@ -3019,13 +3019,33 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 768px) {
   .app-sidebar { display: none !important; }
   .bottom-nav { display: flex; }
-  .header-mobile-row { display: flex; }
+  .header-mobile-row { display: contents; }
   .header-top-row { display: none; }
   #main-nav { display: none; }
   .vs-bar { display: none !important; }
   .content-area { padding: var(--sp-4) var(--sp-4) var(--sp-8); }
   .app-main #view-container { padding-bottom: 80px; }
-  .app-main header { padding: 0; }
+  .app-main header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "hamburger greeting toggles"
+      "verse verse verse";
+    align-items: center;
+    column-gap: var(--sp-3);
+    row-gap: var(--sp-3);
+    padding: calc(var(--sp-3) + env(safe-area-inset-top, 0px)) var(--sp-4);
+    text-align: left;
+  }
+  .app-main header .header-mobile-row .hamburger-btn { grid-area: hamburger; }
+  .app-main header .header-mobile-row .header-mobile-actions { grid-area: toggles; }
+  .app-main header .greeting {
+    grid-area: greeting;
+    min-width: 0;
+    margin-bottom: 0;
+    text-align: left;
+  }
+  .app-main header .verse-container { grid-area: verse; }
   .app-main .stats-bar { padding: var(--sp-2) var(--sp-4); }
 }
 
@@ -3187,10 +3207,25 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* --- Mobile preview: force mobile layout rules --- */
 .view-switcher-mode-mobile .app-sidebar { display: none !important; }
 .view-switcher-mode-mobile .bottom-nav { display: flex !important; }
-.view-switcher-mode-mobile .header-mobile-row { display: flex !important; }
+.view-switcher-mode-mobile .header-mobile-row { display: contents !important; }
 .view-switcher-mode-mobile .header-top-row { display: none !important; }
 .view-switcher-mode-mobile #main-nav { display: none !important; }
-.view-switcher-mode-mobile .app-main header { padding: 0 !important; }
+.view-switcher-mode-mobile .app-main header {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "hamburger greeting toggles"
+    "verse verse verse";
+  align-items: center;
+  column-gap: var(--sp-3);
+  row-gap: var(--sp-3);
+  text-align: left;
+  padding: var(--sp-3) var(--sp-4) !important;
+}
+.view-switcher-mode-mobile .app-main header .header-mobile-row .hamburger-btn { grid-area: hamburger; }
+.view-switcher-mode-mobile .app-main header .header-mobile-row .header-mobile-actions { grid-area: toggles; }
+.view-switcher-mode-mobile .app-main header .greeting { grid-area: greeting; min-width: 0; margin-bottom: 0; text-align: left; }
+.view-switcher-mode-mobile .app-main header .verse-container { grid-area: verse; }
 .view-switcher-mode-mobile .app-main .stats-bar { padding: var(--sp-2) var(--sp-4); }
 .view-switcher-mode-mobile .app-main #view-container { padding-bottom: 80px !important; }
 
