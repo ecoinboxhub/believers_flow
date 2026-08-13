@@ -95,6 +95,23 @@ def test_bible_versions():
     asyncio.get_event_loop().run_until_complete(_test())
 
 
+def test_bible_service_only_marks_really_servable_versions():
+    """The bible-api ID map must only use identifiers the upstream service actually
+    serves, and only those may be reported as available. No fake/aliased texts."""
+    from api.bible_service import BIBLE_API_VERSIONS, _can_serve, _VERSIONS_BY_ID
+
+    assert BIBLE_API_VERSIONS == {
+        "KJV": "kjv", "WEB": "web", "WEBBE": "webbe", "ASV": "asv",
+        "BBE": "bbe", "DBY": "darby", "DRB": "dra", "YLT": "ylt",
+    }
+    # Exactly the map members are servable (via real sources); no others.
+    servable = {vid for vid in BIBLE_API_VERSIONS if _can_serve(_VERSIONS_BY_ID[vid])}
+    assert servable == set(BIBLE_API_VERSIONS)
+    # Versions with no real, distinct text must NOT claim availability.
+    for vid in ("AKJV", "WBT", "RV", "NIV", "ESV"):
+        assert not _can_serve(_VERSIONS_BY_ID[vid])
+
+
 def test_llm_providers():
     from api.index import app
     from httpx import AsyncClient, ASGITransport

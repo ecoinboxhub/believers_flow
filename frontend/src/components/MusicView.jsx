@@ -506,12 +506,6 @@ function EmbeddedFrame({ frame }) {
         <span className="music-player-badge">Embedded</span>
       </div>
       <div className="music-frame-wrap">
-        {status === 'loading' && (
-          <div className="music-frame-loading">
-            <span className="music-spinner" aria-hidden="true" />
-            <span>Loading player...</span>
-          </div>
-        )}
         <iframe
           key={attempt}
           className="music-embed-frame"

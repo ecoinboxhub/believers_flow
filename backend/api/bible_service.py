@@ -57,7 +57,7 @@ VERSIONS: List[BibleVersion] = [
     BibleVersion(id="CEV", name="Contemporary English Version", year=1995, licensed=True, description="Designed for readability at a third-grade reading level."),
     BibleVersion(id="NET", name="NET Bible", year=2005, licensed=True, description="A completely new translation with extensive translation notes, available free online."),
     BibleVersion(id="WEB", name="World English Bible", year=2000, public_domain=True, description="A modern public-domain English translation based on the ASV.", provider="bible-api"),
-    BibleVersion(id="WEBBE", name="World English Bible British Edition", year=2000, public_domain=True, description="British spelling edition of the World English Bible."),
+    BibleVersion(id="WEBBE", name="World English Bible British Edition", year=2000, public_domain=True, description="British spelling edition of the World English Bible.", provider="bible-api"),
     BibleVersion(id="YLT", name="Young's Literal Translation", year=1898, public_domain=True, description="An extremely literal translation of the original texts.", provider="local"),
     BibleVersion(id="DBY", name="Darby Bible", year=1890, public_domain=True, description="A literal translation by John Nelson Darby.", provider="local"),
     BibleVersion(id="DRB", name="Douay-Rheims Bible", year=1899, public_domain=True, description="A traditional Catholic English translation from the Latin Vulgate.", provider="local"),
@@ -87,7 +87,7 @@ VERSIONS: List[BibleVersion] = [
     BibleVersion(id="LSV", name="Literal Standard Version", year=2020, public_domain=True, description="A highly literal translation of the Hebrew, Aramaic, and Greek texts.", provider="local"),
     BibleVersion(id="BSB", name="Berean Standard Bible", year=2020, licensed=True, description="A modern, accurate translation from the original languages."),
     BibleVersion(id="KJV2000", name="King James Version 2000", year=2000, licensed=True, description="A modernized update of the KJV."),
-    BibleVersion(id="AKJV", name="Authorized King James Version", year=1769, public_domain=True, description="The 1769 standard edition of the King James Bible.", provider="bible-api"),
+    BibleVersion(id="AKJV", name="Authorized King James Version", year=1769, public_domain=True, description="The 1769 standard edition of the King James Bible."),
     BibleVersion(id="Geneva", name="Geneva Bible", year=1599, public_domain=True, description="The Bible of the Protestant Reformation, preferred by the Pilgrims.", provider="local"),
     BibleVersion(id="Tyndale", name="Tyndale Bible", year=1534, public_domain=True, description="William Tyndale's pioneering English translation (NT and Pentateuch)."),
 
@@ -177,18 +177,16 @@ _VERSIONS_BY_ID: Dict[str, BibleVersion] = {v.id: v for v in VERSIONS}
 
 PUBLIC_DOMAIN_IDS = {v.id for v in VERSIONS if v.public_domain}
 
-# Versions available through bible-api.com (KJV, WEB, etc.)
+# Versions available through bible-api.com (only IDs the upstream service actually serves)
 BIBLE_API_VERSIONS = {
     "KJV": "kjv",
     "WEB": "web",
-    "AKJV": "akjv",
+    "WEBBE": "webbe",
     "ASV": "asv",
     "BBE": "bbe",
-    "DBY": "dby",
-    "DRB": "drb",
+    "DBY": "darby",
+    "DRB": "dra",
     "YLT": "ylt",
-    "WBT": "wbt",
-    "RV": "rv",
 }
 
 # ---------------------------------------------------------------------------

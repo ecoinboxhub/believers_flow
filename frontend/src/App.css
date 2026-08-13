@@ -2239,6 +2239,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .chat-overlay { top: 0; bottom: 0; border-radius: 0; }
   .guide-overlay { top: 0; bottom: 0; border-radius: 0; padding: 0; align-items: stretch; }
   .guide-panel { max-width: 100%; width: 100%; height: 100%; max-height: 100vh; border-radius: 0; border: none; }
+  .guide-header { padding-top: calc(var(--sp-4) + env(safe-area-inset-top, 0px)); }
   .guide-body { padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px)); }
   .legal-overlay { top: 0; bottom: 0; border-radius: 0; }
   .app-main { padding-bottom: 80px; }
@@ -2318,7 +2319,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--sp-3) var(--sp-4);
+  padding: calc(var(--sp-3) + env(safe-area-inset-top, 0px)) var(--sp-4);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--navy-surface);
 }
@@ -2364,8 +2365,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .header-mode-toggle-mobile .header-mode-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border: none;
   background: none;
   color: var(--text-dim);
@@ -2415,7 +2416,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--sp-4) var(--sp-5);
+  padding: calc(var(--sp-4) + env(safe-area-inset-top, 0px)) var(--sp-5);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -2504,7 +2505,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .mobile-drawer-footer {
-  padding: var(--sp-4) var(--sp-5);
+  padding: calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)) var(--sp-5);
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -2515,8 +2516,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .mobile-drawer-mode-toggle .header-mode-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: none;
   background: none;
   color: var(--text-dim);
@@ -3036,7 +3037,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .header-top-row { display: flex; }
   #main-nav { display: none; }
   .app-main { padding-bottom: 0 !important; }
-  .app-main header { padding: var(--sp-3) var(--sp-4); }
+  .app-main header { padding: calc(var(--sp-3) + env(safe-area-inset-top, 0px)) var(--sp-4); }
   .app-main .stats-bar { padding: var(--sp-2) var(--sp-4); }
   .app-main #view-container { padding: var(--sp-3) var(--sp-4); }
   .content-area { padding: var(--sp-4) var(--sp-4); }
@@ -3050,7 +3051,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .header-top-row { display: flex; }
   #main-nav { display: none; }
   .app-main { padding-bottom: 0 !important; }
-  .app-main header { padding: var(--sp-4) var(--sp-6); }
+  .app-main header { padding: calc(var(--sp-4) + env(safe-area-inset-top, 0px)) var(--sp-6); }
   .app-main .stats-bar { padding: var(--sp-3) var(--sp-6); }
   .app-main #view-container { padding: var(--sp-4) var(--sp-6); }
   .content-area { padding: var(--sp-6) var(--sp-8); }

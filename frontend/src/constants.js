@@ -176,9 +176,8 @@ export const BIBLE_VERSIONS = [
 export const BIBLE_API_DIRECT = {
   KJV: "kjv", WEB: "web", WEBBE: "webbe", ASV: "asv", BBE: "bbe",
   DBY: "darby", DRB: "dra", YLT: "ylt", "OEB-CW": "oeb-cw", "OEB-US": "oeb-us",
-  Chinese: "cuv", Almeida: "almeida", Vulgate: "clementine", Synodal: "synodal",
-  BKR: "bkr", RCCV: "rccv", Cherokee: "cherokee",
-  AKJV: "kjv", WBT: "kjv", RV: "kjv",
+  Chinese: "cuv", Almeida: "almeida",
+  AKJV: "kjv",
 }
 
 export const BIBLE_BOOK_IDS = {
