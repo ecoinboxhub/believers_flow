@@ -2314,14 +2314,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   max-width: 100%;
 }
 
-/* ---- Mobile Header (Hamburger) ---- */
+/* ---- Mobile Header (Hamburger) ----
+   Single row container: hamburger · greeting (flexible) · theme toggle.
+   Safe-area top inset is applied via the <header> padding. */
 .header-mobile-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: calc(var(--sp-3) + env(safe-area-inset-top, 0px)) var(--sp-4);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--navy-surface);
+  gap: var(--sp-3);
+  min-width: 0;
 }
 
 .hamburger-btn {
@@ -2880,15 +2880,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 /* ===== VIEW SWITCHER ===== */
 .vs-bar {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: static;
   z-index: 500;
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 2px;
-  padding: 4px 8px;
+  padding: 8px;
+  margin: calc(8px + env(safe-area-inset-top, 0px)) auto 0;
+  width: fit-content;
+  max-width: calc(100% - 16px);
   background: rgba(255,253,248,0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -3019,33 +3021,30 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 768px) {
   .app-sidebar { display: none !important; }
   .bottom-nav { display: flex; }
-  .header-mobile-row { display: contents; }
   .header-top-row { display: none; }
   #main-nav { display: none; }
   .vs-bar { display: none !important; }
   .content-area { padding: var(--sp-4) var(--sp-4) var(--sp-8); }
   .app-main #view-container { padding-bottom: 80px; }
   .app-main header {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-      "hamburger greeting toggles"
-      "verse verse verse";
-    align-items: center;
-    column-gap: var(--sp-3);
-    row-gap: var(--sp-3);
     padding: calc(var(--sp-3) + env(safe-area-inset-top, 0px)) var(--sp-4);
     text-align: left;
   }
-  .app-main header .header-mobile-row .hamburger-btn { grid-area: hamburger; }
-  .app-main header .header-mobile-row .header-mobile-actions { grid-area: toggles; }
-  .app-main header .greeting {
-    grid-area: greeting;
+  .app-main header .header-mobile-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+  .app-main header .header-mobile-row .hamburger-btn { flex-shrink: 0; }
+  .app-main header .header-mobile-row .greeting {
+    flex: 1;
     min-width: 0;
     margin-bottom: 0;
     text-align: left;
+    line-height: var(--line-sm, 1.35);
   }
-  .app-main header .verse-container { grid-area: verse; }
+  .app-main header .header-mobile-row .header-mobile-actions { flex-shrink: 0; }
+  .app-main header .verse-container { margin-top: var(--sp-3); }
   .app-main .stats-bar { padding: var(--sp-2) var(--sp-4); }
 }
 
@@ -3053,11 +3052,18 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media (min-width: 769px) and (max-width: 1024px) {
   .app-sidebar { display: flex; }
   .bottom-nav { display: none; }
-  .header-mobile-row { display: none; }
   .header-top-row { display: flex; }
   #main-nav { display: none; }
   .app-main { padding-bottom: 0 !important; }
   .app-main header { padding: calc(var(--sp-3) + env(safe-area-inset-top, 0px)) var(--sp-4); }
+  .app-main header .header-mobile-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .app-main header .header-mobile-row .hamburger-btn,
+  .app-main header .header-mobile-row .header-mobile-actions { display: none; }
+  .app-main header .header-mobile-row .greeting { margin-bottom: var(--sp-2); }
   .app-main .stats-bar { padding: var(--sp-2) var(--sp-4); }
   .app-main #view-container { padding: var(--sp-3) var(--sp-4); }
   .content-area { padding: var(--sp-4) var(--sp-4); }
@@ -3067,11 +3073,18 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media (min-width: 1025px) {
   .app-sidebar { display: flex; }
   .bottom-nav { display: none; }
-  .header-mobile-row { display: none; }
   .header-top-row { display: flex; }
   #main-nav { display: none; }
   .app-main { padding-bottom: 0 !important; }
   .app-main header { padding: calc(var(--sp-4) + env(safe-area-inset-top, 0px)) var(--sp-6); }
+  .app-main header .header-mobile-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .app-main header .header-mobile-row .hamburger-btn,
+  .app-main header .header-mobile-row .header-mobile-actions { display: none; }
+  .app-main header .header-mobile-row .greeting { margin-bottom: var(--sp-2); }
   .app-main .stats-bar { padding: var(--sp-3) var(--sp-6); }
   .app-main #view-container { padding: var(--sp-4) var(--sp-6); }
   .content-area { padding: var(--sp-6) var(--sp-8); }
@@ -3196,7 +3209,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* --- Tablet preview: force tablet layout rules --- */
 .view-switcher-mode-tablet .app-sidebar { display: flex !important; }
 .view-switcher-mode-tablet .bottom-nav { display: none !important; }
-.view-switcher-mode-tablet .header-mobile-row { display: none !important; }
+.view-switcher-mode-tablet .header-mobile-row { display: flex !important; justify-content: center; align-items: center; }
+.view-switcher-mode-tablet .header-mobile-row .hamburger-btn,
+.view-switcher-mode-tablet .header-mobile-row .header-mobile-actions { display: none !important; }
+.view-switcher-mode-tablet .header-mobile-row .greeting { margin-bottom: var(--sp-2); }
 .view-switcher-mode-tablet .header-top-row { display: flex !important; }
 .view-switcher-mode-tablet #main-nav { display: none !important; }
 .view-switcher-mode-tablet .app-main { padding-bottom: 0 !important; }
@@ -3207,25 +3223,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* --- Mobile preview: force mobile layout rules --- */
 .view-switcher-mode-mobile .app-sidebar { display: none !important; }
 .view-switcher-mode-mobile .bottom-nav { display: flex !important; }
-.view-switcher-mode-mobile .header-mobile-row { display: contents !important; }
+.view-switcher-mode-mobile .header-mobile-row { display: flex !important; align-items: center; gap: var(--sp-3); }
 .view-switcher-mode-mobile .header-top-row { display: none !important; }
 .view-switcher-mode-mobile #main-nav { display: none !important; }
 .view-switcher-mode-mobile .app-main header {
-  display: grid !important;
-  grid-template-columns: auto 1fr auto;
-  grid-template-areas:
-    "hamburger greeting toggles"
-    "verse verse verse";
-  align-items: center;
-  column-gap: var(--sp-3);
-  row-gap: var(--sp-3);
   text-align: left;
   padding: var(--sp-3) var(--sp-4) !important;
 }
-.view-switcher-mode-mobile .app-main header .header-mobile-row .hamburger-btn { grid-area: hamburger; }
-.view-switcher-mode-mobile .app-main header .header-mobile-row .header-mobile-actions { grid-area: toggles; }
-.view-switcher-mode-mobile .app-main header .greeting { grid-area: greeting; min-width: 0; margin-bottom: 0; text-align: left; }
-.view-switcher-mode-mobile .app-main header .verse-container { grid-area: verse; }
+.view-switcher-mode-mobile .app-main header .header-mobile-row .hamburger-btn { display: flex !important; flex-shrink: 0; }
+.view-switcher-mode-mobile .app-main header .header-mobile-row .greeting {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+  text-align: left;
+  line-height: var(--line-sm, 1.35);
+}
+.view-switcher-mode-mobile .app-main header .header-mobile-row .header-mobile-actions { display: flex !important; flex-shrink: 0; }
+.view-switcher-mode-mobile .app-main header .verse-container { margin-top: var(--sp-3); }
 .view-switcher-mode-mobile .app-main .stats-bar { padding: var(--sp-2) var(--sp-4); }
 .view-switcher-mode-mobile .app-main #view-container { padding-bottom: 80px !important; }
 
