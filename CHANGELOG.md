@@ -5,6 +5,11 @@ All notable changes to BelieversFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.22.0] - 2026-08-15
+
+### Fixed
+- **Music > Spotify Christian shows only working playlists**: removed the "Best Worship Songs" and "Deep Worship" playlists, whose Spotify embed IDs no longer exist and displayed a "Page not available / Something went wrong" error. The tab now shows six playlists (Top Christian Hits, Top Christian Worship, Top 50 Christian Songs, New Christian Music, Christian Hits, Alabanzas Cristianas), all verified to load, and search filtering still covers worship, praise, gospel, and more.
+
 ## [4.21.0] - 2026-08-15
 
 ### Fixed
