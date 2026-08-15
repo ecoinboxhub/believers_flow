@@ -5,6 +5,13 @@ All notable changes to BelieversFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.19.0] - 2026-08-15
+
+### Fixed
+
+- **First-run legal gate removed**: the full-screen "Terms and Privacy" overlay no longer appears automatically after onboarding, so first-time users go straight into the app.
+- **Privacy Policy in Settings**: Settings > Legal > Privacy Policy now opens the full policy document directly (with Back to the full legal list) instead of landing on the generic legal checklist.
+
 ## [4.16.0] - 2026-08-09
 
 ### Added
