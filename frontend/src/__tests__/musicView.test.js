@@ -47,10 +47,11 @@ describe('MusicView — in-app playback, no external redirects', () => {
     expect(musicSource).toContain('youtube-nocookie.com/embed')
   })
 
-  it('keeps the Boom stations embedded in-app with a graceful fallback', () => {
-    expect(musicSource).toContain('boomcharlotte.com/genre')
-    expect(musicSource).toContain('music-frame-fallback')
-    expect(musicSource).toContain('music-frame-retry')
+  it('keeps the Boom live stations streaming in-app with a graceful fallback', () => {
+    expect(musicSource).toContain('strmreg.1.fm/gospel_mobile_mp3')
+    expect(musicSource).toContain('strmreg.1.fm/praise_mobile_mp3')
+    expect(musicSource).toContain('music-player-fallback')
+    expect(musicSource).not.toContain('boomcharlotte.com')
   })
 
   it('searches a live Christian music catalogue in-app instead of returning nothing', () => {

@@ -1,51 +1,5 @@
-import { memo, useState, useEffect, useRef, useCallback, useId } from 'react'
+import { memo, useState } from 'react'
 import { getAllTimezones, formatDateTime, getUserTimezone, getUserTimezoneAbbr, getUserTimezoneOffset } from '../dateUtils'
-
-const API_URL = import.meta.env.VITE_API_URL || ''
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-let gsiLoaded = false
-
-function initGoogleButton(containerId, onSuccess) {
-  if (!GOOGLE_CLIENT_ID || gsiLoaded) return
-  gsiLoaded = true
-
-  const script = document.createElement('script')
-  script.src = 'https://accounts.google.com/gsi/client'
-  script.async = true
-  script.defer = true
-  script.onload = () => {
-    if (!window.google) return
-    try {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: async (response) => {
-          try {
-            const res = await fetch(`${API_URL}/api/auth/google`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ credential: response.credential })
-            })
-            const data = await res.json()
-            if (!res.ok) return
-            localStorage.setItem('bf_token', data.token)
-            if (data.refresh_token) localStorage.setItem('bf_refresh_token', data.refresh_token)
-            localStorage.setItem('bf_user', JSON.stringify(data.user))
-            onSuccess(data.token, data.user)
-          } catch { /* ignore */ }
-        },
-      })
-      const el = document.getElementById(containerId)
-      if (el) {
-        window.google.accounts.id.renderButton(el, {
-          theme: 'outline', size: 'large', width: el.offsetWidth || 280, text: 'continue_with',
-        })
-      }
-    } catch {
-      // Origin not allowed or other GSI error — silently degrade
-    }
-  }
-  document.head.appendChild(script)
-}
 
 const THEME_OPTIONS = [
   { id: 'believersflow', name: 'BelieversFlow', colors: ['#c09030', '#c89830', '#3a4838'] },
@@ -56,207 +10,16 @@ const THEME_OPTIONS = [
   { id: 'sunset', name: 'Sunset', colors: ['#8e5a2d', '#e8a84c', '#2e1810'] },
 ]
 
-function GoogleSignInButton({ onSuccess }) {
-  const id = useId()
-  const mounted = useRef(false)
-
-  useEffect(() => {
-    if (mounted.current || !GOOGLE_CLIENT_ID) return
-    mounted.current = true
-    initGoogleButton(id, onSuccess)
-  }, [])
-
-  if (!GOOGLE_CLIENT_ID) return null
-
-  return (
-    <div className="settings-google-section">
-      <div className="settings-auth-divider"><span>or continue with</span></div>
-      <div id={id} className="settings-google-btn" />
-    </div>
-  )
-}
-
-function SettingsAuthForm({ mode, onSuccess, onSwitch }) {
-  const [email, setEmail] = useState('')
-  const [name, setName] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login'
-      const body = mode === 'register' ? { email, name, password } : { email, password }
-      const res = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.detail || 'Authentication failed'); return }
-      localStorage.setItem('bf_token', data.token)
-      localStorage.setItem('bf_refresh_token', data.refresh_token)
-      localStorage.setItem('bf_user', JSON.stringify(data.user))
-      onSuccess(data.token, data.user)
-    } catch {
-      setError('Connection failed. Check your network.')
-    } finally { setLoading(false) }
-  }
-
-  return (
-    <div className="settings-auth-form">
-      {mode === 'register' && (
-        <div className="auth-field">
-          <label>Full Name</label>
-          <input type="text" placeholder="Your full name" value={name}
-            onChange={e => setName(e.target.value)} required />
-        </div>
-      )}
-      <div className="auth-field">
-        <label>Email Address</label>
-        <input type="email" placeholder="you@example.com" value={email}
-          onChange={e => setEmail(e.target.value)} required />
-      </div>
-      <div className="auth-field">
-        <label>Password</label>
-        <input type="password" placeholder="Min 6 characters" value={password}
-          onChange={e => setPassword(e.target.value)} minLength={6} required />
-      </div>
-      {error && <div className="auth-error">{error}</div>}
-      <button type="submit" className="settings-auth-submit" onClick={handleSubmit} disabled={loading}>
-        {loading ? 'Please wait...' : mode === 'register' ? 'Create Free Account' : 'Sign In'}
-      </button>
-      <GoogleSignInButton onSuccess={onSuccess} />
-      {mode === 'register' && (
-        <div className="settings-auth-badges">
-          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:14,height:14,verticalAlign:'middle',marginRight:4}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure</span>
-          <span>✓ No CC required</span>
-        </div>
-      )}
-      <div className="settings-auth-toggle">
-        {mode === 'login' ? (
-          <span>New here? <button onClick={() => onSwitch('register')}>Create account</button></span>
-        ) : (
-          <span>Have an account? <button onClick={() => onSwitch('login')}>Sign in</button></span>
-        )}
-      </div>
-      <button className="settings-auth-back" onClick={() => onSwitch(null)}>← Back to profile</button>
-    </div>
-  )
-}
-
 const SettingsView = memo(function SettingsView({
   settings, updateSetting, updateNotification, customColors, updateCustomColor,
-  isPremium, authUser, handleLogout,
-  exportData, importData, resetAllData, openLegalSettings, showToast,
-  settingsAuthMode, setSettingsAuthMode,
+  exportData, importData, resetAllData, openLegalSettings,
 }) {
-  const [settingsSection, setSettingsSection] = useState(settingsAuthMode ? 'profile' : 'appearance')
-  const [showChangePassword, setShowChangePassword] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
-  const [passwordLoading, setPasswordLoading] = useState(false)
-  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
-  const [deletePassword, setDeletePassword] = useState('')
-  const [deleteConfirm, setDeleteConfirm] = useState('')
-  const [deleteLoading, setDeleteLoading] = useState(false)
-
-  const [showPayment, setShowPayment] = useState(false)
-  const [paymentLoading, setPaymentLoading] = useState(false)
-  const [paymentPlans, setPaymentPlans] = useState(null)
-  const [paymentStatus, setPaymentStatus] = useState(null)
-
-  const handleUpgrade = useCallback(async (plan) => {
-    setPaymentLoading(true)
-    try {
-      const token = localStorage.getItem('bf_token')
-      const res = await fetch(`${API_URL}/api/billing/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ plan })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Checkout failed')
-      if (data.checkout_url) {
-        window.open(data.checkout_url, '_blank')
-        showToast('Payment page opened in new tab')
-      } else {
-        showToast(`Checkout created: ${data.reference}`, 'success')
-      }
-    } catch (err) {
-      showToast(err.message || 'Payment system unavailable', 'warning')
-    } finally { setPaymentLoading(false) }
-  }, [showToast])
-
-  useEffect(() => {
-    if (isPremium) {
-      fetch(`${API_URL}/api/billing/status`).then(r => r.ok && r.json()).then(d => {
-        if (d) setPaymentPlans(d.plans)
-      }).catch(() => {})
-      fetch(`${API_URL}/api/billing/subscription`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('bf_token')}` }
-      }).then(r => r.ok && r.json()).then(d => {
-        if (d) setPaymentStatus(d)
-      }).catch(() => {})
-    }
-  }, [isPremium])
-
-  const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword) return
-    if (newPassword !== newPasswordConfirm) { showToast('New passwords do not match'); return }
-    if (newPassword.length < 6) { showToast('Password must be at least 6 characters'); return }
-    setPasswordLoading(true)
-    try {
-      const token = localStorage.getItem('bf_token')
-      const resp = await fetch(`${API_URL}/api/auth/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
-      })
-      if (resp.ok) {
-        showToast('Password changed successfully')
-        setShowChangePassword(false)
-        setCurrentPassword('')
-        setNewPassword('')
-        setNewPasswordConfirm('')
-      } else {
-        const data = await resp.json()
-        showToast(data.detail || 'Failed to change password')
-      }
-    } catch { showToast('Network error') }
-    setPasswordLoading(false)
-  }
-
-  const handleDeleteAccount = async () => {
-    if (deleteConfirm !== 'DELETE MY ACCOUNT') return
-    if (!deletePassword) return
-    setDeleteLoading(true)
-    try {
-      const token = localStorage.getItem('bf_token')
-      const resp = await fetch(`${API_URL}/api/auth/delete-account`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ password: deletePassword, confirm: deleteConfirm })
-      })
-      if (resp.ok) {
-        showToast('Account deleted successfully')
-        handleLogout()
-      } else {
-        const data = await resp.json()
-        showToast(data.detail || 'Failed to delete account')
-      }
-    } catch { showToast('Network error') }
-    setDeleteLoading(false)
-  }
+  const [settingsSection, setSettingsSection] = useState('appearance')
 
   return (
     <section className="view settings-view fade-in">
       <div className="settings-nav">
-          {[{ id: 'appearance', label: 'Appearance' }, { id: 'profile', label: 'Profile' }, { id: 'notifications', label: 'Notifications' }, { id: 'backup', label: 'Backup' }, { id: 'security', label: 'Security' }, { id: 'legal', label: 'Legal' }, { id: 'about', label: 'About' }].map(s => (
+          {[{ id: 'appearance', label: 'Appearance' }, { id: 'profile', label: 'Profile' }, { id: 'notifications', label: 'Notifications' }, { id: 'backup', label: 'Backup' }, { id: 'legal', label: 'Legal' }, { id: 'about', label: 'About' }].map(s => (
           <button key={s.id} className={`settings-nav-btn${settingsSection === s.id ? ' active' : ''}`} onClick={() => setSettingsSection(s.id)}>{s.label}</button>
         ))}
       </div>
@@ -376,123 +139,15 @@ const SettingsView = memo(function SettingsView({
 
       {settingsSection === 'profile' && (
         <div className="settings-content">
-          {!isPremium && (
-            <div className="upgrade-banner">
-              <div className="upgrade-banner-content">
-                <span className="upgrade-banner-icon">Upgrade</span>
-                <div className="upgrade-banner-info">
-                  <span className="upgrade-banner-title">Upgrade to Premium</span>
-                  <span className="upgrade-banner-desc">Unlock AI features, cloud sync, and more</span>
-                </div>
-              </div>
-              <button className="upgrade-banner-btn" onClick={() => setShowPayment(!showPayment)}>
-                {showPayment ? 'Close' : paymentPlans ? 'Subscribe' : 'Check'}
-              </button>
-            </div>
-          )}
-          {showPayment && !isPremium && (
-            <div className="card payment-plans-card">
-              <h3>Choose Your Plan</h3>
-              <p>Premium features include AI Faith Assistant, cloud sync, hymn audio, and more.</p>
-              <div className="payment-plans">
-                <div className="payment-plan">
-                  <h4>Monthly</h4>
-                  <div className="plan-price">$2.99<span className="plan-period">/month</span></div>
-                  <ul className="plan-features">
-                    <li>AI Faith Assistant</li>
-                    <li>AI Verse Explanations</li>
-                    <li>Cloud Sync</li>
-                    <li>Hymn Audio</li>
-                    <li>Community Features</li>
-                  </ul>
-                  <button className="btn-primary" onClick={() => handleUpgrade('monthly')} disabled={paymentLoading}>
-                    {paymentLoading ? 'Processing...' : 'Subscribe Monthly'}
-                  </button>
-                </div>
-                <div className="payment-plan featured">
-                  <div className="plan-badge">Best Value</div>
-                  <h4>Annual</h4>
-                  <div className="plan-price">$29.99<span className="plan-period">/year</span></div>
-                  <div className="plan-save">Save $5.89</div>
-                  <ul className="plan-features">
-                    <li>Everything in Monthly</li>
-                    <li>Priority Support</li>
-                    <li>Early Access Features</li>
-                    <li>Ad-Free Experience</li>
-                  </ul>
-                  <button className="btn-primary" onClick={() => handleUpgrade('annual')} disabled={paymentLoading}>
-                    {paymentLoading ? 'Processing...' : 'Subscribe Annual'}
-                  </button>
-                </div>
-              </div>
-              <p className="payment-note">Secure payment via Flutterwave. No data stored on our servers.</p>
-            </div>
-          )}
-          {isPremium && paymentStatus && (
-            <div className="upgrade-banner premium-active">
-              <div className="upgrade-banner-content">
-                <span className="upgrade-banner-icon premium-icon">Premium</span>
-                <div className="upgrade-banner-info">
-                  <span className="upgrade-banner-title">Premium Active</span>
-                  <span className="upgrade-banner-desc">
-                    {paymentStatus.is_active
-                      ? `Plan: ${paymentStatus.plan}${paymentStatus.expires_at ? ` · Expires: ${new Date(paymentStatus.expires_at).toLocaleDateString()}` : ''}`
-                      : 'Subscription expired'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
           <div className="card">
             <h3>Profile</h3>
             <p>Manage your personal information.</p>
-            {authUser && (
-              <div className="sync-status">
-                <span className="sync-badge">Synced</span>
-                <span className="sync-email">{authUser.email}</span>
-              </div>
-            )}
             <div className="profile-fields">
               <label className="settings-label">Your Name</label>
               <input type="text" placeholder="Enter your name" value={settings.profileName} onChange={e => updateSetting('profileName', e.target.value)} />
               <label className="settings-label">Email</label>
               <input type="email" placeholder="Enter your email" value={settings.profileEmail} onChange={e => updateSetting('profileEmail', e.target.value)} />
             </div>
-            {authUser ? (
-              <div>
-                <div className="settings-signed-in">
-                  <div className="settings-signed-in-avatar">
-                    {authUser.name ? authUser.name.charAt(0).toUpperCase() : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
-                  </div>
-                  <div className="settings-signed-in-info">
-                    <div className="settings-signed-in-name">{authUser.name || 'User'}</div>
-                    <div className="settings-signed-in-email">{authUser.email}</div>
-                  </div>
-                  <span className={`settings-signed-in-plan ${authUser.plan === 'premium' ? 'premium' : 'free'}`}>
-                    {authUser.plan === 'premium' ? 'Premium' : 'Free'}
-                  </span>
-                </div>
-                <button className="btn-danger" onClick={handleLogout} style={{ marginTop: '12px' }}>Sign Out</button>
-              </div>
-            ) : settingsAuthMode ? (
-              <SettingsAuthForm
-                mode={settingsAuthMode}
-                onSuccess={() => {
-                  setSettingsAuthMode(null)
-                  showToast('Signed in successfully!')
-                  setTimeout(() => window.location.reload(), 500)
-                }}
-                onSwitch={(m) => setSettingsAuthMode(m)}
-              />
-            ) : (
-              <div className="profile-auth-buttons">
-                <button className="btn-primary" onClick={() => setSettingsAuthMode('login')} style={{ marginTop: '12px' }}>Sign In</button>
-                <div className="profile-auth-divider">
-                  <span>or</span>
-                </div>
-                <button className="btn-outline" onClick={() => setSettingsAuthMode('register')} style={{ width: '100%' }}>Create Free Account</button>
-              </div>
-            )}
           </div>
           <div className="card">
             <h3>Language</h3>
@@ -583,13 +238,6 @@ const SettingsView = memo(function SettingsView({
                 </div>
                 <span className="legal-settings-arrow">{'>'}</span>
               </div>
-              <div className="legal-settings-item" onClick={() => openLegalSettings('community')}>
-                <div className="legal-settings-info">
-                  <h4>Community Guidelines</h4>
-                  <p>How to behave in the BelieversFlow community</p>
-                </div>
-                <span className="legal-settings-arrow">{'>'}</span>
-              </div>
               <div className="legal-settings-item" onClick={() => openLegalSettings('data-collection')}>
                 <div className="legal-settings-info">
                   <h4>Data Collection Disclosure</h4>
@@ -616,57 +264,6 @@ const SettingsView = memo(function SettingsView({
             <button className="btn-outline" onClick={() => openLegalSettings()}>
               Review All Legal Documents
             </button>
-          </div>
-        </div>
-      )}
-
-      {settingsSection === 'security' && authUser && (
-        <div className="settings-content">
-          <div className="card">
-            <h3>How We Protect Your Account</h3>
-            <p style={{ lineHeight: 1.7, marginTop: 12 }}>
-              Your account is protected by several layers of security. Your password is encrypted using industry-standard hashing, which means even we cannot see your actual password. All communication between your device and our servers is encrypted using TLS, the same technology used by banks and financial institutions. Your session expires automatically after a period of inactivity, and you can change your password at any time. If you ever suspect unauthorized access to your account, we recommend changing your password immediately.
-            </p>
-          </div>
-
-          <div className="card">
-            <h3>Change Password</h3>
-            <p>Update your account password.</p>
-            {showChangePassword ? (
-              <div className="settings-form">
-                <label className="settings-label">Current Password</label>
-                <input type="password" placeholder="Enter current password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
-                <label className="settings-label">New Password</label>
-                <input type="password" placeholder="Enter new password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                <label className="settings-label">Confirm New Password</label>
-                <input type="password" placeholder="Confirm new password" value={newPasswordConfirm} onChange={e => setNewPasswordConfirm(e.target.value)} />
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button className="btn-primary" onClick={handleChangePassword} disabled={passwordLoading}>{passwordLoading ? 'Changing...' : 'Change Password'}</button>
-                  <button className="btn-outline" onClick={() => { setShowChangePassword(false); setCurrentPassword(''); setNewPassword(''); setNewPasswordConfirm('') }}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <button className="btn-outline" onClick={() => setShowChangePassword(true)}>Change Password</button>
-            )}
-          </div>
-
-          <div className="card" style={{ borderColor: '#e74c3c' }}>
-            <h3 style={{ color: '#e74c3c' }}>Danger Zone</h3>
-            <p>Once you delete your account, there is no going back. All your data will be permanently removed.</p>
-            {showDeleteAccount ? (
-              <div className="settings-form">
-                <label className="settings-label">Enter your password</label>
-                <input type="password" placeholder="Password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} />
-                <label className="settings-label">Type "DELETE MY ACCOUNT" to confirm</label>
-                <input type="text" placeholder='DELETE MY ACCOUNT' value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)} style={{ borderColor: deleteConfirm === 'DELETE MY ACCOUNT' ? '#27ae60' : '#e74c3c' }} />
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button className="btn-danger" onClick={handleDeleteAccount} disabled={deleteLoading || deleteConfirm !== 'DELETE MY ACCOUNT'}>{deleteLoading ? 'Deleting...' : 'Delete Account'}</button>
-                  <button className="btn-outline" onClick={() => { setShowDeleteAccount(false); setDeletePassword(''); setDeleteConfirm('') }}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <button className="btn-danger" onClick={() => setShowDeleteAccount(true)}>Delete Account</button>
-            )}
           </div>
         </div>
       )}

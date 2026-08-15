@@ -175,10 +175,28 @@ export const BIBLE_VERSIONS = [
 
 export const BIBLE_API_DIRECT = {
   KJV: "kjv", WEB: "web", WEBBE: "webbe", ASV: "asv", BBE: "bbe",
-  DBY: "darby", DRB: "dra", YLT: "ylt", "OEB-CW": "oeb-cw", "OEB-US": "oeb-us",
-  Chinese: "cuv", Almeida: "almeida",
+  DBY: "darby", DRB: "dra", YLT: "ylt",
+  BKR: "bkr", RCCV: "rccv", Almeida: "almeida",
+  Chinese: "cuv", Cherokee: "cherokee",
+  Vulgate: "clementine",
   AKJV: "kjv",
 }
+
+// Translations that bible-api.com serves only through its /data endpoint
+// (exact /data/<code>/<BOOK_ID>/<chapter> path, not the ?translation= query form)
+export const BIBLE_API_DIRECT_DATA = {
+  Chinese: "cuv",
+  Cherokee: "cherokee",
+  Vulgate: "clementine",
+}
+
+// Translations the app can genuinely serve right now (from a real, legal source).
+// Licensed versions (NIV, ESV, NLT, ...) require a license/API key and are intentionally
+// excluded so users never pick a translation that cannot be served.
+export const BIBLE_SERVABLE = [
+  "KJV", "WEB", "WEBBE", "ASV", "BBE", "DBY", "DRB", "YLT",
+  "BKR", "RCCV", "Almeida", "Chinese", "Cherokee", "Vulgate", "AKJV",
+]
 
 export const BIBLE_BOOK_IDS = {
   "Genesis": "GEN", "Exodus": "EXO", "Leviticus": "LEV", "Numbers": "NUM",

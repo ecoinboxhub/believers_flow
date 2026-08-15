@@ -1,20 +1,24 @@
 import { useState, useRef, useEffect } from 'react'
-import { BIBLE_VERSIONS } from '../constants'
+import { BIBLE_VERSIONS, BIBLE_SERVABLE } from '../constants'
 
 const CATS = ['All', 'English', 'Hebrew', 'Greek', 'Jewish', 'Latin', 'European Languages', 'African Languages', 'Asian Languages']
+
+const SERVABLE = new Set(BIBLE_SERVABLE)
 
 export default function VersionSelector({ currentVersion, onSelect }) {
   const [isOpen, setIsOpen] = useState(false)
   const [cat, setCat] = useState('All')
   const wrapRef = useRef(null)
 
-  const current = BIBLE_VERSIONS.find(function (v) { return v.id === currentVersion }) || { id: currentVersion, name: currentVersion }
+  const current = BIBLE_VERSIONS.find(function (v) { return SERVABLE.has(v.id) && v.id === currentVersion }) || { id: currentVersion, name: currentVersion }
+
+  const SERVABLE_VERSIONS = BIBLE_VERSIONS.filter(function (v) { return SERVABLE.has(v.id) })
 
   var versions
   if (cat === 'All') {
-    versions = BIBLE_VERSIONS
+    versions = SERVABLE_VERSIONS
   } else {
-    versions = BIBLE_VERSIONS.filter(function (v) { return v.category === cat })
+    versions = SERVABLE_VERSIONS.filter(function (v) { return v.category === cat })
   }
 
   useEffect(function () {
@@ -66,7 +70,7 @@ export default function VersionSelector({ currentVersion, onSelect }) {
         <div className="ts-dropdown">
           <div className="ts-cats">
             {CATS.map(function (c) {
-              var count = c === 'All' ? BIBLE_VERSIONS.length : BIBLE_VERSIONS.filter(function (v) { return v.category === c }).length
+              var count = c === 'All' ? SERVABLE_VERSIONS.length : SERVABLE_VERSIONS.filter(function (v) { return v.category === c }).length
               if (c !== 'All' && count === 0) return null
               var cls = cat === c ? 'ts-cat active' : 'ts-cat'
               return (

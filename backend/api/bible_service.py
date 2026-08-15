@@ -87,7 +87,7 @@ VERSIONS: List[BibleVersion] = [
     BibleVersion(id="LSV", name="Literal Standard Version", year=2020, public_domain=True, description="A highly literal translation of the Hebrew, Aramaic, and Greek texts.", provider="local"),
     BibleVersion(id="BSB", name="Berean Standard Bible", year=2020, licensed=True, description="A modern, accurate translation from the original languages."),
     BibleVersion(id="KJV2000", name="King James Version 2000", year=2000, licensed=True, description="A modernized update of the KJV."),
-    BibleVersion(id="AKJV", name="Authorized King James Version", year=1769, public_domain=True, description="The 1769 standard edition of the King James Bible."),
+    BibleVersion(id="AKJV", name="Authorized King James Version", year=1769, public_domain=True, description="The 1769 standard edition of the King James Bible.", provider="bible-api"),
     BibleVersion(id="Geneva", name="Geneva Bible", year=1599, public_domain=True, description="The Bible of the Protestant Reformation, preferred by the Pilgrims.", provider="local"),
     BibleVersion(id="Tyndale", name="Tyndale Bible", year=1534, public_domain=True, description="William Tyndale's pioneering English translation (NT and Pentateuch)."),
 
@@ -107,7 +107,7 @@ VERSIONS: List[BibleVersion] = [
 
     # === Latin ===
     BibleVersion(id="Vulgate", name="Latin Vulgate", language="la", language_name="Latin", category="Latin", public_domain=True, description="Jerome's 4th-century Latin translation, the standard Bible of the medieval Western Church.", provider="local"),
-    BibleVersion(id="VulgateClem", name="Clementine Vulgate", language="la", language_name="Latin", category="Latin", year=1592, public_domain=True, description="The official Latin Bible of the Catholic Church until 1979."),
+    BibleVersion(id="VulgateClem", name="Clementine Vulgate", language="la", language_name="Latin", category="Latin", year=1592, public_domain=True, description="The official Latin Bible of the Catholic Church until 1979.", provider="bible-api"),
     BibleVersion(id="NovaVulgata", name="Nova Vulgata", language="la", language_name="Latin", category="Latin", year=1979, licensed=True, description="The modern official Latin Bible of the Catholic Church."),
 
     # === Aramaic ===
@@ -133,18 +133,20 @@ VERSIONS: List[BibleVersion] = [
     BibleVersion(id="Segond", name="Louis Segond (French)", language="fr", language_name="French", category="European Languages", public_domain=True, description="The standard French Protestant translation (1910)."),
     BibleVersion(id="RVR", name="Reina-Valera (Spanish)", language="es", language_name="Spanish", category="European Languages", public_domain=True, description="The classic Spanish Protestant translation (1909 revision)."),
     BibleVersion(id="Dio", name="Giovanni Diodati (Italian)", language="it", language_name="Italian", category="European Languages", public_domain=True, description="The classic Italian Protestant translation (1649)."),
-    BibleVersion(id="Almeida", name="João Ferreira de Almeida (Portuguese)", language="pt", language_name="Portuguese", category="European Languages", public_domain=True, description="The classic Portuguese Protestant translation (1750)."),
+    BibleVersion(id="Almeida", name="João Ferreira de Almeida (Portuguese)", language="pt", language_name="Portuguese", category="European Languages", public_domain=True, description="The classic Portuguese Protestant translation (1750).", provider="bible-api"),
     BibleVersion(id="Synodal", name="Russian Synodal Bible", language="ru", language_name="Russian", category="European Languages", public_domain=True, description="The official Russian Orthodox Bible translation (1876)."),
     BibleVersion(id="Ostrog", name="Ostrog Bible (Church Slavonic)", language="cu", language_name="Church Slavonic", category="European Languages", public_domain=True, description="The first complete printed Bible in Church Slavonic (1581)."),
     BibleVersion(id="DutchSV", name="Statenvertaling (Dutch)", language="nl", language_name="Dutch", category="European Languages", public_domain=True, description="The official Dutch translation commissioned by the Synod of Dort (1637)."),
-    BibleVersion(id="CzechKR", name="Bible kralická (Czech)", language="cs", language_name="Czech", category="European Languages", public_domain=True, description="The classic Czech Protestant translation (1613)."),
+    BibleVersion(id="CzechKR", name="Bible kralická (Czech)", language="cs", language_name="Czech", category="European Languages", public_domain=True, description="The classic Czech Protestant translation (1613).", provider="bible-api"),
+    BibleVersion(id="BKR", name="Bible kralická (Czech)", language="cs", language_name="Czech", category="European Languages", public_domain=True, description="The classic Czech Protestant translation (1613).", provider="bible-api"),
+    BibleVersion(id="RCCV", name="Protestant Romanian Corrected Cornilescu Version", language="ro", language_name="Romanian", category="European Languages", public_domain=True, description="The corrected Romanian Protestant Bible (Cornilescu).", provider="bible-api"),
     BibleVersion(id="Norwegian", name="Det Norske Bibelselskap (Norwegian)", language="no", language_name="Norwegian", category="European Languages", public_domain=True, description="The official Norwegian Bible translation (1930)."),
     BibleVersion(id="Swedish", name="Svenska Folkbibeln (Swedish)", language="sv", language_name="Swedish", category="European Languages", description="A modern Swedish Bible translation."),
     BibleVersion(id="Finnish", name="Pyhä Raamattu (Finnish)", language="fi", language_name="Finnish", category="European Languages", public_domain=True, description="The Finnish Bible translation (1938)."),
     BibleVersion(id="PolishGd", name="Biblia Gdańska (Polish)", language="pl", language_name="Polish", category="European Languages", public_domain=True, description="The classic Polish Protestant Bible (1632)."),
 
     # === Asian Languages ===
-    BibleVersion(id="Chinese", name="Chinese Union Version (Simplified)", language="zh", language_name="Chinese (Simplified)", category="Asian Languages", public_domain=True, description="The most widely used Chinese Bible translation (1919)."),
+    BibleVersion(id="Chinese", name="Chinese Union Version (Simplified)", language="zh", language_name="Chinese (Simplified)", category="Asian Languages", public_domain=True, description="The most widely used Chinese Bible translation (1919).", provider="bible-api"),
     BibleVersion(id="ChineseT", name="Chinese Union Version (Traditional)", language="zh-Hant", language_name="Chinese (Traditional)", category="Asian Languages", public_domain=True, description="The traditional character edition of the Chinese Union Version."),
     BibleVersion(id="Japanese", name="Japanese Bible (Kougo-yaku)", language="ja", language_name="Japanese", category="Asian Languages", description="The Japanese colloquial Bible translation (1955)."),
     BibleVersion(id="Korean", name="Korean Bible (Revised)", language="ko", language_name="Korean", category="Asian Languages", description="The revised Korean Bible translation (1998)."),
@@ -164,8 +166,9 @@ VERSIONS: List[BibleVersion] = [
     BibleVersion(id="OSB", name="Orthodox Study Bible", language="en", language_name="English", category="Orthodox", licensed=True, description="An English translation using the Septuagint for the OT."),
 
     # === Other Languages ===
+    BibleVersion(id="Cherokee", name="Cherokee New Testament", language="chr", language_name="Cherokee", category="Other Languages", testament="NT", public_domain=True, description="The New Testament translated into the Cherokee language.", provider="bible-api"),
     BibleVersion(id="Esperanto", name="Esperanto Bible", language="eo", language_name="Esperanto", category="Other Languages", public_domain=True, description="The complete Bible in Esperanto."),
-    BibleVersion(id="LatinV", name="Latin Vulgate (Clementine)", language="la", language_name="Latin", category="Latin", testament="OT+NT", public_domain=True, description="The Clementine edition of the Latin Vulgate."),
+    BibleVersion(id="LatinV", name="Latin Vulgate (Clementine)", language="la", language_name="Latin", category="Latin", testament="OT+NT", public_domain=True, description="The Clementine edition of the Latin Vulgate.", provider="bible-api"),
 ]
 
 # Index for fast lookup
@@ -180,6 +183,7 @@ PUBLIC_DOMAIN_IDS = {v.id for v in VERSIONS if v.public_domain}
 # Versions available through bible-api.com (only IDs the upstream service actually serves)
 BIBLE_API_VERSIONS = {
     "KJV": "kjv",
+    "AKJV": "kjv",
     "WEB": "web",
     "WEBBE": "webbe",
     "ASV": "asv",
@@ -187,6 +191,48 @@ BIBLE_API_VERSIONS = {
     "DBY": "darby",
     "DRB": "dra",
     "YLT": "ylt",
+    "BKR": "bkr",
+    "CzechKR": "bkr",
+    "RCCV": "rccv",
+    "Almeida": "almeida",
+    "Vulgate": "clementine",
+    "VulgateClem": "clementine",
+    "LatinV": "clementine",
+    "Chinese": "cuv",
+    "Cherokee": "cherokee",
+}
+
+# Versions served via bible-api.com's /data endpoint (book ID-based, exact path)
+BIBLE_API_DATA_VERSIONS = {
+    "Chinese": "cuv",
+    "Cherokee": "cherokee",
+    "BKR": "bkr",
+    "CzechKR": "bkr",
+    "RCCV": "rccv",
+    "Almeida": "almeida",
+    "Vulgate": "clementine",
+    "VulgateClem": "clementine",
+    "LatinV": "clementine",
+}
+
+BIBLE_API_BOOK_IDS = {
+    "genesis": "GEN", "exodus": "EXO", "leviticus": "LEV", "numbers": "NUM",
+    "deuteronomy": "DEU", "joshua": "JOS", "judges": "JDG", "ruth": "RUT",
+    "1 samuel": "1SA", "2 samuel": "2SA", "1 kings": "1KI", "2 kings": "2KI",
+    "1 chronicles": "1CH", "2 chronicles": "2CH", "ezra": "EZR", "nehemiah": "NEH",
+    "esther": "EST", "job": "JOB", "psalms": "PSA", "psalm": "PSA", "proverbs": "PRO",
+    "ecclesiastes": "ECC", "song of solomon": "SNG", "isaiah": "ISA", "jeremiah": "JER",
+    "lamentations": "LAM", "ezekiel": "EZK", "daniel": "DAN", "hosea": "HOS",
+    "joel": "JOL", "amos": "AMO", "obadiah": "OBA", "jonah": "JON",
+    "micah": "MIC", "nahum": "NAM", "habakkuk": "HAB", "zephaniah": "ZEP",
+    "haggai": "HAG", "zechariah": "ZEC", "malachi": "MAL", "matthew": "MAT",
+    "mark": "MRK", "luke": "LUK", "john": "JHN", "acts": "ACT",
+    "romans": "ROM", "1 corinthians": "1CO", "2 corinthians": "2CO", "galatians": "GAL",
+    "ephesians": "EPH", "philippians": "PHP", "colossians": "COL", "1 thessalonians": "1TH",
+    "2 thessalonians": "2TH", "1 timothy": "1TI", "2 timothy": "2TI", "titus": "TIT",
+    "philemon": "PHM", "hebrews": "HEB", "james": "JAS", "1 peter": "1PE",
+    "2 peter": "2PE", "1 john": "1JN", "2 john": "2JN", "3 john": "3JN",
+    "jude": "JUD", "revelation": "REV",
 }
 
 # ---------------------------------------------------------------------------
@@ -219,13 +265,22 @@ async def fetch_chapter(version_id: str, book: str, chapter: int) -> Optional[Di
 # ---------------------------------------------------------------------------
 
 async def _fetch_from_bible_api(version_id: str, book: str, chapter: int) -> Optional[Dict]:
-    """Fetch from bible-api.com (supports KJV, WEB, etc.). Retries once on transient failure."""
+    """Fetch from bible-api.com (supports KJV, WEB, BKR, RCCV, Almeida, Vulgate, Chinese, Cherokee).
+    Uses the /data endpoint for translations that the primary endpoint cannot serve.
+    Retries once on transient failure."""
     import httpx
     from urllib.parse import quote
 
     api_version = BIBLE_API_VERSIONS.get(version_id, version_id.lower())
-    encoded_book = quote(book.replace(' ', '+'))
-    url = f"https://bible-api.com/{encoded_book}+{chapter}?translation={api_version}"
+
+    if version_id in BIBLE_API_DATA_VERSIONS:
+        book_id = BIBLE_API_BOOK_IDS.get(book.lower())
+        if not book_id:
+            return None
+        url = f"https://bible-api.com/data/{api_version}/{book_id}/{chapter}"
+    else:
+        encoded_book = quote(book.replace(' ', '+'))
+        url = f"https://bible-api.com/{encoded_book}+{chapter}?translation={api_version}"
 
     for attempt in (1, 2):
         try:

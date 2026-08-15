@@ -103,23 +103,19 @@ const SPOTIFY_PLAYLISTS = [
   },
 ]
 
-const BOOM_FRAMES = [
+const BOOM_STREAMS = [
   {
-    title: 'Boom Christian Music',
-    subtitle: 'Christian music station, free to stream',
-    url: 'https://boomcharlotte.com/genre/christian/',
-    tags: ['christian', 'contemporary', 'hits']
+    title: '1.FM Gospel',
+    subtitle: 'Gospel music from 1.FM Radio, free to stream',
+    url: 'https://strmreg.1.fm/gospel_mobile_mp3',
+    badge: '1.FM',
+    tags: ['gospel', 'contemporary', 'traditional']
   },
   {
-    title: 'Boom Gospel',
-    subtitle: 'Traditional and contemporary gospel music',
-    url: 'https://boomcharlotte.com/genre/gospel/',
-    tags: ['gospel', 'traditional', 'soul']
-  },
-  {
-    title: 'Boom Praise',
-    subtitle: 'Non-stop praise and worship music',
-    url: 'https://boomcharlotte.com/genre/praise-and-worship/',
+    title: '1.FM Praise & Worship',
+    subtitle: 'Praise and worship music from 1.FM Radio',
+    url: 'https://strmreg.1.fm/praise_mobile_mp3',
+    badge: '1.FM',
     tags: ['praise', 'worship', 'contemporary']
   },
 ]
@@ -478,56 +474,6 @@ function AudioStreamCard({ stream }) {
   )
 }
 
-function EmbeddedFrame({ frame }) {
-  const [status, setStatus] = useState('loading')
-  const [attempt, setAttempt] = useState(0)
-  const timerRef = useRef(null)
-
-  useEffect(() => {
-    timerRef.current = setTimeout(() => {
-      setStatus(s => (s === 'loading' ? 'timeout' : s))
-    }, 25000)
-    return () => clearTimeout(timerRef.current)
-  }, [frame.url, attempt])
-
-  const retry = () => {
-    clearTimeout(timerRef.current)
-    setStatus('loading')
-    setAttempt(n => n + 1)
-  }
-
-  return (
-    <div className="music-player-card">
-      <div className="music-player-card-head">
-        <div className="music-player-card-info">
-          <div className="music-player-card-title">{frame.title}</div>
-          <div className="music-player-card-subtitle">{frame.subtitle}</div>
-        </div>
-        <span className="music-player-badge">Embedded</span>
-      </div>
-      <div className="music-frame-wrap">
-        <iframe
-          key={attempt}
-          className="music-embed-frame"
-          src={frame.url}
-          title={frame.title}
-          loading="lazy"
-          allow="autoplay; encrypted-media; fullscreen"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          onLoad={() => setStatus('loaded')}
-        />
-        {(status === 'timeout' || status === 'error') && (
-          <div className="music-frame-fallback">
-            <p>This station's player could not be reached from your location. It may be temporarily
-              unavailable or the provider may not permit embedded playback here.</p>
-            <button className="music-frame-retry" onClick={retry}>Retry</button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function SpotifyCard({ playlist }) {
   return (
     <div className="music-player-card">
@@ -832,14 +778,14 @@ function BoomTab() {
       <div className="music-boom-divider">
         <h3 className="music-boom-stations-title">Live Christian Stations</h3>
         <p className="music-boom-stations-note">
-          Christian radio stations from Boom Charlotte, embedded inside this app. These are different from the
-          song search above: live station streams, not searchable songs. If a station cannot load, it is
+          Live Christian radio streams, played inside this app. These are different from the
+          song search above: live station streams, not searchable songs. If a stream cannot load, it is
           temporarily unavailable from your location.
         </p>
       </div>
       <div className="music-player-grid">
-        {BOOM_FRAMES.map((frame, i) => (
-          <EmbeddedFrame key={i} frame={frame} />
+        {BOOM_STREAMS.map((stream, i) => (
+          <AudioStreamCard key={i} stream={stream} />
         ))}
       </div>
     </div>

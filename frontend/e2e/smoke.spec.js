@@ -6,8 +6,8 @@ test('page loads with load event', async ({ page }) => {
   await page.goto('/', { timeout: 15000, waitUntil: 'networkidle' })
   expect(await page.title()).toBe('BelieversFlow')
 
-  const logoVisible = await page.locator('.header-brand-text').isVisible()
+  const appLoaded = await page.locator('.verse-text').isVisible()
+    || await page.locator('.header-mobile-row').isVisible()
     || await page.locator('.sidebar-logo-text').isVisible()
-    || await page.locator('.header-top-row .logo').isVisible()
-  expect(logoVisible).toBe(true)
+  expect(appLoaded).toBe(true)
 })

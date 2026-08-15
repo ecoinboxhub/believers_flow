@@ -581,7 +581,7 @@ async def get_bible(book: str = Query(...), chapter: int = Query(...), version: 
             status_code=404,
             detail=(
                 f"The {version} translation is not available in this app. "
-                "Please select a translation we can serve reliably: KJV, WEB, ASV, BBE, DBY, DRB, YLT, or WEBBE."
+                "Please select a translation we can serve reliably: KJV, WEB, WEBBE, ASV, BBE, DBY, DRB, YLT, BKR, RCCV, Almeida, Chinese, Cherokee, or Latin Vulgate."
             ),
         )
     except HTTPException:

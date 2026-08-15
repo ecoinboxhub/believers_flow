@@ -25,7 +25,7 @@ function OfflineIcon() {
   )
 }
 
-function InlineError({ status, onRetry, onSignIn }) {
+function InlineError({ status, onRetry }) {
   const config = getErrorConfig(status)
   const isOffline = status === 0
 
@@ -44,7 +44,7 @@ function InlineError({ status, onRetry, onSignIn }) {
       {config.action && (
         <button
           className="btn-primary"
-          onClick={config.actionType === 'auth' ? onSignIn : onRetry}
+          onClick={onRetry}
           style={{ fontSize: '0.85em', padding: '6px 16px' }}
         >
           {config.action}
@@ -101,11 +101,6 @@ class ErrorBoundary extends Component {
     this.setState({ hasError: false, error: null })
   }
 
-  handleSignIn = () => {
-    this.setState({ hasError: false, error: null })
-    window.dispatchEvent(new CustomEvent('auth-change', { detail: { type: 'logout', reason: 'error_boundary' } }))
-  }
-
   render() {
     if (this.state.hasError) {
       const status = this.state.error?.status || 0
@@ -117,7 +112,6 @@ class ErrorBoundary extends Component {
           <InlineError
             status={status}
             onRetry={this.handleRetry}
-            onSignIn={this.handleSignIn}
           />
         </div>
       )

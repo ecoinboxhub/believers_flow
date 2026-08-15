@@ -7,13 +7,6 @@ const LEGAL_DOCUMENTS = {
   'data-compliance': true, 'compliance-checklist': true,
 }
 
-export const PREMIUM_USER = {
-  id: 'test-user-1',
-  email: 'test@believers.flow',
-  name: 'Test User',
-  plan: 'premium',
-}
-
 export const LEGAL_ACCEPTED = {
   version: '1.1.0',
   accepted_at: new Date().toISOString(),
@@ -38,13 +31,6 @@ export async function setupSkipOverlays(page) {
         'data-compliance': true, 'compliance-checklist': true,
       },
     }))
-  })
-}
-
-export async function setupPremiumUser(page) {
-  await page.addInitScript(() => {
-    localStorage.setItem('bf_user', JSON.stringify(PREMIUM_USER))
-    localStorage.setItem('bf_token', 'test-jwt-token')
   })
 }
 

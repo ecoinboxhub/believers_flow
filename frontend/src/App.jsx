@@ -2,23 +2,20 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import ViewSwitcher from './components/ViewSwitcher.jsx'
 import { getNow, getDayOfYear, formatDateShort, formatTimeShort, getGreeting as getTzGreeting, getUserTimezoneAbbr } from './dateUtils.js'
-import Auth from './Auth.jsx'
 import WelcomeScreen from './components/WelcomeScreen.jsx'
 import LegalScreen, { hasAcceptedLegal, LEGAL_VERSION } from './LegalScreen.jsx'
-import { getUser, logout, pullFromServer, mergeServerData, scheduleSync, refreshAccessToken, isTokenExpired } from './syncService.js'
-import { subscribeToPush, unsubscribeFromPush } from './pushNotifications.js'
+import { refreshAccessToken, isTokenExpired } from './syncService.js'
 import { getTaskReminderTs, cancelBackgroundReminder, reconcileBackgroundReminders, canScheduleBackgroundReminders, notificationSupported, playTaskAlarmSound, stopTaskAlarmSound, initTaskAlarmAudio, requestReminderPermission, REMINDER_GRACE_MS, REMINDER_TICK_MS } from './taskReminders.js'
 import { NATIVE_ANDROID, listenNativeAlarms } from './nativeReminders.js'
 import { requestDiaryReflection } from './diaryReflection.js'
 import BibleView from './components/BibleView.jsx'
-import { BIBLE_API_DIRECT, BIBLE_BOOK_IDS } from './constants.js'
+import { BIBLE_API_DIRECT, BIBLE_API_DIRECT_DATA, BIBLE_BOOK_IDS } from './constants.js'
 import DiaryView from './components/DiaryView.jsx'
 import MusicView from './components/MusicView.jsx'
 import DevotionalView from './components/DevotionalView.jsx'
 import TasksView from './components/TasksView.jsx'
 import SpiritualView from './components/SpiritualView.jsx'
 import SettingsView from './components/SettingsView.jsx'
-import GamificationBadge from './components/GamificationBadge.jsx'
 import { ErrorBoundary } from './components/ErrorBoundary.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -67,16 +64,11 @@ function getStreak(logs) {
 }
 
 export default function App() {
-  const [authUser, setAuthUser] = useState(() => getUser())
-  const [showAuth, setShowAuth] = useState(false)
-  const [settingsAuthMode, setSettingsAuthMode] = useState(null)
   const [showWelcome, setShowWelcome] = useState(() => {
     if (!loadState('btf_onboardingDone', false)) return false
     if (!hasAcceptedLegal()) return false
-    if (authUser) return false
     return !loadState('btf_welcomeDone', false)
   })
-  const isPremium = Boolean(authUser)
   const [tasks, setTasks] = useState(() => loadState('btf_tasks', []))
   const [prayerLogs, setPrayerLogs] = useState(() => loadState('btf_prayerLogs', []))
   const [studyPlan, setStudyPlan] = useState(() => loadState('btf_studyPlan', { book: '', chapter: '' }))
@@ -222,11 +214,9 @@ const [diaryTitle, setDiaryTitle] = useState('')
         }
       }))
     }
-    if (!authUser) {
-      const welcomeDone = loadState('btf_welcomeDone', false)
-      if (!welcomeDone) setShowWelcome(true)
-    }
-  }, [authUser])
+    const welcomeDone = loadState('btf_welcomeDone', false)
+    if (!welcomeDone) setShowWelcome(true)
+  }, [])
 
   const streak = getStreak(prayerLogs)
   const verse = VERSES[verseIndex]
@@ -259,27 +249,6 @@ const [diaryTitle, setDiaryTitle] = useState('')
     }
     return () => { document.body.style.overflow = '' }
   }, [mobileDrawerOpen])
-
-  useEffect(() => {
-    if (authUser) {
-      scheduleSync()
-      pullFromServer().then(serverData => {
-        if (serverData) {
-          mergeServerData(serverData)
-          if (serverData.btf_tasks) setTasks(loadState('btf_tasks', []))
-          if (serverData.btf_prayerLogs) setPrayerLogs(loadState('btf_prayerLogs', []))
-          if (serverData.btf_diary) setDiaryEntries(loadState('btf_diary', []))
-          if (serverData.btf_settings) setSettings(loadState('btf_settings', DEFAULT_SETTINGS))
-          if (serverData.btf_customColors) setCustomColors(loadState('btf_customColors', DEFAULT_CUSTOM_COLORS))
-          if (serverData.btf_hymnFavorites) setHymnFavorites(loadState('btf_hymnFavorites', []))
-          if (serverData.btf_recentHymns) setHymnRecentlyViewed(loadState('btf_recentHymns', []))
-          if (serverData.btf_recentReads) setRecentReads(loadState('btf_recentReads', []))
-          if (serverData.btf_chat) setChatHistory(loadState('btf_chat', []))
-          if (serverData.btf_navOrder) setNavOrder(loadState('btf_navOrder', []))
-        }
-      })
-    }
-  }, [authUser])
 
   useEffect(() => {
     const id = setInterval(() => { setGreeting(getTzGreeting()) }, 30000)
@@ -326,7 +295,7 @@ const [diaryTitle, setDiaryTitle] = useState('')
         if (BIBLE_API_DIRECT[ver]) {
           const translation = BIBLE_API_DIRECT[ver]
           const bookId = BIBLE_BOOK_IDS[book]
-          if (translation === 'cuv' && bookId) {
+          if (BIBLE_API_DIRECT_DATA[ver] && bookId) {
             const url = `https://bible-api.com/data/${translation}/${bookId}/${chapter}`
             const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
             if (!res.ok) throw new Error(`HTTP ${res.status}`, { cause: err })
@@ -342,7 +311,7 @@ const [diaryTitle, setDiaryTitle] = useState('')
           throw new Error(
             typeof fallbackDetail === 'string' && fallbackDetail
               ? fallbackDetail
-              : `"${ver}" is not available. Choose KJV, WEB, ASV, BBE, DBY, or YLT.`,
+              : `"${ver}" is not available. Choose KJV, WEB, ASV, BBE, DBY, YLT, or another supported translation.`,
             { cause: err }
           )
         }
@@ -378,22 +347,9 @@ const [diaryTitle, setDiaryTitle] = useState('')
 
 
 
-  const handleLogin = useCallback((token, user) => {
-    setAuthUser(user)
-    setShowAuth(false)
-    requestReminderPermission().then(granted => {
-      if (granted) {
-        subscribeToPush(API_URL, token)
-      }
-    })
-  }, [])
-  const handleWelcomeAction = useCallback((action) => {
+  const handleWelcomeAction = useCallback(() => {
     saveState('btf_welcomeDone', true)
     setShowWelcome(false)
-    if (action === 'register' || action === 'login') {
-      setSettingsAuthMode(action)
-      setCurrentView('settings')
-    }
   }, [])
 
   const handleLegalAccept = useCallback(() => {
@@ -410,14 +366,6 @@ const [diaryTitle, setDiaryTitle] = useState('')
     setLegalMode('settings')
     setLegalSettingsOpen(true)
   }, [])
-
-  const handleLogout = useCallback(() => {
-    const token = localStorage.getItem('bf_token')
-    unsubscribeFromPush(API_URL, token)
-    logout()
-    setAuthUser(null)
-    showToast('Signed out')
-  }, [showToast])
 
   const nextVerse = useCallback(() => {
     setVerseIndex(i => {
@@ -673,7 +621,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
       if (!res.ok) {
         const detail = data && data.detail ? String(data.detail) : ''
         if (res.status === 401 || res.status === 403) {
-          pushError("Your session could not reach the assistant. Please sign in again and retry.")
+          pushError("Your session could not reach the assistant. Please try again.")
         } else if (res.status === 429) {
           pushError("The assistant is busy right now. Please wait a moment and try again.")
         } else if (res.status >= 500) {
@@ -968,7 +916,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
       setTasks([]); setPrayerLogs([]); setStudyPlan({ book: '', chapter: '' })
       setDiaryEntries([]); setChatHistory([]); setRecentReads([])
       setSettings(DEFAULT_SETTINGS); setCustomColors(DEFAULT_CUSTOM_COLORS)
-      setAuthUser(null)
       showToast('All data reset')
     }
   }, [showToast])
@@ -990,7 +937,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
   const navLabels = {
     tasks: 'Tasks', spiritual: 'Faith', diary: 'Diary', bible: 'Bible',
     music: 'Music', devotional: 'Daily', settings: 'Settings',
-    assistant: 'AI Assistant', guide: 'AI Guide'
+    assistant: 'AI Assistant', guide: 'AI Guide',
   }
 
   const navIcons = {
@@ -1055,10 +1002,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
         <WelcomeScreen onAction={handleWelcomeAction} />
       )}
 
-      {showAuth && (
-        <Auth apiUrl={API_URL} onLogin={handleLogin} onSkip={() => setShowAuth(false)} />
-      )}
-
       {toast && (
         <div className={`toast toast-${toast.type}`}>
           <span>{toast.message}</span>
@@ -1091,9 +1034,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
             {renderNavButton('settings')}
           </nav>
           <div className="sidebar-footer">
-            <ErrorBoundary>
-              <GamificationBadge isPremium={isPremium} compact />
-            </ErrorBoundary>
             <button className="sidebar-collapse-toggle" onClick={() => setSidebarCollapsed(c => !c)}
               aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:18,height:18}}>
@@ -1138,11 +1078,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
                   </button>
                 </div>
-                {authUser && (
-                  <button className="header-profile-btn" onClick={() => setCurrentView('settings')} aria-label="Profile settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  </button>
-                )}
               </div>
             </div>
             <div className="header-mobile-row">
@@ -1282,8 +1217,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
               openHymn={openHymn} closeHymn={closeHymn}
               toggleHymnFavorite={toggleHymnFavorite}
               showToast={showToast}
-              isPremium={isPremium}
-              setShowAuth={setShowAuth}
             />
           </ErrorBoundary>
         )}
@@ -1306,10 +1239,8 @@ const generateDiaryReflection = useCallback(async (entry) => {
             <SettingsView
               settings={settings} updateSetting={updateSetting} updateNotification={updateNotification}
               customColors={customColors} updateCustomColor={updateCustomColor}
-              isPremium={isPremium} authUser={authUser} setShowAuth={setShowAuth} handleLogout={handleLogout}
               exportData={exportData} importData={importData} resetAllData={resetAllData}
-              openLegalSettings={openLegalSettings} showToast={showToast}
-              settingsAuthMode={settingsAuthMode} setSettingsAuthMode={setSettingsAuthMode}
+              openLegalSettings={openLegalSettings}
             />
           </ErrorBoundary>
         )}
@@ -1544,9 +1475,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
               ) : (
                 <div className="onboarding-final-actions">
                   <button className="onboarding-start" onClick={handleGetStarted}>Get Started</button>
-                  <button className="onboarding-signup" onClick={() => { completeOnboarding(); setShowAuth(true) }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16,verticalAlign:'middle',marginRight:6}}><line x1="12" y1="2" x2="12" y2="22"/><line x1="6" y1="8" x2="18" y2="8"/></svg> Sign Up for Premium Features
-                  </button>
                 </div>
               )}
             </div>
@@ -1560,7 +1488,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
           onAccept={handleLegalAccept}
           onDecline={handleLegalDecline}
           apiUrl={API_URL}
-          authUser={authUser}
         />
       )}
 
@@ -1570,7 +1497,6 @@ const generateDiaryReflection = useCallback(async (entry) => {
           onAccept={() => setLegalSettingsOpen(false)}
           onDecline={() => setLegalSettingsOpen(false)}
           apiUrl={API_URL}
-          authUser={authUser}
         />
       )}
 

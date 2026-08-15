@@ -1242,7 +1242,7 @@ For compliance inquiries, please contact us at compliance@believersflow.app`
 
 export const LEGAL_VERSION = '1.1.0'
 
-export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', apiUrl, authUser }) {
+export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding' }) {
   const [selectedDoc, setSelectedDoc] = useState(null)
   const [accepted, setAccepted] = useState({
     privacy: false,
@@ -1272,27 +1272,6 @@ export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', 
     setError('')
 
     try {
-      if (apiUrl && authUser) {
-        const token = localStorage.getItem('bf_token')
-        const res = await fetch(`${apiUrl}/api/auth/legal-accept`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            version: LEGAL_VERSION,
-            accepted_at: new Date().toISOString(),
-            documents: accepted
-          })
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          console.warn('Backend legal acceptance failed:', data.detail)
-        }
-      }
-
       localStorage.setItem('bf_legal_accepted', JSON.stringify({
         version: LEGAL_VERSION,
         accepted_at: new Date().toISOString(),
