@@ -5,6 +5,11 @@ All notable changes to BelieversFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.21.0] - 2026-08-15
+
+### Fixed
+- **Settings > Legal always returns to the app**: the "Review All Legal Documents" list overlay now has a visible **Done** button, and the legal document detail view in Settings now has a **Close & Return to App** action. Users can consistently go back into the app from every entry point in the Legal feature (list view, any individual document opened from Settings, or the Review All screen), including on mobile full-screen views where the outside-tap escape was unavailable.
+
 ## [4.20.0] - 2026-08-15
 
 ### Changed
