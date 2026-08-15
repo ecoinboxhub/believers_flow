@@ -1187,6 +1187,14 @@ export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', 
     }
   }
 
+  const handleClose = () => {
+    if (mode === 'settings') {
+      onAccept()
+    } else {
+      setSelectedDoc(null)
+    }
+  }
+
   if (selectedDoc) {
     const doc = LEGAL_DOCS.find(d => d.id === selectedDoc)
     return (
@@ -1207,8 +1215,8 @@ export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', 
             {renderLegalDoc(doc.content)}
           </div>
           <div className="legal-doc-footer">
-            <button className="legal-btn legal-btn-secondary" onClick={() => setSelectedDoc(null)}>
-              Close
+            <button className="legal-btn legal-btn-secondary" onClick={handleClose}>
+              {mode === 'settings' ? 'Close & Return to App' : 'Close'}
             </button>
           </div>
         </div>
@@ -1299,6 +1307,14 @@ export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', 
                 : 'Not yet accepted'
               }
             </p>
+            <div className="legal-buttons">
+              <button
+                className="legal-btn legal-btn-primary"
+                onClick={handleClose}
+              >
+                Done
+              </button>
+            </div>
           </div>
         )}
       </div>
