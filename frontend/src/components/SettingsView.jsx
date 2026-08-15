@@ -253,15 +253,19 @@ const SettingsView = memo(function SettingsView({
             <p>Your current legal acceptance status.</p>
             <div className="legal-status-info">
               <div className="legal-status-row">
-                <span>Legal Version</span>
-                <span>{localStorage.getItem('bf_legal_accepted') ? `v${JSON.parse(localStorage.getItem('bf_legal_accepted')).version}` : 'Not accepted'}</span>
+                <span className="legal-status-label">Legal Version</span>
+                <span className={`legal-status-badge${localStorage.getItem('bf_legal_accepted') ? ' is-accepted' : ''}`}>
+                  {localStorage.getItem('bf_legal_accepted') ? `v${JSON.parse(localStorage.getItem('bf_legal_accepted')).version}` : 'Not accepted'}
+                </span>
               </div>
               <div className="legal-status-row">
-                <span>Accepted At</span>
-                <span>{localStorage.getItem('bf_legal_accepted') ? new Date(JSON.parse(localStorage.getItem('bf_legal_accepted')).accepted_at).toLocaleDateString() : 'Not accepted'}</span>
+                <span className="legal-status-label">Accepted At</span>
+                <span className={`legal-status-badge${localStorage.getItem('bf_legal_accepted') ? ' is-accepted' : ''}`}>
+                  {localStorage.getItem('bf_legal_accepted') ? new Date(JSON.parse(localStorage.getItem('bf_legal_accepted')).accepted_at).toLocaleDateString() : 'Not accepted'}
+                </span>
               </div>
             </div>
-            <button className="btn-outline" onClick={() => openLegalSettings()}>
+            <button className="btn-primary legal-review-btn" onClick={() => openLegalSettings()}>
               Review All Legal Documents
             </button>
           </div>
