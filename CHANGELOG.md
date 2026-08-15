@@ -5,6 +5,14 @@ All notable changes to BelieversFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.20.0] - 2026-08-15
+
+### Changed
+
+- **Legal documents reformatted**: all fourteen legal documents (Privacy Policy, Terms of Service, Terms of Use, Community Guidelines, Data Collection Disclosure, Security Policy, Cookie Policy, Content Moderation Policy, Acceptable Use Policy, Third-Party Services, Data Retention Policy, Incident Response Plan, Data Compliance, and Compliance Checklist) are now presented as clearly structured, natural-language sections with headings, bullet lists, and highlighted key terms instead of raw plain text.
+- **Legal overlay improved**: the "Terms and Privacy" review screen and individual document views now render as a proper full-screen overlay with a styled panel, header, effective-date/version meta line, scrollable document body, and Back/Close controls.
+- **Settings > Legal responsive**: legal document entries now respond on tap/hover (pointer cursor, highlight, lift, and arrow slide), and the Legal Acceptance Status badges are color-coded (green when accepted, red when not) with a prominent full-width "Review All Legal Documents" button.
+
 ## [4.19.0] - 2026-08-15
 
 ### Fixed
