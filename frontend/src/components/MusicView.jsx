@@ -66,22 +66,10 @@ const SPOTIFY_PLAYLISTS = [
     tags: ['worship', 'contemporary', 'praise']
   },
   {
-    title: 'Best Worship Songs',
-    subtitle: 'Faith-filled worship that inspires and uplifts',
-    id: '7jBgMpEnOTsz0bTwgiSmT',
-    tags: ['worship', 'praise', 'inspirational']
-  },
-  {
     title: 'Top 50 Christian Songs',
     subtitle: 'Popular Christian praise and worship music',
     id: '174NV7zjemTk8C4ebhbQY6',
     tags: ['hits', 'worship', 'praise', 'contemporary']
-  },
-  {
-    title: 'Deep Worship',
-    subtitle: 'Worship music for times of prayer and reflection',
-    id: '1vOh0r3BRIVbkJCn4Yc5od',
-    tags: ['worship', 'reflective', 'prayer']
   },
   {
     title: 'New Christian Music',
