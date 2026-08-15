@@ -142,12 +142,8 @@ const [diaryTitle, setDiaryTitle] = useState('')
     return !done
   })
   const [onboardingStep, setOnboardingStep] = useState(0)
-  const [showLegal, setShowLegal] = useState(() => {
-    if (showOnboarding) return false
-    return !hasAcceptedLegal()
-  })
-  const [legalMode, setLegalMode] = useState('onboarding')
   const [legalSettingsOpen, setLegalSettingsOpen] = useState(false)
+  const [legalSettingsDoc, setLegalSettingsDoc] = useState(null)
 
   // Hymns state
   const [hymnSearch, setHymnSearch] = useState('')
@@ -191,10 +187,6 @@ const [diaryTitle, setDiaryTitle] = useState('')
   const completeOnboarding = useCallback(() => {
     setShowOnboarding(false)
     saveState('btf_onboardingDone', true)
-    if (!hasAcceptedLegal()) {
-      setLegalMode('onboarding')
-      setShowLegal(true)
-    }
   }, [])
 
   const handleGetStarted = useCallback(() => {
@@ -352,18 +344,8 @@ const [diaryTitle, setDiaryTitle] = useState('')
     setShowWelcome(false)
   }, [])
 
-  const handleLegalAccept = useCallback(() => {
-    setShowLegal(false)
-  }, [])
-
-  const handleLegalDecline = useCallback(() => {
-    setShowLegal(false)
-    setShowOnboarding(true)
-    saveState('btf_onboardingDone', false)
-  }, [])
-
-  const openLegalSettings = useCallback(() => {
-    setLegalMode('settings')
+  const openLegalSettings = useCallback((docId = null) => {
+    setLegalSettingsDoc(docId)
     setLegalSettingsOpen(true)
   }, [])
 
@@ -1482,18 +1464,10 @@ const generateDiaryReflection = useCallback(async (entry) => {
         </div>
       )}
 
-      {showLegal && (
-        <LegalScreen
-          mode={legalMode}
-          onAccept={handleLegalAccept}
-          onDecline={handleLegalDecline}
-          apiUrl={API_URL}
-        />
-      )}
-
       {legalSettingsOpen && (
         <LegalScreen
           mode="settings"
+          initialDocId={legalSettingsDoc}
           onAccept={() => setLegalSettingsOpen(false)}
           onDecline={() => setLegalSettingsOpen(false)}
           apiUrl={API_URL}

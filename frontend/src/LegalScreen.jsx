@@ -1242,8 +1242,10 @@ For compliance inquiries, please contact us at compliance@believersflow.app`
 
 export const LEGAL_VERSION = '1.1.0'
 
-export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding' }) {
-  const [selectedDoc, setSelectedDoc] = useState(null)
+export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', initialDocId = null }) {
+  const [selectedDoc, setSelectedDoc] = useState(() => {
+    return initialDocId && LEGAL_DOCS.some(d => d.id === initialDocId) ? initialDocId : null
+  })
   const [accepted, setAccepted] = useState({
     privacy: false,
     tos: false,
