@@ -121,8 +121,8 @@
 | Backend (pytest) | 96 | ✅ All passing |
 | Frontend (vitest) | 164 | ✅ All passing |
 | Endpoint (test_all.py) | 57 | ✅ All passing |
-| Security & Scalability | 56 (+3 env warns) | ✅ All passing |
-| **Total** | **373** | **✅ All passing** |
+| Security & Scalability | 61 | ✅ All passing (0 warnings) |
+| **Total** | **378** | **✅ All passing** |
 
 ---
 

@@ -409,7 +409,7 @@ async def auth_refresh(req: RefreshRequest, _db=Depends(require_db)):
 
 
 @app.post("/api/auth/logout")
-async def auth_logout(req: LogoutRequest, credentials=Depends(security), _db=Depends(require_db)):
+async def auth_logout(req: Optional[LogoutRequest] = None, credentials=Depends(security), _db=Depends(require_db)):
     try:
         # Blocklist the current access token
         if credentials and credentials.credentials:
@@ -421,7 +421,7 @@ async def auth_logout(req: LogoutRequest, credentials=Depends(security), _db=Dep
             except Exception as e:
                 logger.warning(f"Failed to block token on logout: {e}")
         # Revoke refresh token if provided
-        if req.refresh_token:
+        if req and req.refresh_token:
             await revoke_refresh_token(req.refresh_token)
     except Exception as e:
         logger.warning(f"Logout error: {e}")

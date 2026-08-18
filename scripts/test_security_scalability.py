@@ -28,6 +28,24 @@ def wait():
     _last_t = time.time()
 
 
+class _Resp:
+    """Wrap a requests.Response so truthiness reflects 'a response was received'.
+
+    Plain requests.Response.__bool__ returns r.ok, i.e. False for every
+    4xx/5xx status, which made `if r:` silently treat 401/429 responses as
+    errors. This wrapper delegates all attributes but is always truthy.
+    """
+
+    def __init__(self, resp):
+        self.resp = resp
+
+    def __getattr__(self, name):
+        return getattr(self.resp, name)
+
+    def __bool__(self):
+        return True
+
+
 def hit(method, path, **kw):
     """Make an HTTP request. Returns (response, None) or (None, error_string)."""
     wait()
@@ -35,7 +53,7 @@ def hit(method, path, **kw):
     try:
         fn = getattr(requests, method.lower())
         r = fn(url, timeout=8, **kw)
-        return r, None
+        return _Resp(r), None
     except requests.exceptions.Timeout:
         return None, "timeout"
     except Exception as e:
@@ -287,18 +305,41 @@ print("\n--- 5. BRUTE-FORCE ---")
 bf_email = f"bf_{int(time.time())}@test.com"
 hit("POST", "/api/auth/register",
     json={"email": bf_email, "name": "BF", "password": "Correct1!"})
+# The global 60 RPM per-IP limiter can transiently 429 mid-suite; retry errors once.
 locked = False
-for i in range(7):
-    r, _ = hit("POST", "/api/auth/login",
-               json={"email": bf_email, "password": f"Wrong{i}!"})
+attempts = 0
+i = 0
+while i < 7 and not locked:
+    r, err = hit("POST", "/api/auth/login",
+                 json={"email": bf_email, "password": f"Wrong{i}!"})
     if r and r.status_code == 429:
         locked = True
         ok(f"Lockout after {i+1} attempts", "429")
         break
     elif r and r.status_code == 401:
+        attempts += 1
+        i += 1
         continue
-if not locked:
-    warn("Brute-force lockout", "not triggered (may be rate limited first)")
+    elif err:
+        # Transient rate-limit/network churn: give it one clean retry.
+        time.sleep(1.0)
+        r2, err2 = hit("POST", "/api/auth/login",
+                       json={"email": bf_email, "password": f"Wrong{i}!"})
+        if r2 and r2.status_code == 429:
+            locked = True
+            ok(f"Lockout after {i+1} attempts", "429")
+            break
+        if r2 and r2.status_code == 401:
+            attempts += 1
+            i += 1
+            continue
+        warn("Brute-force lockout", f"request error: {err2}")
+        break
+    else:
+        warn("Brute-force lockout", f"unexpected status {r.status_code}")
+        break
+if not locked and i >= 7:
+    warn("Brute-force lockout", f"not triggered after {attempts} attempts (may be rate limited first)")
 
 
 # --- 6. RATE LIMITING ---
@@ -467,13 +508,20 @@ elif is_safe(r.status_code):
 else:
     fail("404 endpoint", f"{r.status_code}")
 
-# Login error consistency
-r1, _ = hit("POST", "/api/auth/login",
-            json={"email": "nonexistent_xyz@test.com", "password": "wrong"})
-r2, _ = hit("POST", "/api/auth/login",
-            json={"email": "existent_abc@test.com", "password": "wrong"})
+# Login error consistency (existing user vs non-existent user must respond identically)
+consist_email = f"consist_{int(time.time())}@test.com"
+hit("POST", "/api/auth/register",
+    json={"email": consist_email, "name": "Consist", "password": "Correct1!"})
+r1, e1 = hit("POST", "/api/auth/login",
+             json={"email": "nonexistent_xyz@test.com", "password": "wrong"})
+r2, e2 = hit("POST", "/api/auth/login",
+             json={"email": consist_email, "password": "wrong"})
 if r1 and r2 and r1.status_code == r2.status_code:
     ok("Login errors consistent", f"both={r1.status_code}")
+elif e1 or e2:
+    warn("Login error consistency",
+         f"{'request error' if e1 else r1.status_code if r1 else '?'} vs "
+         f"{'request error' if e2 else r2.status_code if r2 else '?'}")
 else:
     warn("Login error consistency",
          f"{r1.status_code if r1 else '?'} vs {r2.status_code if r2 else '?'}")
