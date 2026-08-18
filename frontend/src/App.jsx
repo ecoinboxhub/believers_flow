@@ -1470,11 +1470,8 @@ const generateDiaryReflection = useCallback(async (entry) => {
 
       {legalSettingsOpen && (
         <LegalScreen
-          mode="settings"
           initialDocId={legalSettingsDoc}
-          onAccept={() => setLegalSettingsOpen(false)}
-          onDecline={() => setLegalSettingsOpen(false)}
-          apiUrl={API_URL}
+          onClose={() => setLegalSettingsOpen(false)}
         />
       )}
 

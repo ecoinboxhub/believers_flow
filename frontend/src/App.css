@@ -4300,6 +4300,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .legal-back-btn { padding: 6px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font-size: 0.78rem; cursor: pointer; transition: all var(--duration-fast); }
 .legal-back-btn:hover, .legal-back-btn:active { background: rgba(184,134,11,0.08); border-color: rgba(184,134,11,0.3); color: var(--purple-primary); }
 .legal-doc-meta-line { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-5); background: rgba(184,134,11,0.05); border-bottom: 1px solid var(--border-subtle); font-size: 0.7rem; color: var(--text-muted); }
+.legal-doc-meta { flex-shrink: 0; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(184,134,11,0.08); color: var(--text-muted); font-size: 0.68rem; font-weight: 600; }
 .legal-doc-content { flex: 1; padding: var(--sp-5); overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .legal-rich { display: flex; flex-direction: column; gap: var(--sp-2); }
 .legal-rich-p { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--text-secondary); }
@@ -4334,6 +4335,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .legal-status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: var(--radius-sm); font-size: 0.72rem; font-weight: 600; background: rgba(198,40,40,0.08); color: #c62828; }
 .legal-status-badge.is-accepted { background: rgba(76,175,80,0.1); color: #2e7d32; }
 .legal-review-btn { width: 100%; margin-top: var(--sp-3); }
+.legal-status-wrap { display: flex; flex-direction: column; gap: var(--sp-2); }
+.legal-status-note { font-size: 0.78rem; color: var(--text-secondary); }
 .legal-actions .legal-status { display: inline-flex; align-items: center; gap: var(--sp-1); padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.65rem; font-weight: 600; }
 
 @media (max-width: 600px) {

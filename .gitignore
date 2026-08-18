@@ -160,6 +160,17 @@ playwright/.cache/
 blob-report/
 *.snap.bak
 screenshots/
+**/screenshots/
+**/video/
+
+# ---------------------------
+# QA screenshots & recordings
+# ---------------------------
+reports/app-test/screenshots/
+reports/app-test/video/
+*.png.bak
+TakeNote/
+**/TakeNote/
 
 # ---------------------------
 # Logs & Debug

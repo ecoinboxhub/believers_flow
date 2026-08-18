@@ -49,28 +49,13 @@ class RAGIngestRequest(BaseModel):
 
 
 async def _get_embedding_async(text: str) -> List[float]:
-    """Async embedding using persistent HTTP client."""
+    """Async embedding using persistent HTTP client (OpenAI then OpenRouter fallback)."""
     from api.llm_provider import _get_http_client
 
-    groq_key = os.environ.get("GROQ_API_KEY", "")
     openai_key = os.environ.get("OPENAI_API_KEY", "")
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
 
-    # Try Groq first (fast, free)
-    if groq_key:
-        try:
-            client = await _get_http_client()
-            resp = await client.post(
-                "https://api.groq.com/openai/v1/embeddings",
-                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
-                json={"input": text, "model": "llama-text-embed-v2"},
-            )
-            resp.raise_for_status()
-            vec = resp.json()["data"][0]["embedding"]
-            return vec[:1024] if len(vec) > 1024 else vec
-        except Exception as e:
-            logger.warning(f"Groq embedding failed, trying OpenAI: {e}")
-
-    # Fallback to OpenAI
+    # OpenAI first (primary embedding provider)
     if openai_key:
         try:
             client = await _get_http_client()
@@ -82,7 +67,27 @@ async def _get_embedding_async(text: str) -> List[float]:
             resp.raise_for_status()
             return resp.json()["data"][0]["embedding"]
         except Exception as e:
-            logger.warning(f"OpenAI embedding failed: {e}")
+            logger.warning(f"OpenAI embedding failed, trying OpenRouter: {e}")
+
+    # Fallback to OpenRouter
+    if openrouter_key:
+        try:
+            client = await _get_http_client()
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/embeddings",
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://believersflow.com",
+                    "X-Title": "BelieversFlow",
+                },
+                json={"input": text, "model": "openai/text-embedding-3-small"},
+            )
+            resp.raise_for_status()
+            vec = resp.json()["data"][0]["embedding"]
+            return vec[:1024] if len(vec) > 1024 else vec
+        except Exception as e:
+            logger.warning(f"OpenRouter embedding failed: {e}")
 
     return [0.0] * 1024
 

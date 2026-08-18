@@ -43,7 +43,7 @@ PROVIDER_CONFIG = {
     "groq": {
         "url": "https://api.groq.com/openai/v1/chat/completions",
         "key_env": "GROQ_API_KEY",
-        "default_model": "llama-3.3-70b-versatile",
+        "default_model": "openai/gpt-oss-120b",
     },
     "openai": {
         "url": "https://api.openai.com/v1/chat/completions",
@@ -58,11 +58,6 @@ PROVIDER_CONFIG = {
 }
 
 EMBEDDING_PROVIDER_CONFIG = {
-    "groq": {
-        "url": "https://api.groq.com/openai/v1/embeddings",
-        "key_env": "GROQ_API_KEY",
-        "model": "llama-text-embed-v2",
-    },
     "openai": {
         "url": "https://api.openai.com/v1/embeddings",
         "key_env": "OPENAI_API_KEY",
@@ -267,29 +262,32 @@ async def call_llm_multi(
     raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
 
 
-async def get_embedding(text: str, provider: str = "groq") -> list:
-    config = EMBEDDING_PROVIDER_CONFIG.get(provider, EMBEDDING_PROVIDER_CONFIG["groq"])
-    api_key = os.environ.get(config["key_env"], "")
-    if not api_key:
-        return [0.0] * 1024
+async def get_embedding(text: str, provider: str = "openai") -> list:
+    providers = [p for p in (provider, "openai", "openrouter") if p in EMBEDDING_PROVIDER_CONFIG]
+    for name in providers:
+        config = EMBEDDING_PROVIDER_CONFIG.get(name, EMBEDDING_PROVIDER_CONFIG["openai"])
+        api_key = os.environ.get(config["key_env"], "")
+        if not api_key:
+            continue
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    if provider == "openrouter":
-        headers["HTTP-Referer"] = "https://believersflow.com"
-        headers["X-Title"] = "BelieversFlow"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        if name == "openrouter":
+            headers["HTTP-Referer"] = "https://believersflow.com"
+            headers["X-Title"] = "BelieversFlow"
 
-    try:
-        client = await _get_http_client()
-        resp = await client.post(
-            config["url"],
-            headers=headers,
-            json={"input": text, "model": config["model"]},
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["data"][0]["embedding"]
-    except Exception:
-        return [0.0] * 1024
+        try:
+            client = await _get_http_client()
+            resp = await client.post(
+                config["url"],
+                headers=headers,
+                json={"input": text, "model": config["model"]},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["data"][0]["embedding"]
+        except Exception:
+            continue
+    return [0.0] * 1024

@@ -1119,86 +1119,15 @@ function renderLegalDoc(content) {
   return <div className="legal-rich">{nodes}</div>
 }
 
-export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', initialDocId = null }) {
+export default function LegalScreen({ onClose, initialDocId = null }) {
   const [selectedDoc, setSelectedDoc] = useState(() => {
     return initialDocId && LEGAL_DOCS.some(d => d.id === initialDocId) ? initialDocId : null
   })
-  const [accepted, setAccepted] = useState({
-    privacy: false,
-    tos: false,
-    tou: false,
-    community: false,
-    'data-collection': false,
-    security: false,
-    cookies: false,
-    'content-moderation': false,
-    'acceptable-use': false,
-    'third-party': false,
-    'data-retention': false,
-    'incident-response': false,
-    'data-compliance': false,
-    'compliance-checklist': false
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  const allRequiredAccepted = accepted.privacy && accepted.tos && accepted.tou
-
-  const handleAccept = async () => {
-    if (!allRequiredAccepted) return
-
-    setLoading(true)
-    setError('')
-
-    try {
-      localStorage.setItem('bf_legal_accepted', JSON.stringify({
-        version: LEGAL_VERSION,
-        accepted_at: new Date().toISOString(),
-        documents: accepted
-      }))
-
-      onAccept()
-    } catch (err) {
-      console.warn('Legal acceptance save failed:', err)
-      localStorage.setItem('bf_legal_accepted', JSON.stringify({
-        version: LEGAL_VERSION,
-        accepted_at: new Date().toISOString(),
-        documents: accepted
-      }))
-      onAccept()
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDecline = () => {
-    if (mode === 'onboarding') {
-      onDecline()
-    }
-  }
-
-  const toggleAccept = (docId) => {
-    setAccepted(prev => ({ ...prev, [docId]: !prev[docId] }))
-  }
-
-  const handleBackdropClose = () => {
-    if (mode === 'settings') {
-      onAccept()
-    }
-  }
-
-  const handleClose = () => {
-    if (mode === 'settings') {
-      onAccept()
-    } else {
-      setSelectedDoc(null)
-    }
-  }
 
   if (selectedDoc) {
     const doc = LEGAL_DOCS.find(d => d.id === selectedDoc)
     return (
-      <div className="legal-overlay" onClick={handleBackdropClose}>
+      <div className="legal-overlay" onClick={onClose}>
         <div className="legal-panel legal-doc-view" onClick={e => e.stopPropagation()}>
           <div className="legal-doc-header">
             <button className="legal-back-btn" onClick={() => setSelectedDoc(null)}>
@@ -1215,8 +1144,8 @@ export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', 
             {renderLegalDoc(doc.content)}
           </div>
           <div className="legal-doc-footer">
-            <button className="legal-btn legal-btn-secondary" onClick={handleClose}>
-              {mode === 'settings' ? 'Close & Return to App' : 'Close'}
+            <button className="legal-btn legal-btn-secondary" onClick={onClose}>
+              Close & Return to App
             </button>
           </div>
         </div>
@@ -1225,17 +1154,12 @@ export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', 
   }
 
   return (
-    <div className="legal-overlay" onClick={handleBackdropClose}>
+    <div className="legal-overlay" onClick={onClose}>
       <div className="legal-panel" onClick={e => e.stopPropagation()}>
         <div className="legal-header">
           <div className="legal-logo">
             <h1>Terms and Privacy</h1>
-            <p className="legal-subtitle">
-              {mode === 'onboarding'
-                ? 'Please review and accept our terms to continue'
-                : 'Review our legal documents'
-              }
-            </p>
+            <p className="legal-subtitle">Our terms and policies, written in clear, natural language</p>
           </div>
         </div>
 
@@ -1249,74 +1173,42 @@ export default function LegalScreen({ onAccept, onDecline, mode = 'onboarding', 
                   <p>{doc.summary}</p>
                 </div>
               </div>
-              {['privacy', 'tos', 'tou'].includes(doc.id) ? (
-                <label className="legal-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={accepted[doc.id]}
-                    onChange={() => toggleAccept(doc.id)}
-                  />
-                  <span className="legal-checkmark"></span>
-                  <span className="legal-checkbox-label">Required</span>
-                </label>
-              ) : (
-                <label className="legal-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={accepted[doc.id]}
-                    onChange={() => toggleAccept(doc.id)}
-                  />
-                  <span className="legal-checkmark"></span>
-                  <span className="legal-checkbox-label">I agree</span>
-                </label>
-              )}
+              <span className="legal-doc-meta">v{doc.version}</span>
             </div>
           ))}
         </div>
 
-        {mode === 'onboarding' && (
-          <div className="legal-actions">
-            {error && <div className="legal-error">{error}</div>}
-
-            <p className="legal-required-note">
-              * Required: Privacy Policy, Terms of Service, and Terms of Use
-            </p>
-
-            <div className="legal-buttons">
-              <button
-                className={`legal-btn legal-btn-primary${!allRequiredAccepted ? ' disabled' : ''}`}
-                onClick={handleAccept}
-                disabled={!allRequiredAccepted || loading}
-              >
-                {loading ? 'Saving...' : 'Accept & Continue'}
-              </button>
-              {onDecline && (
-                <button className="legal-btn legal-btn-secondary" onClick={handleDecline}>
-                  Decline
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {mode === 'settings' && (
-          <div className="legal-actions">
-            <p className="legal-status">
-              Accepted: {localStorage.getItem('bf_legal_accepted')
-                ? `v${JSON.parse(localStorage.getItem('bf_legal_accepted')).version}`
-                : 'Not yet accepted'
+        <div className="legal-actions">
+          <div className="legal-status-wrap">
+            {(() => {
+              const stored = localStorage.getItem('bf_legal_accepted')
+              let data = null
+              try { data = stored ? JSON.parse(stored) : null } catch { /* invalid stored value */ }
+              if (!data) {
+                return (
+                  <>
+                    <span className="legal-status-badge">Not accepted</span>
+                    <span className="legal-status-note">You can keep using BelieversFlow without accepting.</span>
+                  </>
+                )
               }
-            </p>
-            <div className="legal-buttons">
-              <button
-                className="legal-btn legal-btn-primary"
-                onClick={handleClose}
-              >
-                Done
-              </button>
-            </div>
+              const acceptedAt = data.accepted_at ? new Date(data.accepted_at).toLocaleDateString() : ''
+              return (
+                <>
+                  <span className="legal-status-badge is-accepted">Accepted</span>
+                  <span className="legal-status-note">
+                    {acceptedAt ? `Accepted on ${acceptedAt}` : 'Accepted'} (version {data.version || LEGAL_VERSION})
+                  </span>
+                </>
+              )
+            })()}
           </div>
-        )}
+          <div className="legal-buttons">
+            <button className="legal-btn legal-btn-primary" onClick={onClose}>
+              Done
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
