@@ -272,41 +272,45 @@ const [diaryTitle, setDiaryTitle] = useState('')
     try {
       let data
       let fallbackDetail = ''
-      try {
-        const res = await fetch(
-          `${API_URL}/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`,
-          { signal: AbortSignal.timeout(10000) }
-        )
-        if (!res.ok) {
-          const body = await res.json().catch(() => null)
-          fallbackDetail = (body && body.detail) || `HTTP ${res.status}`
-          throw new Error(fallbackDetail)
-        }
-        data = await res.json()
-      } catch (err) {
-        if (BIBLE_API_DIRECT[ver]) {
-          const translation = BIBLE_API_DIRECT[ver]
-          const bookId = BIBLE_BOOK_IDS[book]
-          if (BIBLE_API_DIRECT_DATA[ver] && bookId) {
-            const url = `https://bible-api.com/data/${translation}/${bookId}/${chapter}`
-            const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-            if (!res.ok) throw new Error(`HTTP ${res.status}`, { cause: err })
-            const raw = await res.json()
-            data = { reference: `${book} ${chapter}`, verses: raw.verses || [], version: ver }
-          } else {
-            const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
-            const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-            if (!res.ok) throw new Error(`HTTP ${res.status}`, { cause: err })
-            data = await res.json()
-          }
-        } else {
-          throw new Error(
-            typeof fallbackDetail === 'string' && fallbackDetail
-              ? fallbackDetail
-              : `"${ver}" is not available. Choose KJV, WEB, ASV, BBE, DBY, YLT, or another supported translation.`,
-            { cause: err }
+      // Without a backend, never wait on /api/bible — fetch translations
+      // directly from bible-api.com so chapters load fast.
+      if (API_URL) {
+        try {
+          const res = await fetch(
+            `${API_URL}/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&version=${ver}`,
+            { signal: AbortSignal.timeout(8000) }
           )
+          if (!res.ok) {
+            const body = await res.json().catch(() => null)
+            fallbackDetail = (body && body.detail) || `HTTP ${res.status}`
+            throw new Error(fallbackDetail)
+          }
+          data = await res.json()
+        } catch (err) {
+          fallbackDetail = err.message
         }
+      }
+      if (!data && BIBLE_API_DIRECT[ver]) {
+        const translation = BIBLE_API_DIRECT[ver]
+        const bookId = BIBLE_BOOK_IDS[book]
+        if (BIBLE_API_DIRECT_DATA[ver] && bookId) {
+          const url = `https://bible-api.com/data/${translation}/${bookId}/${chapter}`
+          const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const raw = await res.json()
+          data = { reference: `${book} ${chapter}`, verses: raw.verses || [], version: ver }
+        } else {
+          const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
+          const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          data = await res.json()
+        }
+      } else if (!data) {
+        throw new Error(
+          typeof fallbackDetail === 'string' && fallbackDetail
+            ? fallbackDetail
+            : `"${ver}" is not available. Choose KJV, WEB, ASV, BBE, DBY, YLT, or another supported translation.`
+        )
       }
       if (!data.verses) data = { reference: `${book} ${chapter}`, verses: [], version: ver }
       setBibleText(data)
@@ -979,7 +983,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
 
   return (
     <div id="app" className={previewMode !== 'desktop' ? `view-switcher-active view-switcher-mode-${previewMode}` : undefined}>
-      <ViewSwitcher mode={previewMode} onChange={setPreviewMode} />
+      {import.meta.env.DEV && <ViewSwitcher mode={previewMode} onChange={setPreviewMode} />}
       {showWelcome && (
         <WelcomeScreen onAction={handleWelcomeAction} />
       )}

@@ -143,7 +143,7 @@ async def lifespan(app: FastAPI):
     await close_pool()
 
 
-app = FastAPI(title="BelieversFlow API", version="4.2.0", lifespan=lifespan)
+app = FastAPI(title="BelieversFlow API", version="4.22.0", lifespan=lifespan)
 app.include_router(hymn_router)
 app.include_router(billing_router)
 app.include_router(notification_router)
@@ -246,7 +246,7 @@ class LogoutRequest(BaseModel):
 async def health():
     return {
         "status": "ok",
-        "version": "4.2.0",
+        "version": "4.22.0",
         "providers": get_available_providers(),
         "db_status": get_db_status(),
     }

@@ -1,22 +1,22 @@
-## BelieversFlow v4.1.0
+## BelieversFlow v4.22.0
 
 ### Android APK
 - Minimum Android: 7.0 (API 24)
 - Package: com.believersguidelite.app
-- Size: ~13 MB
+- Size: ~10.5 MB (versionCode 23)
 
 ### What's included
-- Harvest Fields themed UI
-- Bible reader, prayer tracker, hymn book, devotional reader
-- Church devotional system
-- Community feed, forum, prayer chains
-- Small groups with invite codes
-- Faith Assistant (AI-powered)
-- Sermon note-taking
-- Prayer analytics and streak tracking
-- Push notifications ready
-- PWA plus native Android app
+- Cream/sage themed UI with 5 color themes + custom colors and light/dark/grey modes
+- Bible reader (66 books, 15 servable translations, offline caching)
+- Prayer tracker with streak, diary/journal, daily devotional (365 days)
+- Hymn book (1,001 hymns) with music playback
+- Music module: Hymns, Praise & Worship radio, Spotify Christian playlists, Boom Christian song search, YouTube Contemporary
+- Hebrew/Greek interlinear for key verses, commentary, concordance, dictionary, compare
+- AI Faith Assistant and AI Guide (backend-proxied, no client keys)
+- Hebrew/Greek interlinear, commentary, concordance, compare, and notes-assist are free for guests (no account required)
+- Task manager with scripture-driven categories and native Android task reminders
+- PWA plus native Android app, offline-first, privacy-first (no analytics/tracking)
 
 ### Links
-- Web App: https://frontend-pi-seven-30.vercel.app
+- Web App: https://believersflow.vercel.app
 - API: https://believers-flow.onrender.com

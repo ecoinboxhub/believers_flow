@@ -92,6 +92,33 @@ def get_available_providers() -> list:
     return available
 
 
+def _failover_order(preferred: str) -> list:
+    """Order providers to try: the preferred one first, then any other configured provider.
+
+    Providers without a configured API key are excluded so a missing key on the
+    preferred provider falls through to the next configured one instead of erroring.
+    """
+    configured = [name for name, config in PROVIDER_CONFIG.items() if os.environ.get(config["key_env"], "")]
+    if not configured:
+        return [preferred]
+    if preferred in configured:
+        configured.remove(preferred)
+        return [preferred, *configured]
+    return configured
+
+
+_FALLOVER_STATUSES = {401, 403, 429, 500, 502, 503, 504}
+
+
+def _should_fail_over(exc) -> bool:
+    """Fail over on upstream auth/rate/availability errors and network failures."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in _FALLOVER_STATUSES
+    if isinstance(exc, httpx.RequestError):
+        return True
+    return False
+
+
 async def _get_http_client() -> httpx.AsyncClient:
     """Get or create persistent HTTP client with connection pooling."""
     global _http_client
@@ -137,43 +164,53 @@ async def call_llm(
     max_tokens: int = 2048,
     response_format: Optional[dict] = None,
 ) -> str:
-    config = PROVIDER_CONFIG.get(provider, PROVIDER_CONFIG["groq"])
-    api_key = _get_api_key(provider)
-    selected_model = model or config["default_model"]
+    providers = _failover_order(provider)
+    last_error = None
+    for name in providers:
+        config = PROVIDER_CONFIG.get(name, PROVIDER_CONFIG["groq"])
+        api_key = _get_api_key(name)
+        selected_model = model or config["default_model"]
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    if provider == "openrouter":
-        headers["HTTP-Referer"] = "https://believersflow.com"
-        headers["X-Title"] = "BelieversFlow"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        if name == "openrouter":
+            headers["HTTP-Referer"] = "https://believersflow.com"
+            headers["X-Title"] = "BelieversFlow"
 
-    payload = {
-        "model": selected_model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    if response_format:
-        payload["response_format"] = response_format
+        payload = {
+            "model": selected_model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if response_format:
+            payload["response_format"] = response_format
 
-    try:
-        client = await _get_http_client()
-        for _ in range(2):
-            resp = await client.post(config["url"], headers=headers, json=payload)
-            resp.raise_for_status()
-            content = _extract_choice_content(resp.json())
-            if _valid_content(content):
-                return content
-        raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=f"{provider.upper()} API error: {e.response.status_code}")
-    except httpx.RequestError:
-        raise HTTPException(status_code=502, detail=f"Failed to reach {provider.upper()} API")
+        try:
+            client = await _get_http_client()
+            for _ in range(2):
+                resp = await client.post(config["url"], headers=headers, json=payload)
+                resp.raise_for_status()
+                content = _extract_choice_content(resp.json())
+                if _valid_content(content):
+                    return content
+            raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
+        except httpx.HTTPStatusError as e:
+            last_error = e
+            if not _should_fail_over(e):
+                raise HTTPException(status_code=e.response.status_code, detail=f"{name.upper()} API error: {e.response.status_code}")
+        except httpx.RequestError as e:
+            last_error = e
+    if isinstance(last_error, httpx.RequestError):
+        raise HTTPException(status_code=502, detail=f"Failed to reach {last_error.request.url.host if last_error.request else 'the'} API")
+    if isinstance(last_error, httpx.HTTPStatusError):
+        raise HTTPException(status_code=last_error.response.status_code, detail=f"{last_error.response.request.url.host or 'AI'} API error: {last_error.response.status_code}")
+    raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
 
 
 async def call_llm_multi(
@@ -184,40 +221,50 @@ async def call_llm_multi(
     max_tokens: int = 2048,
     response_format: Optional[dict] = None,
 ) -> str:
-    config = PROVIDER_CONFIG.get(provider, PROVIDER_CONFIG["groq"])
-    api_key = _get_api_key(provider)
-    selected_model = model or config["default_model"]
+    providers = _failover_order(provider)
+    last_error = None
+    for name in providers:
+        config = PROVIDER_CONFIG.get(name, PROVIDER_CONFIG["groq"])
+        api_key = _get_api_key(name)
+        selected_model = model or config["default_model"]
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    if provider == "openrouter":
-        headers["HTTP-Referer"] = "https://believersflow.com"
-        headers["X-Title"] = "BelieversFlow"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        if name == "openrouter":
+            headers["HTTP-Referer"] = "https://believersflow.com"
+            headers["X-Title"] = "BelieversFlow"
 
-    payload = {
-        "model": selected_model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    if response_format:
-        payload["response_format"] = response_format
+        payload = {
+            "model": selected_model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if response_format:
+            payload["response_format"] = response_format
 
-    try:
-        client = await _get_http_client()
-        for _ in range(2):
-            resp = await client.post(config["url"], headers=headers, json=payload)
-            resp.raise_for_status()
-            content = _extract_choice_content(resp.json())
-            if _valid_content(content):
-                return content
-        raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=f"{provider.upper()} API error: {e.response.status_code}")
-    except httpx.RequestError:
-        raise HTTPException(status_code=502, detail=f"Failed to reach {provider.upper()} API")
+        try:
+            client = await _get_http_client()
+            for _ in range(2):
+                resp = await client.post(config["url"], headers=headers, json=payload)
+                resp.raise_for_status()
+                content = _extract_choice_content(resp.json())
+                if _valid_content(content):
+                    return content
+            raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
+        except httpx.HTTPStatusError as e:
+            last_error = e
+            if not _should_fail_over(e):
+                raise HTTPException(status_code=e.response.status_code, detail=f"{name.upper()} API error: {e.response.status_code}")
+        except httpx.RequestError as e:
+            last_error = e
+    if isinstance(last_error, httpx.RequestError):
+        raise HTTPException(status_code=502, detail=f"Failed to reach {last_error.request.url.host if last_error.request else 'the'} API")
+    if isinstance(last_error, httpx.HTTPStatusError):
+        raise HTTPException(status_code=last_error.response.status_code, detail=f"{last_error.response.request.url.host or 'AI'} API error: {last_error.response.status_code}")
+    raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
 
 
 async def get_embedding(text: str, provider: str = "groq") -> list:

@@ -4,7 +4,7 @@
 
 ### Christian Task Manager, Bible Reader, Hymn Book & Spiritual Growth Tracker
 
-**Version 4.1.0** | **MIT License (2025)**
+**Version 4.22.0** | **MIT License (2025)**
 
 [![CI/CD](https://github.com/ecoinboxhub/believers_flow/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/ecoinboxhub/believers_flow/actions/workflows/ci-frontend.yml)
 [![Vite](https://img.shields.io/badge/Vite-8.0.12-646CFF?logo=vite)](https://vitejs.dev)

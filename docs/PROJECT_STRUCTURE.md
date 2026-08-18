@@ -393,4 +393,4 @@ lint-and-unit → e2e → visual-regression → lighthouse → deploy
 
 ---
 
-*Last updated: July 2026 — BelieversFlow v4.1.0*
+*Last updated: July 2026 — BelieversFlow v4.22.0*

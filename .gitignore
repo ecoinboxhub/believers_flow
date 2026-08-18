@@ -65,6 +65,8 @@ wheels/
 
 # Pytest / Coverage
 .pytest_cache/
+# Runtime commentary cache (fetched on demand, never committed)
+backend/bible_commentary_cache/
 .coverage
 .coverage.*
 htmlcov/

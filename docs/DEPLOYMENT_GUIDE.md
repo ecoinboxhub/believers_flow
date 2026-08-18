@@ -343,7 +343,7 @@ jobs:
 
 #### Step 4: Trigger Build
 
-- **Automatic:** Push to `main` or create a tag like `v4.1.0`
+- **Automatic:** Push to `main` or create a tag like `v4.22.0`
 - **Manual:** Go to Actions → "Build Signed APK" → Run workflow
 
 #### Step 5: Download APK

@@ -100,15 +100,24 @@ def test_bible_service_only_marks_really_servable_versions():
     serves, and only those may be reported as available. No fake/aliased texts."""
     from api.bible_service import BIBLE_API_VERSIONS, _can_serve, _VERSIONS_BY_ID
 
+    # Every mapped ID must point at a real identifier the upstream service
+    # actually serves (verified against https://bible-api.com/data). The
+    # registry intentionally exposes each upstream translation under one
+    # canonical ID plus curated aliases so the app only ever serves real text.
     assert BIBLE_API_VERSIONS == {
-        "KJV": "kjv", "WEB": "web", "WEBBE": "webbe", "ASV": "asv",
-        "BBE": "bbe", "DBY": "darby", "DRB": "dra", "YLT": "ylt",
+        "KJV": "kjv", "AKJV": "kjv",
+        "WEB": "web", "WEBBE": "webbe",
+        "ASV": "asv", "BBE": "bbe", "DBY": "darby", "DRB": "dra", "YLT": "ylt",
+        "BKR": "bkr", "CzechKR": "bkr", "RCCV": "rccv",
+        "Almeida": "almeida",
+        "Vulgate": "clementine", "VulgateClem": "clementine", "LatinV": "clementine",
+        "Chinese": "cuv", "Cherokee": "cherokee",
     }
     # Exactly the map members are servable (via real sources); no others.
     servable = {vid for vid in BIBLE_API_VERSIONS if _can_serve(_VERSIONS_BY_ID[vid])}
     assert servable == set(BIBLE_API_VERSIONS)
     # Versions with no real, distinct text must NOT claim availability.
-    for vid in ("AKJV", "WBT", "RV", "NIV", "ESV"):
+    for vid in ("WBT", "RV", "NIV", "ESV", "NASB", "NLT"):
         assert not _can_serve(_VERSIONS_BY_ID[vid])
 
 

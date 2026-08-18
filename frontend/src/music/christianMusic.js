@@ -112,7 +112,11 @@ async function searchViaProxy(query, limit) {
 
 export async function searchChristianMusicViaProxy(query, limit = 24) {
   const raw = await searchViaProxy(query, limit)
-  if (raw === null) throw new BoomSearchError('network', 'Unable to connect to the music service.')
+  if (raw === null) {
+    // No backend proxy available (e.g. frontend-only build): search iTunes
+    // directly so the Boom tab keeps working.
+    return searchChristianMusic(query, limit)
+  }
   const christian = raw.filter(isChristianResult)
   return christian.map(toMusicResult)
 }

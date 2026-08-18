@@ -138,7 +138,7 @@ const TasksView = React.lazy(() => import('./components/TasksView'));
 Implement cache versioning with automatic invalidation:
 
 ```javascript
-const CACHE_VERSION = 'v4.1.0';
+const CACHE_VERSION = 'v4.22.0';
 const CACHE_NAME = `believersflow-${CACHE_VERSION}`;
 
 self.addEventListener('install', (event) => {
