@@ -246,7 +246,7 @@ class LogoutRequest(BaseModel):
 async def health():
     return {
         "status": "ok",
-        "version": "4.22.0",
+        "version": "4.24.0",
         "providers": get_available_providers(),
         "db_status": get_db_status(),
     }
