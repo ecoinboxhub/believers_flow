@@ -143,7 +143,7 @@ async def lifespan(app: FastAPI):
     await close_pool()
 
 
-app = FastAPI(title="BelieversFlow API", version="4.22.0", lifespan=lifespan)
+app = FastAPI(title="BelieversFlow API", version="4.24.0", lifespan=lifespan)
 app.include_router(hymn_router)
 app.include_router(billing_router)
 app.include_router(notification_router)
