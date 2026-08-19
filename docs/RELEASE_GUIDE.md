@@ -16,7 +16,7 @@ MAJOR.MINOR.PATCH
 | MINOR | New features (backward-compatible) | 4.1.0 -> 4.2.0 |
 | PATCH | Bug fixes | 4.1.0 -> 4.1.1 |
 
-**Current version:** 4.23.0
+**Current version:** 4.24.0
 
 ### Android Versioning
 

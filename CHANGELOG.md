@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.24.0] - 2026-08-19
+
+### Added
+- **Full-length Boom Christian playback**: every Boom Christian search result now has a **Full Song** button that plays the complete track in-app instead of only the 30-second Apple Music preview. The app resolves the full song through a new backend endpoint (`/api/music/full`) that finds the matching track on YouTube, then plays it through the embedded in-app player. The 30-second preview player is unchanged and still works when a full version cannot be found.
+
 ## [4.23.0] - 2026-08-19
 
 ### Removed

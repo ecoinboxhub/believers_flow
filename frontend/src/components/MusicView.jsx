@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import HymnView from './HymnView.jsx'
-import { searchChristianMusicViaProxy } from '../music/christianMusic.js'
+import { searchChristianMusicViaProxy, resolveFullTrack } from '../music/christianMusic.js'
 
 let activeAudio = null
 
@@ -557,6 +557,10 @@ function BoomResultCard({ track }) {
   const [playing, setPlaying] = useState(false)
   const [buffering, setBuffering] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [fullLoading, setFullLoading] = useState(false)
+  const [fullTracks, setFullTracks] = useState([])
+  const [fullError, setFullError] = useState(false)
+  const [fullOpen, setFullOpen] = useState(false)
   const audioRef = useRef(null)
   const { volume, muted, changeVolume, toggleMute } = useVolumeControl(audioRef)
 
@@ -572,6 +576,7 @@ function BoomResultCard({ track }) {
   const play = () => {
     const audio = audioRef.current
     if (!audio || !track.previewUrl) return
+    setFullOpen(false)
     setBuffering(true)
     startPlayback(audio)
   }
@@ -592,9 +597,41 @@ function BoomResultCard({ track }) {
     if (activeAudio === audio) activeAudio = null
   }
 
+  const openFullSong = async () => {
+    if (fullOpen) {
+      stop()
+      setFullOpen(false)
+      return
+    }
+    setFullError(false)
+    setFullLoading(true)
+    setPlaying(false)
+    const audio = audioRef.current
+    if (audio) { audio.pause(); audio.currentTime = 0 }
+    if (activeAudio === audio) activeAudio = null
+    try {
+      const matches = await resolveFullTrack(`${track.artist} ${track.title}`)
+      setFullTracks(matches || [])
+      setFullOpen(true)
+      if (!matches || matches.length === 0) setFullError(true)
+    } catch {
+      setFullTracks([])
+      setFullOpen(true)
+      setFullError(true)
+    } finally {
+      setFullLoading(false)
+    }
+  }
+
   const fmtDuration = ms => {
     if (!ms) return ''
     const s = Math.round(ms / 1000)
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  }
+
+  const fmtSeconds = sec => {
+    if (!sec) return ''
+    const s = Math.round(sec)
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   }
 
@@ -626,20 +663,73 @@ function BoomResultCard({ track }) {
           onEnded={() => setPlaying(false)}
           onError={() => { setPlaying(false); setBuffering(false); setFailed(true) }}
         />
+        {fullOpen && (
+          <div className="music-full-track">
+            {fullLoading && (
+              <div className="music-full-track-loading">
+                <span className="music-spinner" aria-hidden="true" />
+                <span>Finding the full song...</span>
+              </div>
+            )}
+            {!fullLoading && fullError && (
+              <div className="music-player-fallback">
+                <p>No full version could be found for this track. The 30-second preview above still works.</p>
+              </div>
+            )}
+            {!fullLoading && !fullError && (
+              <div className="music-full-track-list">
+                {fullTracks.slice(0, 3).map(t => (
+                  <div key={t.videoId} className="music-full-track-item">
+                    <div className="music-full-track-info">
+                      <div className="music-full-track-title">{t.title}</div>
+                      <div className="music-full-track-meta">
+                        {t.author && <span className="music-result-artist">{t.author}</span>}
+                        {fmtSeconds(t.durationSeconds) && <span className="music-result-duration">Full {fmtSeconds(t.durationSeconds)}</span>}
+                      </div>
+                    </div>
+                    <div className="music-frame-wrap">
+                      <iframe
+                        className="music-embed-frame music-embed-video"
+                        src={`https://www.youtube-nocookie.com/embed/${t.videoId}?autoplay=1`}
+                        title={`Play ${t.title} in full`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button className="music-full-track-close" onClick={() => { stop(); setFullOpen(false) }}>
+              Close full song
+            </button>
+          </div>
+        )}
       </div>
-      <PlayerControls
-        playing={playing}
-        buffering={buffering}
-        onPlay={play}
-        onPause={pause}
-        onStop={stop}
-        volume={volume}
-        muted={muted}
-        onVolumeChange={changeVolume}
-        onToggleMute={toggleMute}
-        disabled={!track.previewUrl}
-        className="music-result-play"
-      />
+      <div className="music-result-actions">
+        <button
+          className={`music-full-song-btn${fullOpen ? ' active' : ''}`}
+          onClick={openFullSong}
+          disabled={fullLoading}
+          aria-label={`Play ${track.title} in full`}
+          aria-pressed={fullOpen}
+        >
+          {fullLoading ? 'Finding full song...' : fullOpen ? 'Playing full song' : 'Full Song'}
+        </button>
+        <PlayerControls
+          playing={playing}
+          buffering={buffering}
+          onPlay={play}
+          onPause={pause}
+          onStop={stop}
+          volume={volume}
+          muted={muted}
+          onVolumeChange={changeVolume}
+          onToggleMute={toggleMute}
+          disabled={!track.previewUrl}
+          className="music-result-play"
+        />
+      </div>
       <AudioProgress audioRef={audioRef} disabled={!track.previewUrl} />
     </div>
   )
@@ -737,10 +827,11 @@ function BoomTab() {
             ))}
           </div>
           <p className="music-tab-note">
-            Results play an official preview sample from the Apple Music catalogue (about 30 seconds — the
-            sample Apple Music provides for each song). The timeline below shows the actual sample length, and
-            "Full" shows the complete track length. Full tracks play through Apple Music with a membership or
-            purchase. Playback stays inside this app; nothing here artificially cuts a track short.
+            Each result plays an official preview sample from the Apple Music catalogue (about 30 seconds — the
+            sample Apple Music provides for each song). Use the Full Song button on any result to play the
+            complete track right here in the app through an embedded player. The timeline below shows the
+            actual sample length, and "Full" shows the complete track length. Playback stays inside this app;
+            nothing here artificially cuts a track short.
           </p>
         </div>
       )}

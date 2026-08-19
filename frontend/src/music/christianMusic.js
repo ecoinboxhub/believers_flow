@@ -120,3 +120,31 @@ export async function searchChristianMusicViaProxy(query, limit = 24) {
   const christian = raw.filter(isChristianResult)
   return christian.map(toMusicResult)
 }
+
+async function searchFullTrackViaProxy(query, limit) {
+  if (!API_URL) return null
+  try {
+    const res = await fetch(
+      `${API_URL}/api/music/full?term=${encodeURIComponent(query)}&limit=${limit}`,
+      { signal: AbortSignal.timeout(20000) }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    return Array.isArray(data.results) ? data.results : null
+  } catch (e) {
+    console.warn('[boom] full-track proxy search failed', e && e.message ? e.message : e)
+    return null
+  }
+}
+
+export async function resolveFullTrack(query, limit = 8) {
+  // Resolve a full-length version of a song on YouTube so the Boom tab can play
+  // the complete track instead of only the 30-second Apple Music preview.
+  const results = await searchFullTrackViaProxy(query, limit)
+  if (results === null) {
+    // No backend proxy available: return no full-track matches so the card can
+    // clearly say full playback is unavailable while previews still work.
+    return []
+  }
+  return results
+}

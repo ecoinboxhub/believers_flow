@@ -211,7 +211,7 @@ webServer: {
 | `namespace` | `com.believersguidelite.app` | Java package namespace. |
 | `applicationId` | `com.believersguidelite.app` | Play Store application ID. |
 | `versionCode` | `4` | Internal version code (incremental integer). |
-| `versionName` | `4.23.0` | User-facing version string. |
+| `versionName` | `4.24.0` | User-facing version string. |
 | `minifyEnabled` | `true` | R8 code minification and obfuscation. |
 | `shrinkResources` | `true` | Remove unused resources. |
 

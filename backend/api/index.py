@@ -612,6 +612,96 @@ async def music_search(term: str = Query(...), limit: int = Query(24)):
     return {"results": data.get("results", [])}
 
 
+def _yt_runs_text(node):
+    """Extract the display text from a YouTube InnerTube text node (runs or simpleText)."""
+    if not isinstance(node, dict):
+        return ""
+    runs = node.get("runs")
+    if isinstance(runs, list) and runs:
+        return "".join(r.get("text", "") for r in runs if isinstance(r, dict))
+    return node.get("simpleText", "")
+
+
+def _yt_length_to_seconds(text):
+    """'7:33' -> 453, '1:02:03' -> 3723. Returns 0 when unparseable."""
+    parts = str(text or "").strip().split(":")
+    if not parts or not all(p.isdigit() for p in parts):
+        return 0
+    nums = [int(p) for p in parts]
+    if len(nums) == 1:
+        return nums[0]
+    if len(nums) == 2:
+        return nums[0] * 60 + nums[1]
+    return nums[0] * 3600 + nums[1] * 60 + nums[2]
+
+
+def _collect_youtube_videos(node, out):
+    """Recursively walk the InnerTube search payload and collect videoRenderer nodes."""
+    if isinstance(node, dict):
+        vr = node.get("videoRenderer")
+        if isinstance(vr, dict):
+            vid = vr.get("videoId")
+            if vid and not vr.get("adVideoId"):
+                title = _yt_runs_text(vr.get("title"))
+                author = _yt_runs_text(vr.get("ownerText")) or _yt_runs_text(vr.get("longBylineText"))
+                length = _yt_length_to_seconds(_yt_runs_text(vr.get("lengthText")))
+                if length >= 60:
+                    out.append({
+                        "videoId": vid,
+                        "title": title,
+                        "author": author,
+                        "durationSeconds": length,
+                    })
+        for value in node.values():
+            _collect_youtube_videos(value, out)
+    elif isinstance(node, list):
+        for item in node:
+            _collect_youtube_videos(item, out)
+
+
+def _extract_youtube_video_results(data, max_results=8):
+    """Pull top full-length video matches out of a YouTube InnerTube search response."""
+    out = []
+    _collect_youtube_videos(data, out)
+    seen = set()
+    unique = []
+    for r in out:
+        if r["videoId"] not in seen:
+            seen.add(r["videoId"])
+            unique.append(r)
+    return unique[:max_results]
+
+
+@app.get("/api/music/full")
+async def music_full(term: str = Query(...), limit: int = Query(8)):
+    """Resolve a full-length version of a song on YouTube so the Boom tab can
+    play the complete track instead of only the 30-second Apple Music preview.
+    Uses YouTube's public InnerTube search endpoint; no API key required."""
+    import httpx
+
+    if limit < 1 or limit > 25:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 25")
+
+    body = {
+        "context": {"client": {"clientName": "WEB", "clientVersion": "2.20240101.00.00"}},
+        "query": term,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.post(
+                "https://www.youtube.com/youtubei/v1/search?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+                json=body,
+                headers={"Content-Type": "application/json"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as e:
+        logger.warning(f"YouTube full-track search failed for {term!r}: {e}")
+        raise HTTPException(status_code=502, detail="The music service could not be reached. Please try again later.")
+    results = _extract_youtube_video_results(data, limit)
+    return {"results": results}
+
+
 @app.post("/api/chat")
 async def chat(req: ChatRequest, user=Depends(optional_user)):
     system = (

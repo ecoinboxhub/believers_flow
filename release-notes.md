@@ -1,3 +1,29 @@
+## BelieversFlow v4.24.0
+
+### Android APK
+- Minimum Android: 7.0 (API 24)
+- Package: com.believersguidelite.app
+- Size: ~10.5 MB (versionCode 25)
+
+### What's included
+- Cream/sage themed UI with 5 color themes + custom colors and light/dark/grey modes
+- Bible reader (66 books, 14 servable translations, offline caching)
+- Prayer tracker with streak, diary/journal, daily devotional (365 days)
+- Hymn book (1,001 hymns) with music playback
+- Music module: Hymns, Praise & Worship radio, Spotify Christian playlists, Boom Christian song search, YouTube Contemporary
+- Hebrew/Greek interlinear for key verses, commentary, concordance, dictionary, compare
+- AI Faith Assistant and AI Guide (backend-proxied, no client keys)
+- Hebrew/Greek interlinear, commentary, concordance, compare, and notes-assist are free for guests (no account required)
+- Task manager with scripture-driven categories and native Android task reminders
+- PWA plus native Android app, offline-first, privacy-first (no analytics/tracking)
+
+### This release
+- Boom Christian song search results now play the complete song in-app: each result has a Full Song button that finds the matching full-length track and plays it through the embedded player, beyond the 30-second Apple Music preview. The quick 30-second preview still works as before, and the app shows a clear message when a full version cannot be found.
+
+### Links
+- Web App: https://believersflow.vercel.app
+- API: https://believers-flow.onrender.com
+
 ## BelieversFlow v4.23.0
 
 ### Android APK

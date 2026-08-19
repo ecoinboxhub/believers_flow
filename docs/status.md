@@ -1,6 +1,6 @@
 # BelieversFlow — Implementation Status
 
-**Last Updated:** August 19, 2026 (v4.23.0 — Guest-only app, real Bible translations, reliable music + legal UI)
+**Last Updated:** August 19, 2026 (v4.24.0 — Guest-only app, real Bible translations, reliable music + legal UI)
 
 ---
 
@@ -15,7 +15,7 @@
 
 ---
 
-## Implementation Status — v4.23.0
+## Implementation Status — v4.24.0
 
 ### Core Features (guest-only, no account required)
 
@@ -139,7 +139,7 @@
 | Testing | pytest (backend) + vitest (frontend) |
 | CI/CD | GitHub Actions |
 | Docker | Multi-stage builds + Redis |
-| Version | 4.23.0 (versionCode 24) |
+| Version | 4.24.0 (versionCode 25) |
 
 ---
 

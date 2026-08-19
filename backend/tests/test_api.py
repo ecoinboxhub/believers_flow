@@ -1205,3 +1205,88 @@ def test_devotional_study_degrades_without_llm(monkeypatch):
             assert "my shepherd" in data["answer"].lower()
 
     asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_music_full_validates_limit():
+    from api.index import app
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/music/full", params={"term": "worship", "limit": 0})
+            assert resp.status_code == 400
+
+    asyncio.get_event_loop().run_until_complete(_test())
+
+
+def test_music_full_extracts_full_tracks(monkeypatch):
+    """The full-track resolver returns top full-length YouTube matches, so the
+    Boom tab can play the complete song instead of only the 30s preview."""
+    from api.index import app, _extract_youtube_video_results, _yt_runs_text, _yt_length_to_seconds
+    from httpx import AsyncClient, ASGITransport
+    import asyncio
+
+    assert _yt_runs_text({"simpleText": "7:33"}) == "7:33"
+    assert _yt_runs_text({"runs": [{"text": "Graves Into Gardens"}]}) == "Graves Into Gardens"
+    assert _yt_length_to_seconds("7:33") == 453
+    assert _yt_length_to_seconds("1:02:03") == 3723
+    assert _yt_length_to_seconds("nope") == 0
+
+    payload = {
+        "contents": {
+            "twoColumnSearchResultsRenderer": {
+                "primaryContents": {
+                    "sectionListRenderer": {
+                        "contents": [
+                            {
+                                "itemSectionRenderer": {
+                                    "contents": [
+                                        {"videoRenderer": {
+                                            "videoId": "KwX1f2gYKZ4",
+                                            "title": {"runs": [{"text": "Graves Into Gardens | Live | Elevation Worship"}]},
+                                            "longBylineText": {"runs": [{"text": "Elevation Worship"}]},
+                                            "lengthText": {"simpleText": "7:33"},
+                                        }},
+                                        {"videoRenderer": {
+                                            "videoId": "abc123",
+                                            "title": {"runs": [{"text": "Shorts Clip"}]},
+                                            "longBylineText": {"runs": [{"text": "Someone"}]},
+                                            "lengthText": {"simpleText": "0:15"},
+                                        }},
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    results = _extract_youtube_video_results(payload, 8)
+    assert results[0]["videoId"] == "KwX1f2gYKZ4"
+    assert results[0]["durationSeconds"] == 453
+    assert results[0]["author"] == "Elevation Worship"
+    assert len(results) == 1, "short clips must be filtered out"
+
+    async def _fake_post(self, url, **kwargs):
+        class _Resp:
+            def raise_for_status(self):
+                pass
+            def json(self):
+                return payload
+        return _Resp()
+
+    monkeypatch.setattr("httpx.AsyncClient.post", _fake_post)
+
+    async def _test():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/music/full", params={"term": "Elevation Worship Graves Into Gardens"})
+            assert resp.status_code == 200, resp.text
+            data = resp.json()
+            assert data["results"][0]["videoId"] == "KwX1f2gYKZ4"
+            assert data["results"][0]["durationSeconds"] == 453
+
+    asyncio.get_event_loop().run_until_complete(_test())

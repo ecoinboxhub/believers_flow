@@ -4207,6 +4207,47 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .music-result-play:disabled { opacity: 0.4; cursor: not-allowed; }
 .music-result-play.playing { background: var(--danger, #c62828); }
 
+/* Boom result cards: full-song playback control (plays the complete track
+   beyond the 30-second preview via an embedded player). */
+.music-result-actions {
+  display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0;
+}
+.music-full-song-btn {
+  flex-shrink: 0; padding: 7px 14px; background: rgba(139,195,74,0.15); color: #33691e;
+  border: 1px solid rgba(139,195,74,0.4); border-radius: var(--radius-md);
+  font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: opacity var(--duration-fast);
+  font-family: 'Hanken Grotesk', sans-serif;
+}
+.music-full-song-btn:hover { opacity: 0.85; }
+.music-full-song-btn:disabled { opacity: 0.5; cursor: wait; }
+.music-full-song-btn.active { background: var(--purple-primary); color: #fff; border-color: var(--purple-primary); }
+.music-full-track {
+  margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px dashed var(--border-subtle);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
+.music-full-track-loading {
+  display: flex; align-items: center; gap: var(--sp-2); font-size: 0.8rem; color: var(--text-secondary);
+}
+.music-full-track-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.music-full-track-item {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); background: var(--surface-card); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+.music-full-track-title { font-size: 0.82rem; font-weight: 700; color: var(--text-primary); font-family: 'EB Garamond', serif; }
+.music-full-track-meta { display: flex; align-items: center; gap: var(--sp-2); margin-top: 2px; }
+.music-full-track-close {
+  align-self: flex-start; padding: 5px 12px; background: transparent; color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+  font-size: 0.72rem; font-weight: 700; cursor: pointer; font-family: 'Hanken Grotesk', sans-serif;
+}
+.music-full-track-close:hover { color: var(--text-primary); border-color: var(--text-tertiary); }
+
+@media (max-width: 560px) {
+  .music-result-actions { width: 100%; flex-wrap: wrap; }
+  .music-result-actions .music-player-controls { flex: 1 1 auto; }
+}
+
 /* Track-level playback progress / seek bar */
 .music-progress {
   display: flex; align-items: center; gap: var(--sp-2);

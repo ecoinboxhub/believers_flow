@@ -137,6 +137,17 @@ describe('MusicView — in-app playback, no external redirects', () => {
     expect(musicSource).not.toMatch(/fake/)
   })
 
+  it('plays the complete song beyond the 30-second preview via a Full Song control', () => {
+    expect(musicSource).toContain('resolveFullTrack')
+    expect(musicSource).toContain('Full Song')
+    expect(musicSource).toContain('music-full-song-btn')
+    expect(musicSource).toContain('music-full-track')
+    expect(musicSource).toContain('Finding the full song...')
+    expect(musicSource).toContain('youtube-nocookie.com/embed')
+    expect(musicSource).toContain('The 30-second preview above still works')
+    expect(musicSource).toContain('Close full song')
+  })
+
   it('prevents overlapping players when switching music tabs', () => {
     expect(musicSource).toContain('stopActiveAudio')
     expect(musicSource).toContain('handleTabChange')
