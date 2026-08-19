@@ -1,6 +1,6 @@
 # BelieversFlow — Implementation Status
 
-**Last Updated:** August 18, 2026 (v4.22.0 — Guest-only app, real Bible translations, reliable music + legal UI)
+**Last Updated:** August 19, 2026 (v4.23.0 — Guest-only app, real Bible translations, reliable music + legal UI)
 
 ---
 
@@ -15,7 +15,7 @@
 
 ---
 
-## Implementation Status — v4.22.0
+## Implementation Status — v4.23.0
 
 ### Core Features (guest-only, no account required)
 
@@ -31,8 +31,8 @@
 | Bible Study Planner | ✅ Complete | Suggestions + manual plan |
 | Spiritual Balance Bar | ✅ Complete | Visual % chart |
 | Full Bible Reader (66 books) | ✅ Complete | OT/NT, chapter nav, offline cache |
-| Bible Version Selector | ✅ Complete | 15 servable translations |
-| Real Bible translations | ✅ Complete | KJV, WEB, WEBBE, ASV, BBE, DBY, DRB, YLT, BKR, RCCV, Almeida, Chinese, Cherokee, Vulgate, AKJV via upstream bible-api.com |
+| Bible Version Selector | ✅ Complete | 14 servable translations |
+| Real Bible translations | ✅ Complete | KJV, WEB, WEBBE, ASV, BBE, DBY, DRB, BKR, RCCV, Almeida, Chinese, Cherokee, Vulgate, AKJV via upstream bible-api.com |
 | AI Verse Explanation | ✅ Complete | Backend-proxied, no client keys |
 | Bible Commentary | ✅ Complete | Public-domain, free for guests |
 | Bible Concordance | ✅ Complete | Free for guests |
@@ -139,7 +139,7 @@
 | Testing | pytest (backend) + vitest (frontend) |
 | CI/CD | GitHub Actions |
 | Docker | Multi-stage builds + Redis |
-| Version | 4.22.0 (versionCode 23) |
+| Version | 4.23.0 (versionCode 24) |
 
 ---
 

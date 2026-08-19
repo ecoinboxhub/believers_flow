@@ -581,7 +581,7 @@ async def get_bible(book: str = Query(...), chapter: int = Query(...), version: 
             status_code=404,
             detail=(
                 f"The {version} translation is not available in this app. "
-                "Please select a translation we can serve reliably: KJV, WEB, WEBBE, ASV, BBE, DBY, DRB, YLT, BKR, RCCV, Almeida, Chinese, Cherokee, or Latin Vulgate."
+                "Please select a translation we can serve reliably: KJV, WEB, WEBBE, ASV, BBE, DBY, DRB, BKR, RCCV, Almeida, Chinese, Cherokee, or Latin Vulgate."
             ),
         )
     except HTTPException:
@@ -1053,11 +1053,11 @@ async def get_hymn_tune(hymn_id: int):
 
 _COMPARE_TRANSLATION_NAMES = {
     "KJV": "King James Version", "WEB": "World English Bible", "ASV": "American Standard Version",
-    "BBE": "Bible in Basic English", "YLT": "Young's Literal Translation",
+    "BBE": "Bible in Basic English",
     "DBY": "Darby Bible", "DRB": "Douay-Rheims Bible", "WBT": "Webster Bible", "RV": "Revised Version",
 }
 
-_COMPARE_DEFAULT = ["KJV", "WEB", "ASV", "BBE", "YLT"]
+_COMPARE_DEFAULT = ["KJV", "WEB", "ASV", "BBE"]
 
 
 @app.post("/api/bible/compare")

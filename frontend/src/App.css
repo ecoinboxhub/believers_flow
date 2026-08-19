@@ -3062,7 +3062,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     flex: 1;
     min-width: 0;
     margin-bottom: 0;
-    text-align: left;
+    text-align: center;
     line-height: var(--line-sm, 1.35);
   }
   .app-main header .header-mobile-row .header-mobile-actions { flex-shrink: 0; }
@@ -3257,7 +3257,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   flex: 1;
   min-width: 0;
   margin-bottom: 0;
-  text-align: left;
+  text-align: center;
   line-height: var(--line-sm, 1.35);
 }
 .view-switcher-mode-mobile .app-main header .header-mobile-row .header-mobile-actions { display: flex !important; flex-shrink: 0; }
@@ -3841,6 +3841,18 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .devotional-text { font-size: 0.85rem; line-height: 1.7; color: var(--text-secondary); }
 .devotional-verse-text { font-style: italic; font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); padding-left: var(--sp-3); border-left: 2px solid var(--gold-accent); }
 .devotional-verse-ref { font-size: 0.75rem; color: var(--gold-accent); margin-top: var(--sp-2); text-align: right; }
+.devotional-verse-ref-btn {
+  background: none; border: none; padding: 2px 4px; margin: -2px -4px;
+  font-family: inherit; font-size: inherit; color: inherit;
+  cursor: pointer; border-radius: 4px; text-decoration: underline;
+  text-underline-offset: 3px; text-decoration-color: rgba(184,134,11,0.35);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.devotional-verse-ref-btn:hover,
+.devotional-verse-ref-btn:focus-visible {
+  color: var(--gold-accent); background: rgba(184,134,11,0.12);
+  outline: none;
+}
 .devotional-prayer-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold-accent); margin-bottom: var(--sp-2); }
 .devotional-prayer-text { font-size: 0.85rem; line-height: 1.7; color: var(--text-secondary); font-style: italic; }
 .devotional-font-controls { display: flex; gap: var(--sp-2); }

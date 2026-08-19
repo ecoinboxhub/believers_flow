@@ -92,7 +92,6 @@ export const BIBLE_VERSIONS = [
   { id: "ERV", name: "Easy-to-Read Version", category: "English", year: 1987 },
   { id: "WEBBE", name: "World English Bible British Edition", category: "English", year: 2000 },
   { id: "WNT", name: "Weymouth New Testament", category: "English", year: 1903 },
-  { id: "YLT", name: "Young's Literal Translation", category: "English", year: 1898 },
   { id: "DBY", name: "Darby Bible", category: "English", year: 1890 },
   { id: "DRB", name: "Douay-Rheims Bible", category: "English", year: 1899 },
   { id: "Knox", name: "Knox Bible", category: "English", year: 1945 },
@@ -175,7 +174,7 @@ export const BIBLE_VERSIONS = [
 
 export const BIBLE_API_DIRECT = {
   KJV: "kjv", WEB: "web", WEBBE: "webbe", ASV: "asv", BBE: "bbe",
-  DBY: "darby", DRB: "dra", YLT: "ylt",
+  DBY: "darby", DRB: "dra",
   BKR: "bkr", RCCV: "rccv", Almeida: "almeida",
   Chinese: "cuv", Cherokee: "cherokee",
   Vulgate: "clementine",
@@ -194,7 +193,7 @@ export const BIBLE_API_DIRECT_DATA = {
 // Licensed versions (NIV, ESV, NLT, ...) require a license/API key and are intentionally
 // excluded so users never pick a translation that cannot be served.
 export const BIBLE_SERVABLE = [
-  "KJV", "WEB", "WEBBE", "ASV", "BBE", "DBY", "DRB", "YLT",
+  "KJV", "WEB", "WEBBE", "ASV", "BBE", "DBY", "DRB",
   "BKR", "RCCV", "Almeida", "Chinese", "Cherokee", "Vulgate", "AKJV",
 ]
 

@@ -7,18 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **Bible translations load fast without a backend**: when no `VITE_API_URL` is configured, chapters are fetched directly from bible-api.com instead of waiting on `/api/bible` (reduces load time and fixes "taking time to load").
-- **Interlinear view is styled and responsive**: added the missing base styles for the word cards (light mode previously rendered unstyled) and made the header/word grid wrap on narrow screens.
-- **Top of the app no longer shows a white/milkish band**: the developer preview ViewSwitcher bar now only renders in dev builds, and the light-mode header blends with the cream page theme.
-- **Boom Christian music works without a backend proxy**: `searchChristianMusicViaProxy` now falls back to the direct iTunes search when no API proxy is available.
-- **Registration rejects SQL-injection emails**: `RegisterRequest.email` is validated with an email format pattern, so SQLi payloads get `422` instead of `200`.
-- **Live endpoint suite matches the hardened API**: `scripts/test_all.py` now expects admin-gated `/api/dbtest`/`/api/pinetest` (401 anonymous), a servable Bible translation (WEB) plus 404 for unsupported NIV, guest-accessible `/api/chat`, and graceful RAG ingest when Pinecone is not configured.
-- **Bible service contract test updated**: `test_bible_service_only_marks_really_servable_versions` now reflects the current 18-entry real-upstream translation map.
+## [4.23.0] - 2026-08-19
+
+### Removed
+- **Young's Literal Translation (YLT) no longer listed or selectable**: the upstream bible-api.com source only serves the New Testament for YLT, so Old Testament chapters returned HTTP 404. The translation was removed from the frontend selectors, backend version registry, and compare defaults.
+- **Church devotionals with no viewable content removed**: the app now ships only the ten churches with full, readable content — Dunamis, RCCG Open Heaven, MFM, Deeper Life, Rhapsody of Realities, FCS, Food for the Day, Daily Manna, Winners Chapel, and CAC. Churches that previously showed "Content not available" (Our Daily Bread, David Jeremiah, In Touch, Joel Osteen, TREM, Joyce Meyer, Billy Graham, Joseph Prince, CDR, Kenneth Copeland) were removed from the app and the devotional API.
 
 ### Changed
-- `docs/status.md` refreshed to v4.22.0 (guest-only app, real translation list, current test counts).
-- Version references aligned to **4.22.0** across `README.md`, `release-notes.md`, `frontend/package.json`, and `docs/status.md`.
+- **Devotional scripture references open the Bible**: tapping a devotional's verse reference (e.g. "John 3:16") now opens that passage in the app's Bible reader.
+- **Header greeting is center-aligned** on mobile.
 
 ## [4.22.0] - 2026-08-15
 

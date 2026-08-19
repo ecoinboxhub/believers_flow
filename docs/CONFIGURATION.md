@@ -211,7 +211,7 @@ webServer: {
 | `namespace` | `com.believersguidelite.app` | Java package namespace. |
 | `applicationId` | `com.believersguidelite.app` | Play Store application ID. |
 | `versionCode` | `4` | Internal version code (incremental integer). |
-| `versionName` | `4.22.0` | User-facing version string. |
+| `versionName` | `4.23.0` | User-facing version string. |
 | `minifyEnabled` | `true` | R8 code minification and obfuscation. |
 | `shrinkResources` | `true` | Remove unused resources. |
 
@@ -438,7 +438,7 @@ const secondaryNav = ['groups', 'church', 'events', 'sermons', 'forum', 'analyti
 
 | Category | Count | Examples |
 |----------|-------|---------|
-| English | 60 | KJV, NKJV, NIV, ESV, NASB, NLT, CSB, AMP, ASV, RSV, NRSV, MSG, CEV, WEB, NET, BBE, YLT, DBY, DRB, Geneva, Tyndale, Wycliffe |
+| English | 58 | KJV, NKJV, NIV, ESV, NASB, NLT, CSB, AMP, ASV, RSV, NRSV, MSG, CEV, WEB, NET, BBE, DBY, DRB, Geneva, Tyndale, Wycliffe |
 | Hebrew | 1 | Westminster Leningrad Codex (WLC) |
 | Greek | 3 | Textus Receptus (TR), SBLGNT, Septuagint (LXX) |
 | Jewish | 4 | JPS 1917, JPS 1985, HNV, OJB |
@@ -449,7 +449,7 @@ const secondaryNav = ['groups', 'church', 'events', 'sermons', 'forum', 'analyti
 
 ### Free Translations via bible-api.com
 
-17 translations are available for free through the bible-api.com integration:
+16 translations are available for free through the bible-api.com integration:
 
 | ID | Translation |
 |----|-------------|
@@ -460,7 +460,6 @@ const secondaryNav = ['groups', 'church', 'events', 'sermons', 'forum', 'analyti
 | `bbe` | Bible in Basic English |
 | `darby` | Darby Bible |
 | `dra` | Douay-Rheims Bible |
-| `ylt` | Young's Literal Translation |
 | `oeb-cw` | Open English Bible Commonwealth |
 | `oeb-us` | Open English Bible US |
 | `cuv` | Chinese Union Version |

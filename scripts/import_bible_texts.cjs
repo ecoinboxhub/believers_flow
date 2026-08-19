@@ -3,7 +3,7 @@
  * Converts them to the local JSON format expected by bible_service.py
  *
  * Usage: node scripts/import_bible_texts.cjs [version_id]
- *   version_id defaults to "ASV" — can be: ASV, YLT, DBY, DRB, WBT, BBE, RV, WEB, KJV
+ *   version_id defaults to "ASV" — can be: ASV, DBY, DRB, WBT, BBE, RV, WEB, KJV
  */
 const https = require('https');
 const fs = require('fs');

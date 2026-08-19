@@ -107,7 +107,7 @@ def test_bible_service_only_marks_really_servable_versions():
     assert BIBLE_API_VERSIONS == {
         "KJV": "kjv", "AKJV": "kjv",
         "WEB": "web", "WEBBE": "webbe",
-        "ASV": "asv", "BBE": "bbe", "DBY": "darby", "DRB": "dra", "YLT": "ylt",
+        "ASV": "asv", "BBE": "bbe", "DBY": "darby", "DRB": "dra",
         "BKR": "bkr", "CzechKR": "bkr", "RCCV": "rccv",
         "Almeida": "almeida",
         "Vulgate": "clementine", "VulgateClem": "clementine", "LatinV": "clementine",

@@ -309,7 +309,7 @@ const [diaryTitle, setDiaryTitle] = useState('')
         throw new Error(
           typeof fallbackDetail === 'string' && fallbackDetail
             ? fallbackDetail
-            : `"${ver}" is not available. Choose KJV, WEB, ASV, BBE, DBY, YLT, or another supported translation.`
+            : `"${ver}" is not available. Choose KJV, WEB, ASV, BBE, DBY, or another supported translation.`
         )
       }
       if (!data.verses) data = { reference: `${book} ${chapter}`, verses: [], version: ver }
@@ -1216,6 +1216,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
               churchDevotionalDay={churchDevotionalDay} setChurchDevotionalDay={setChurchDevotionalDay}
               nextDevotional={nextDevotional} prevDevotional={prevDevotional}
               goToTodaysDevotional={goToTodaysDevotional}
+              goToBibleChapter={goToBibleChapter}
             />
           </ErrorBoundary>
         )}

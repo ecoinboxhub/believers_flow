@@ -111,29 +111,18 @@ src/
 │   ├── ViewSwitcher.jsx       # Desktop preview mode
 │   └── WelcomeScreen.jsx      # Welcome screen (first-run)
 │
-├── churchDevotionals/         # 23 church devotional data modules
+├── churchDevotionals/         # 14 church devotional data modules
 │   ├── index.js               # Aggregator (exports all churches)
 │   ├── believersloveworld.js  # Believers Loveworld
-│   ├── billygraham.js         # Billy Graham
 │   ├── cac.js                 # Christ Apostolic Church
-│   ├── cdr.js                 # Christ Redeemer's Ministry
 │   ├── dailymanna.js          # Daily Manna
-│   ├── davidjeremiah.js       # David Jeremiah
 │   ├── deeperlife.js          # Deeper Life Bible Church
 │   ├── dunamis.js             # Dunamis Gospel Church
 │   ├── fcs.js                 # Fountain of Life Church
 │   ├── foodfortheday.js       # Food for the Day
-│   ├── intouch.js             # In Touch (Charles Stanley)
-│   ├── joelosteen.js          # Joel Osteen
-│   ├── josephprince.js        # Joseph Prince
-│   ├── joycemeyer.js          # Joyce Meyer
-│   ├── kennethcopeland.js     # Kenneth Copeland
 │   ├── lagoschurch.js         # Lagos Church
 │   ├── mfm.js                 # Mountain of Fire
-│   ├── odbtd.js               # Our Daily Bread (Traditional)
-│   ├── ourdailybread.js       # Our Daily Bread
 │   ├── rccg.js                # Redeemed Christian Church of God
-│   ├── trem.js                # The Redeemed Evangelical Mission
 │   ├── wcc.js                 = Winner's Chapel
 │   └── winners.js             = Living Faith Church
 │
@@ -393,4 +382,4 @@ lint-and-unit → e2e → visual-regression → lighthouse → deploy
 
 ---
 
-*Last updated: July 2026 — BelieversFlow v4.22.0*
+*Last updated: July 2026 — BelieversFlow v4.23.0*

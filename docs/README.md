@@ -86,4 +86,4 @@ Legal documents, policies, and compliance checklists.
 
 ---
 
-*Last updated: July 2026 — BelieversFlow v4.22.0*
+*Last updated: July 2026 — BelieversFlow v4.23.0*

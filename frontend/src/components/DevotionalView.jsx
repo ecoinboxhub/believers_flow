@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { CHURCH_METADATA, CHURCH_NAMES, getChurchData } from '../churchDevotionals/index'
 import { getDayOfYear, formatDateFull } from '../dateUtils'
+import { BIBLE_BOOKS } from '../constants'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -14,6 +15,27 @@ async function getDevotionals() {
 
 function daysInYear(year) {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365
+}
+
+// Parse a Bible reference like "1 Peter 2:9" or "Psalm 3:5-6" into
+// { book, chapter } so tapping a devotional verse can open the app's Bible.
+const BOOK_LOOKUP = (() => {
+  const byId = new Map()
+  for (const b of BIBLE_BOOKS) byId.set(b.id.toLowerCase(), b)
+  return byId
+})()
+
+function parseVerseRef(ref) {
+  if (!ref) return null
+  const cleaned = String(ref).trim().replace(/[—–-]+$/, '')
+  const match = cleaned.match(/^(.*?)\s*(\d+)\s*:\s*\d+(-\d+)?/)
+  if (!match) return null
+  const bookPart = match[1].trim()
+  const chapter = parseInt(match[2], 10)
+  if (!bookPart || !chapter) return null
+  const book = BOOK_LOOKUP.get(bookPart.toLowerCase())
+  if (!book) return null
+  return { book: book.id, chapter }
 }
 
 const svgIcon = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '1.8', strokeLinecap: 'round', strokeLinejoin: 'round' }
@@ -59,7 +81,7 @@ function SectionLabel({ label, className, icon }) {
   )
 }
 
-function DevotionalStructure({ devotion, verse, sections, prayer, fontSize }) {
+function DevotionalStructure({ devotion, verse, sections, prayer, fontSize, onOpenRef }) {
   const f = {
     small: { verse: '0.9rem', text: '0.84rem' },
     medium: { verse: '1rem', text: '0.92rem' },
@@ -70,12 +92,29 @@ function DevotionalStructure({ devotion, verse, sections, prayer, fontSize }) {
 
   const showPrayer = prayer && !(sections && sections.some(s => s.type === 'prayer'))
 
+  const openRef = (ref) => {
+    if (!onOpenRef) return
+    const target = parseVerseRef(ref)
+    if (target) onOpenRef(target.book, target.chapter)
+  }
+
   return (
     <div className="devotional-reader">
       {verse && verse.text && (
         <blockquote className="devotional-verse-block" style={{ fontSize: f.verse }}>
           <p className="devotional-verse-text">&ldquo;{verse.text}&rdquo;</p>
-          {verse.ref && <footer className="devotional-verse-ref">&mdash; {verse.ref}</footer>}
+          {verse.ref && (
+            <footer className="devotional-verse-ref">
+              <button
+                type="button"
+                className="devotional-verse-ref-btn"
+                onClick={() => openRef(verse.ref)}
+                title={`Read ${verse.ref} in the Bible`}
+              >
+                &mdash; {verse.ref}
+              </button>
+            </footer>
+          )}
         </blockquote>
       )}
 
@@ -311,7 +350,7 @@ function DevotionalStudy({ devotion }) {
   )
 }
 
-function DevotionalContent({ devo, liveData, liveLoading, liveError, isLiveCapable, fontSize, setFontSize, churchName, churchColor }) {
+function DevotionalContent({ devo, liveData, liveLoading, liveError, isLiveCapable, fontSize, setFontSize, churchName, churchColor, onOpenRef }) {
   const showFallback = isLiveCapable && (liveError || (liveData && liveData.error))
   const hasLive = Boolean(liveData && !liveData.error)
 
@@ -371,6 +410,7 @@ function DevotionalContent({ devo, liveData, liveLoading, liveError, isLiveCapab
         sections={sections}
         prayer={prayer}
         fontSize={fontSize}
+        onOpenRef={onOpenRef}
       />
 
       <DevotionalStudy devotion={hasLive ? liveData : devo} />
@@ -406,6 +446,7 @@ export default function DevotionalView({
   devotionalFontSize, setDevotionalFontSize,
   selectedChurch, setSelectedChurch, churchDevotionalDay, setChurchDevotionalDay,
   nextDevotional, prevDevotional, goToTodaysDevotional,
+  goToBibleChapter,
 }) {
   const [devotionals, setDevotionals] = useState(null)
   const [devotionalsLoading, setDevotionalsLoading] = useState(true)
@@ -509,6 +550,7 @@ export default function DevotionalView({
               devo={currentDevotional}
               fontSize={devotionalFontSize}
               setFontSize={setDevotionalFontSize}
+              onOpenRef={goToBibleChapter}
             />
           )}
 
@@ -571,6 +613,7 @@ export default function DevotionalView({
                   setFontSize={setDevotionalFontSize}
                   churchName={churchInfo.name}
                   churchColor={churchInfo.color}
+                  onOpenRef={goToBibleChapter}
                 />
               )}
             </>

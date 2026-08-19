@@ -9,17 +9,6 @@ const CHURCH_MODULES = {
   dailymanna: () => import('./dailymanna'),
   winners: () => import('./winners'),
   cac: () => import('./cac'),
-  ourdailybread: () => import('./ourdailybread'),
-  davidjeremiah: () => import('./davidjeremiah'),
-  intouch: () => import('./intouch'),
-  joelosteen: () => import('./joelosteen'),
-  trem: () => import('./trem'),
-  joycemeyer: () => import('./joycemeyer'),
-  odbtd: () => import('./odbtd'),
-  billygraham: () => import('./billygraham'),
-  josephprince: () => import('./josephprince'),
-  cdr: () => import('./cdr'),
-  kennethcopeland: () => import('./kennethcopeland'),
 }
 
 export const CHURCH_METADATA = {
@@ -33,17 +22,6 @@ export const CHURCH_METADATA = {
   dailymanna: { name: 'Daily Manna', pastor: 'DCLM', color: '#8e44ad' },
   winners: { name: 'Winners Chapel', pastor: 'Bishop David Oyedepo', color: '#27ae60' },
   cac: { name: 'CAC Salvation Centre', pastor: 'Prophet Hezekiah Oladimeji', color: '#c0392b' },
-  ourdailybread: { name: 'Our Daily Bread', pastor: 'Various', color: '#d35400', available: false },
-  davidjeremiah: { name: 'David Jeremiah', pastor: 'Dr. David Jeremiah', color: '#7f8c8d', available: false },
-  intouch: { name: 'In Touch Ministries', pastor: 'Dr. Charles Stanley', color: '#34495e', available: false },
-  joelosteen: { name: 'Joel Osteen', pastor: 'Joel Osteen', color: '#c2185b', available: false },
-  trem: { name: 'TREM Devotional', pastor: 'Dr. Mike Irukwu', color: '#8B4513', available: false },
-  joycemeyer: { name: 'Joyce Meyer', pastor: 'Joyce Meyer', color: '#FF69B4', available: false },
-  odbtd: { name: 'Our Daily Bread', pastor: 'Our Daily Bread Ministries', color: '#2E86AB', available: false },
-  billygraham: { name: 'Billy Graham', pastor: 'Billy Graham Evangelistic Association', color: '#556B2F', available: false },
-  josephprince: { name: 'Joseph Prince', pastor: 'Joseph Prince', color: '#4169E1', available: false },
-  cdr: { name: 'CDR Devotional', pastor: 'Christ Dedicated Rock', color: '#DC143C', available: false },
-  kennethcopeland: { name: 'Kenneth Copeland', pastor: 'Kenneth Copeland Ministries', color: '#FF8C00', available: false },
 }
 
 export const CHURCH_NAMES = Object.keys(CHURCH_MODULES)
