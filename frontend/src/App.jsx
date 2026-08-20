@@ -17,6 +17,9 @@ import TasksView from './components/TasksView.jsx'
 import SpiritualView from './components/SpiritualView.jsx'
 import SettingsView from './components/SettingsView.jsx'
 import { ErrorBoundary } from './components/ErrorBoundary.jsx'
+import { Capacitor } from '@capacitor/core'
+import { App as CapacitorApp } from '@capacitor/app'
+import { isTransientAiError, sanitizeChatHistory } from './chatUtils.js'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 const AI_READY = true
@@ -100,7 +103,7 @@ export default function App() {
   const [studyChapter, setStudyChapter] = useState('')
   const [chatOpen, setChatOpen] = useState(false)
   const [chatMsg, setChatMsg] = useState('')
-  const [chatHistory, setChatHistory] = useState(() => loadState('btf_chat', []))
+  const [chatHistory, setChatHistory] = useState(() => sanitizeChatHistory(loadState('btf_chat', [])))
   const [chatLoading, setChatLoading] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
 const [diaryTitle, setDiaryTitle] = useState('')
@@ -160,6 +163,8 @@ const [diaryTitle, setDiaryTitle] = useState('')
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadState('btf_sidebarCollapsed', false))
   const [previewMode, setPreviewMode] = useState('desktop')
+  const viewHistoryRef = useRef([])
+  const currentViewRef = useRef('tasks')
 
   // Devotional state — `devotionalDay` is an OFFSET from today's calendar day,
   // so the daily devotional auto-advances with the date (no manual intervention).
@@ -230,8 +235,14 @@ const [diaryTitle, setDiaryTitle] = useState('')
   useEffect(() => { saveState('btf_churchDevotionalDay', churchDevotionalDay) }, [churchDevotionalDay])
   useEffect(() => { saveState('btf_navOrder', navOrder) }, [navOrder])
   useEffect(() => { saveState('btf_sidebarCollapsed', sidebarCollapsed) }, [sidebarCollapsed])
+  useEffect(() => { currentViewRef.current = currentView }, [currentView])
   useEffect(() => { if (chatOpen && chatInput.current) chatInput.current.focus() }, [chatOpen])
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatHistory])
+  useEffect(() => {
+    const raw = loadState('btf_chat', [])
+    const clean = sanitizeChatHistory(raw)
+    if (clean.length !== raw.length) saveState('btf_chat', clean)
+  }, [])
 
   useEffect(() => {
     if (mobileDrawerOpen) {
@@ -407,7 +418,7 @@ const [diaryTitle, setDiaryTitle] = useState('')
     if (navigator.vibrate) navigator.vibrate(10)
   }, [editingTask, taskText, taskDescription, taskDate, taskTime, taskCategory, taskReminder, settings.notifications.taskReminders, showToast])
 
-  const editTaskInit = useCallback((task) => {
+  const editTaskInit = (task) => {
     setEditingTask(task)
     setTaskText(task.text || '')
     setTaskDescription(task.description || '')
@@ -415,8 +426,8 @@ const [diaryTitle, setDiaryTitle] = useState('')
     setTaskTime(task.time || '')
     setTaskCategory(task.category || 'spiritual')
     setTaskReminder(task.reminder !== false)
-    setCurrentView('tasks')
-  }, [])
+    navigateTo('tasks')
+  }
 
   const cancelEditTask = useCallback(() => {
     setEditingTask(null); setTaskText(''); setTaskDescription(''); setTaskDate(''); setTaskTime(''); setTaskCategory('spiritual'); setTaskReminder(true)
@@ -529,9 +540,9 @@ const [diaryTitle, setDiaryTitle] = useState('')
     showToast(`Studying ${studyBook.trim()} ${studyChapter || ''}`)
   }, [studyBook, studyChapter, showToast])
 
-  const goToBibleChapter = useCallback((book, chapter) => {
-    setBibleBook(book); setBibleChapter(chapter); setCurrentView('bible')
-  }, [])
+  const goToBibleChapter = (book, chapter) => {
+    setBibleBook(book); setBibleChapter(chapter); navigateTo('bible')
+  }
 
 const generateDiaryReflection = useCallback(async (entry) => {
     if (!entry || !entry.id) return
@@ -558,10 +569,10 @@ const generateDiaryReflection = useCallback(async (entry) => {
     setDiaryTitle(''); setDiaryContent(''); setDiaryMood('\uD83D\uDE0A'); setEditingDiary(null)
   }, [diaryTitle, diaryContent, diaryMood, editingDiary, showToast, generateDiaryReflection])
 
-  const editDiaryEntry = useCallback((entry) => {
+  const editDiaryEntry = (entry) => {
     setEditingDiary(entry); setDiaryTitle(entry.title); setDiaryContent(entry.content); setDiaryMood(entry.mood)
-    setCurrentView('diary')
-  }, [])
+    navigateTo('diary')
+  }
 
   const deleteDiaryEntry = useCallback((id) => {
     setDiaryEntries(prev => {
@@ -611,9 +622,13 @@ const generateDiaryReflection = useCallback(async (entry) => {
         } else if (res.status === 429) {
           pushError("The assistant is busy right now. Please wait a moment and try again.")
         } else if (res.status >= 500) {
-          pushError(detail || "The assistant service is temporarily unavailable. Please try again.")
+          const text = detail || "The assistant service is temporarily unavailable. Please try again."
+          if (isTransientAiError(text)) { showToast('The assistant service is unavailable right now. Please try again.', 'warning'); return }
+          pushError(text)
         } else {
-          pushError(detail || `Request failed (${res.status}). Please try again.`)
+          const text = detail || `Request failed (${res.status}). Please try again.`
+          if (isTransientAiError(text)) { showToast('The assistant could not respond right now. Please try again.', 'warning'); return }
+          pushError(text)
         }
         return
       }
@@ -624,11 +639,13 @@ const generateDiaryReflection = useCallback(async (entry) => {
       setChatHistory(prev => [...prev, { role: 'assistant', content: data.message }])
     } catch (err) {
       const isNetwork = !err || err.name === 'TypeError' || err.message === 'Failed to fetch'
-      pushError(isNetwork
-        ? "Network error — please check your connection and try again."
-        : `Something went wrong (${err.message}). Please try again.`)
+      if (isNetwork) {
+        showToast('Network error — please check your connection and try again.', 'warning')
+      } else {
+        showToast('Something went wrong. Please try again.', 'warning')
+      }
     } finally { setChatLoading(false) }
-  }, [chatMsg, chatLoading, tasks])
+  }, [chatMsg, chatLoading, tasks, showToast])
 
   const swapNavItems = useCallback((from, to) => {
     setNavOrder(prev => {
@@ -949,10 +966,43 @@ const generateDiaryReflection = useCallback(async (entry) => {
     guide: 'Guide',
   }
 
-  const openView = useCallback((view) => {
+  const navigateTo = (view) => {
+    const prev = currentViewRef.current
+    if (view === prev) return
+    viewHistoryRef.current = [...viewHistoryRef.current, prev]
+    setCurrentView(view)
+  }
+
+  const openView = (view) => {
     if (view === 'assistant') { setChatOpen(true); return }
     if (view === 'guide') { setShowGuide(true); return }
-    setCurrentView(view)
+    navigateTo(view)
+  }
+
+  const handleAndroidBack = () => {
+    if (mobileDrawerOpen) { setMobileDrawerOpen(false); return }
+    if (chatOpen) { setChatOpen(false); return }
+    if (showGuide) { setShowGuide(false); return }
+    const history = viewHistoryRef.current
+    if (history.length) {
+      const prev = history[history.length - 1]
+      viewHistoryRef.current = history.slice(0, -1)
+      setCurrentView(prev)
+      return
+    }
+    if (Capacitor.isNativePlatform()) CapacitorApp.exitApp()
+  }
+
+  const backHandlerRef = useRef(handleAndroidBack)
+  useEffect(() => { backHandlerRef.current = handleAndroidBack })
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let active = true
+    let listener = null
+    CapacitorApp.addListener('backButton', () => { backHandlerRef.current() })
+      .then(l => { if (active) listener = l }).catch(() => {})
+    return () => { active = false; if (listener) listener.remove() }
   }, [])
 
   const renderNavButton = (view) => (
@@ -1070,6 +1120,9 @@ const generateDiaryReflection = useCallback(async (entry) => {
               <button className="hamburger-btn" onClick={() => setMobileDrawerOpen(true)} aria-label="Open navigation menu">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
               </button>
+              <div className="header-brand">
+                <span className="header-brand-text">Believers Flow</span>
+              </div>
               <div className="greeting">{greeting.msg} <span className="live-clock-badge"><span className="clock-date">{formatDateShort()}</span><span className="clock-sep">·</span><span className="clock-time">{formatTimeShort()}</span><span className="clock-sep">·</span><span className="clock-tz">{getUserTimezoneAbbr()}</span></span></div>
               <div className="header-mobile-actions">
                 <div className="header-mode-toggle-mobile">
@@ -1273,7 +1326,7 @@ const generateDiaryReflection = useCallback(async (entry) => {
               ))}
               <div className="mobile-drawer-section-label">Account</div>
               <button className={`mobile-drawer-item${currentView === 'settings' ? ' active' : ''}`}
-                onClick={() => { setCurrentView('settings'); setMobileDrawerOpen(false) }}>
+                onClick={() => { navigateTo('settings'); setMobileDrawerOpen(false) }}>
                 <span className="mobile-drawer-item-icon">{navIcons.settings}</span>
                 <span className="mobile-drawer-item-label">Settings</span>
                 {currentView === 'settings' && <span className="mobile-drawer-active-dot" />}

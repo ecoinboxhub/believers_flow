@@ -102,7 +102,16 @@ def _failover_order(preferred: str) -> list:
     return configured
 
 
-_FALLOVER_STATUSES = {401, 403, 429, 500, 502, 503, 504}
+_FALLOVER_STATUSES = {401, 403, 404, 429, 500, 502, 503, 504}
+
+
+def _friendly_llm_error(status_code: int) -> HTTPException:
+    """Map upstream HTTP errors to a friendly message without leaking provider/status detail."""
+    if status_code == 404:
+        return HTTPException(status_code=503, detail="The AI service model is temporarily unavailable. Please try again later.")
+    if status_code == 400:
+        return HTTPException(status_code=502, detail="The AI service could not process the request. Please try again later.")
+    return HTTPException(status_code=status_code, detail="The AI service is temporarily unavailable. Please try again later.")
 
 
 def _should_fail_over(exc) -> bool:
@@ -198,13 +207,13 @@ async def call_llm(
         except httpx.HTTPStatusError as e:
             last_error = e
             if not _should_fail_over(e):
-                raise HTTPException(status_code=e.response.status_code, detail=f"{name.upper()} API error: {e.response.status_code}")
+                raise _friendly_llm_error(e.response.status_code)
         except httpx.RequestError as e:
             last_error = e
     if isinstance(last_error, httpx.RequestError):
         raise HTTPException(status_code=502, detail=f"Failed to reach {last_error.request.url.host if last_error.request else 'the'} API")
     if isinstance(last_error, httpx.HTTPStatusError):
-        raise HTTPException(status_code=last_error.response.status_code, detail=f"{last_error.response.request.url.host or 'AI'} API error: {last_error.response.status_code}")
+        raise _friendly_llm_error(last_error.response.status_code)
     raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
 
 
@@ -252,13 +261,13 @@ async def call_llm_multi(
         except httpx.HTTPStatusError as e:
             last_error = e
             if not _should_fail_over(e):
-                raise HTTPException(status_code=e.response.status_code, detail=f"{name.upper()} API error: {e.response.status_code}")
+                raise _friendly_llm_error(e.response.status_code)
         except httpx.RequestError as e:
             last_error = e
     if isinstance(last_error, httpx.RequestError):
         raise HTTPException(status_code=502, detail=f"Failed to reach {last_error.request.url.host if last_error.request else 'the'} API")
     if isinstance(last_error, httpx.HTTPStatusError):
-        raise HTTPException(status_code=last_error.response.status_code, detail=f"{last_error.response.request.url.host or 'AI'} API error: {last_error.response.status_code}")
+        raise _friendly_llm_error(last_error.response.status_code)
     raise HTTPException(status_code=502, detail="The AI service returned an empty response. Please try again.")
 
 

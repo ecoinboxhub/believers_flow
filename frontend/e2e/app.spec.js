@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { setupSkipOverlays, waitForApp } from './helpers.js'
+import { setupSkipOverlays, waitForApp, navigateToView } from './helpers.js'
 
 test.describe('BelieversFlow App — Core Functionality', () => {
   test.beforeEach(async ({ page }) => {
@@ -35,7 +35,7 @@ test.describe('BelieversFlow App — Core Functionality', () => {
   }, 15000)
 
   test('should show devotional view', async ({ page }) => {
-    await page.getByRole('button', { name: 'Daily' }).click()
+    await navigateToView(page, 'Daily', true)
     await expect(page.locator('.view')).toContainText('Daily Devotional')
   })
 
@@ -104,9 +104,12 @@ test.describe('BelieversFlow — Desktop Navigation', () => {
     await expect(headerRow.locator('.header-mode-toggle')).toBeVisible()
   })
 
-  test('should NOT show bottom nav or mobile header', async ({ page }) => {
+  test('should show mobile header row (greeting) and hide bottom nav', async ({ page }) => {
+    await expect(page.locator('.header-mobile-row')).toBeVisible()
+    await expect(page.locator('.header-mobile-row .greeting')).toBeVisible()
     await expect(page.locator('.bottom-nav')).not.toBeVisible()
-    await expect(page.locator('.header-mobile-row')).not.toBeVisible()
+    await expect(page.locator('.hamburger-btn')).not.toBeVisible()
+    await expect(page.locator('.header-mobile-actions')).not.toBeVisible()
   })
 
   test('should collapse and expand sidebar', async ({ page }) => {
@@ -117,8 +120,7 @@ test.describe('BelieversFlow — Desktop Navigation', () => {
     await expect(page.locator('.app-layout')).toHaveClass(/sidebar-collapsed/)
 
     const sidebar = page.locator('.app-sidebar')
-    const box = await sidebar.boundingBox()
-    expect(box.width).toBeLessThan(100)
+    await expect.poll(async () => (await sidebar.boundingBox())?.width ?? 999, { timeout: 5000 }).toBeLessThan(100)
 
     await collapseBtn.click()
     await expect(page.locator('.app-layout')).not.toHaveClass(/sidebar-collapsed/)
@@ -281,9 +283,12 @@ test.describe('BelieversFlow — Tablet Navigation', () => {
     await expect(sidebar.locator('.sidebar-nav-item').first()).toBeVisible()
   })
 
-  test('should NOT show bottom nav or mobile header', async ({ page }) => {
+  test('should show mobile header row (greeting) and hide bottom nav', async ({ page }) => {
+    await expect(page.locator('.header-mobile-row')).toBeVisible()
+    await expect(page.locator('.header-mobile-row .greeting')).toBeVisible()
     await expect(page.locator('.bottom-nav')).not.toBeVisible()
-    await expect(page.locator('.header-mobile-row')).not.toBeVisible()
+    await expect(page.locator('.hamburger-btn')).not.toBeVisible()
+    await expect(page.locator('.header-mobile-actions')).not.toBeVisible()
   })
 
   test('should show desktop header', async ({ page }) => {

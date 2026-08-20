@@ -3084,6 +3084,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     align-items: center;
   }
   .app-main header .header-mobile-row .hamburger-btn,
+  .app-main header .header-mobile-row .header-brand,
   .app-main header .header-mobile-row .header-mobile-actions { display: none; }
   .app-main header .header-mobile-row .greeting { margin-bottom: var(--sp-2); }
   .app-main .stats-bar { padding: var(--sp-2) var(--sp-4); }
@@ -3105,6 +3106,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     align-items: center;
   }
   .app-main header .header-mobile-row .hamburger-btn,
+  .app-main header .header-mobile-row .header-brand,
   .app-main header .header-mobile-row .header-mobile-actions { display: none; }
   .app-main header .header-mobile-row .greeting { margin-bottom: var(--sp-2); }
   .app-main .stats-bar { padding: var(--sp-3) var(--sp-6); }
@@ -3233,7 +3235,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .view-switcher-mode-tablet .bottom-nav { display: none !important; }
 .view-switcher-mode-tablet .header-mobile-row { display: flex !important; justify-content: center; align-items: center; }
 .view-switcher-mode-tablet .header-mobile-row .hamburger-btn,
-.view-switcher-mode-tablet .header-mobile-row .header-mobile-actions { display: none !important; }
+  .view-switcher-mode-tablet .header-mobile-row .header-brand,
+  .view-switcher-mode-tablet .header-mobile-row .header-mobile-actions { display: none !important; }
 .view-switcher-mode-tablet .header-mobile-row .greeting { margin-bottom: var(--sp-2); }
 .view-switcher-mode-tablet .header-top-row { display: flex !important; }
 .view-switcher-mode-tablet #main-nav { display: none !important; }
