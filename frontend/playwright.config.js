@@ -15,7 +15,7 @@ export default defineConfig({
       maxDiffPixelRatio: 0.05,
       threshold: 0.4,
       animations: 'disabled',
-      snapshotPathTemplate: '{snapshotDir}/{arg}{ext}',
+      pathTemplate: '{snapshotDir}/{testFileName}-snapshots/{arg}{ext}',
     },
   },
   use: {
