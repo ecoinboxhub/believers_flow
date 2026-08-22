@@ -13,6 +13,7 @@ import os
 import json
 import logging
 import re
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
@@ -128,19 +129,29 @@ async def _check_auth_rate_limit(key: str, max_attempts: int = 10, window: int =
         return True
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+async def _init_db_background():
     try:
         await init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"DB init failed (app continues with degraded mode): {e}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Non-blocking startup: DB pool creation must never stall the event
+    # loop or delay /api/health. The pool is built in a background task
+    # while the server starts serving immediately; routes guarded by
+    # require_db() return 503 via check_db_health() until the pool is ready.
+    db_init_task = asyncio.create_task(_init_db_background())
     db_status = get_db_status()
     logger.info(f"DB status at startup: available={db_status['available']}, failures={db_status['consecutive_failures']}")
     yield
     await close_http_client()
     await close_redis()
     await close_pool()
+    if not db_init_task.done():
+        db_init_task.cancel()
 
 
 app = FastAPI(title="BelieversFlow API", version="4.24.0", lifespan=lifespan)
