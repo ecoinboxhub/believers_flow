@@ -16,7 +16,7 @@
 
 A comprehensive faith-driven productivity platform for Christian believers. Manage daily tasks rooted in scripture, read the Bible across 104 translations, sing from a collection of 1000+ hymns, and track your spiritual growth journey — all in one beautifully designed app.
 
-[Web App](https://believersflow.vercel.app) · [Report Bug](https://github.com/ecoinboxhub/believers_flow/issues) · [Request Feature](https://github.com/ecoinboxhub/believers_flow/issues) · [Documentation](docs/)
+[Web App](https://believers-flow-frontend.vercel.app) · [Report Bug](https://github.com/ecoinboxhub/believers_flow/issues) · [Request Feature](https://github.com/ecoinboxhub/believers_flow/issues) · [Documentation](docs/)
 
 </div>
 
@@ -287,7 +287,7 @@ believersflow/
 ├── .github/workflows/              # CI/CD pipelines
 │   ├── ci-frontend.yml             # Frontend CI (5-job pipeline)
 │   ├── build-apk.yml               # APK build + GitHub Release
-│   └── deploy-backend.yml          # Backend deployment to Railway
+│   └── deploy-backend.yml          # Backend CI (test-only pipeline)
 ├── README.md                       # This file
 ├── LICENSE                         # MIT License
 ├── CHANGELOG.md                    # Version history

@@ -21,7 +21,7 @@
 - Boom Christian song search results now play the complete song in-app: each result has a Full Song button that finds the matching full-length track and plays it through the embedded player, beyond the 30-second Apple Music preview. The quick 30-second preview still works as before, and the app shows a clear message when a full version cannot be found.
 
 ### Links
-- Web App: https://believersflow.vercel.app
+- Web App: https://believers-flow-frontend.vercel.app
 - API: https://believers-flow.onrender.com
 
 ## BelieversFlow v4.23.0
@@ -50,5 +50,5 @@
 - Header greeting is center-aligned on mobile.
 
 ### Links
-- Web App: https://believersflow.vercel.app
+- Web App: https://believers-flow-frontend.vercel.app
 - API: https://believers-flow.onrender.com

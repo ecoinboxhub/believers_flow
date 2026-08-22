@@ -102,7 +102,7 @@ Add to `ios/App/App/Info.plist`:
     <false/>
     <key>NSExceptionDomains</key>
     <dict>
-        <key>believersflow.vercel.app</key>
+        <key>believers-flow-frontend.vercel.app</key>
         <dict>
             <key>NSExceptionAllowsInsecureHTTPLoads</key>
             <false/>
