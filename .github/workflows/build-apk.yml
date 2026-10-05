@@ -67,12 +67,35 @@ jobs:
       - name: Link node_modules for Gradle
         run: ln -s frontend/node_modules node_modules
 
+      - name: Check release signing secrets
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::KEYSTORE_BASE64 and KEYSTORE_PASSWORD must be set."
+            echo "Without them the build would generate a brand-new signing key, and every"
+            echo "release would be signed differently - users could never install an update"
+            echo "over an existing install. See docs/KEYSTORE_ROTATION.md."
+            exit 1
+          fi
+          echo "release signing secrets present"
+
+      - name: Restore release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | base64 -d > mobile/app/app-release.jks
+          ls -l mobile/app/app-release.jks
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.14.3'
 
       - name: Build signed APK
+        env:
+          BF_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           cd mobile
           gradle assembleRelease --stacktrace
@@ -91,6 +114,33 @@ jobs:
             exit 1
           fi
           echo "assets/capacitor.plugins.json present in APK"
+
+      - name: Verify APK signature
+        env:
+          EXPECTED_CERT_SHA256: ${{ vars.ANDROID_RELEASE_CERT_SHA256 }}
+        run: |
+          APK_PATH="mobile/app/build/outputs/apk/release/app-release.apk"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK_PATH"
+          ACTUAL=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$APK_PATH" \
+                  | awk '/certificate SHA-256 digest/ {print $NF}')
+          echo "signing cert SHA-256: $ACTUAL"
+          if [ -n "$EXPECTED_CERT_SHA256" ] && [ "$ACTUAL" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::APK signing certificate does not match the pinned release certificate."
+            echo "Expected: $EXPECTED_CERT_SHA256"
+            echo "Actual:   $ACTUAL"
+            echo "This means the signing key changed. Confirm it was an intentional rotation."
+            exit 1
+          fi
+
+      - name: Check APK payload for non-shipping assets
+        run: |
+          APK_PATH="mobile/app/build/outputs/apk/release/app-release.apk"
+          if unzip -l "$APK_PATH" | grep -qiE 'assets/public/(UI|UI icons)/'; then
+            echo "::error::design sources under public/ are being packaged into the APK"
+            exit 1
+          fi
+          echo "APK size: $(du -h "$APK_PATH" | cut -f1)"
+          echo "no design sources packaged"
 
       - name: Prepare release asset
         run: cp mobile/app/build/outputs/apk/release/app-release.apk BelieversFlow.apk
